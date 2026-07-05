@@ -98,5 +98,5 @@ authRouter.get('/me', async (req, res) => {
     res.status(401).json({ error: 'Not authenticated' })
     return
   }
-  res.json({ user: dbUser })
+  res.json({ user: dbUser, isDemo: req.session.isDemo ?? false })
 })

@@ -3,6 +3,7 @@ import cors from 'cors'
 import session from 'express-session'
 import connectPgSimple from 'connect-pg-simple'
 import { authRouter } from './routes/auth.routes.js'
+import { demoRouter } from './routes/demo.routes.js'
 import { credentialsRouter } from './routes/credentials.routes.js'
 import { campaignsRouter } from './routes/campaigns.routes.js'
 import { entitiesRouter } from './routes/entities.routes.js'
@@ -40,6 +41,7 @@ app.use(
 
 // Routes
 app.use('/auth', authRouter)
+app.use('/auth/demo', demoRouter)
 app.use('/api/credentials', credentialsRouter)
 app.use('/api/campaigns', campaignsRouter)
 app.use('/api/entities', entitiesRouter)
