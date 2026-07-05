@@ -1,0 +1,323 @@
+import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '../../lib/api'
+import { cn } from '../../lib/cn'
+import {
+  RefreshCw, Edit2, Save, Lock, Unlock, Trash2,
+  ChevronDown, ChevronUp, Shield, Eye, EyeOff, Link2
+} from 'lucide-react'
+
+export interface EntityCardData {
+  id: string
+  name: string
+  description?: string
+  imageUrl?: string
+  portraitUrl?: string
+  tags?: string[]
+  dmOnlyNotes?: string
+  pinned?: boolean
+  // NPC fields
+  role?: string
+  status?: string
+  dispositionToParty?: string
+  appearance?: string
+  personality?: string
+  motivations?: string
+  secrets?: string
+  voiceNotes?: string
+  statBlock?: Record<string, unknown>
+  // Item fields
+  rarity?: string
+  category?: string
+  mechanicalEffect?: string
+  // Location fields
+  type?: string
+  // Encounter fields
+  difficulty?: string
+  setup?: string
+  tactics?: string
+  twist?: string
+  // Plot thread
+  title?: string
+}
+
+interface EntityCardProps {
+  entity: EntityCardData
+  entityType: 'npc' | 'item' | 'location' | 'faction' | 'encounter' | 'plot_thread'
+  campaignId: string
+  compact?: boolean
+  onSaved?: () => void
+  scratchMode?: boolean // not saved to DB yet
+  onSave?: (entity: EntityCardData) => void
+  onRegenerate?: () => void
+  locked?: boolean
+  onToggleLock?: () => void
+}
+
+const DISPOSITION_COLOR: Record<string, string> = {
+  hostile: 'text-red-500',
+  wary: 'text-orange-400',
+  neutral: 'text-ink-muted',
+  friendly: 'text-green-500',
+  complicated: 'text-purple-400',
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  alive: 'text-green-500',
+  dead: 'text-red-400',
+  missing: 'text-orange-400',
+  unknown: 'text-ink-muted',
+}
+
+const RARITY_COLOR: Record<string, string> = {
+  common: 'text-ink-muted',
+  uncommon: 'text-green-500',
+  rare: 'text-blue-400',
+  'very rare': 'text-purple-400',
+  legendary: 'text-orange-400',
+  artifact: 'text-yellow-400',
+}
+
+export default function EntityCard({
+  entity, entityType, campaignId, compact = false,
+  onSaved, scratchMode, onSave, onRegenerate, locked, onToggleLock,
+}: EntityCardProps) {
+  const qc = useQueryClient()
+  const [expanded, setExpanded] = useState(!compact)
+  const [editing, setEditing] = useState(false)
+  const [showSecrets, setShowSecrets] = useState(false)
+  const [draft, setDraft] = useState(entity)
+
+  const entityPath = entityType === 'plot_thread' ? 'plot-threads' : `${entityType}s`
+
+  const updateMutation = useMutation({
+    mutationFn: (data: Partial<EntityCardData>) =>
+      api.patch(`/api/entities/${campaignId}/${entityPath}/${entity.id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
+      setEditing(false)
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/api/entities/${campaignId}/${entityPath}/${entity.id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
+      onSaved?.()
+    },
+  })
+
+  const displayName = entityType === 'plot_thread' ? (entity.title ?? entity.name) : entity.name
+
+  return (
+    <div className={cn(
+      'card group relative transition-all',
+      locked && 'ring-2 ring-accent/30',
+    )}>
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        {entity.portraitUrl || entity.imageUrl ? (
+          <img
+            src={entity.portraitUrl ?? entity.imageUrl}
+            alt={displayName}
+            className="w-12 h-12 rounded-card object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-card bg-surface-2 flex items-center justify-center text-xl flex-shrink-0">
+            {entityType === 'npc' ? '🧙' : entityType === 'item' ? '⚔️' : entityType === 'location' ? '🗺️' : entityType === 'faction' ? '⚜️' : entityType === 'encounter' ? '💀' : '📜'}
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            {editing ? (
+              <input
+                className="input text-sm font-semibold py-0.5"
+                value={draft.name}
+                onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
+              />
+            ) : (
+              <h3 className="display-font font-semibold text-ink text-base leading-tight truncate">{displayName}</h3>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {entity.role && <span className="text-xs text-ink-muted">{entity.role}</span>}
+            {entity.status && (
+              <span className={cn('text-xs font-medium', STATUS_COLOR[entity.status] ?? 'text-ink-muted')}>
+                {entity.status}
+              </span>
+            )}
+            {entity.dispositionToParty && (
+              <span className={cn('text-xs', DISPOSITION_COLOR[entity.dispositionToParty] ?? 'text-ink-muted')}>
+                {entity.dispositionToParty}
+              </span>
+            )}
+            {entity.rarity && (
+              <span className={cn('text-xs font-medium', RARITY_COLOR[entity.rarity] ?? 'text-ink-muted')}>
+                {entity.rarity}
+              </span>
+            )}
+            {entity.difficulty && (
+              <span className="text-xs text-orange-400">{entity.difficulty}</span>
+            )}
+            {entity.type && (
+              <span className="text-xs text-ink-muted capitalize">{entity.type}</span>
+            )}
+          </div>
+
+          {entity.tags && entity.tags.length > 0 && (
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {entity.tags.slice(0, 4).map(tag => (
+                <span key={tag} className="badge bg-surface-2 text-ink-muted text-[10px]">{tag}</span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onRegenerate && (
+            <button className="btn-ghost p-1" onClick={onRegenerate} title="Regenerate">
+              <RefreshCw size={13} />
+            </button>
+          )}
+          {onToggleLock && (
+            <button className="btn-ghost p-1" onClick={onToggleLock} title={locked ? 'Unlock' : 'Lock'}>
+              {locked ? <Lock size={13} className="text-accent" /> : <Unlock size={13} />}
+            </button>
+          )}
+          {!scratchMode && (
+            <button className="btn-ghost p-1" onClick={() => setEditing(v => !v)} title="Edit">
+              <Edit2 size={13} />
+            </button>
+          )}
+          {scratchMode && onSave ? (
+            <button className="btn-primary py-1 px-2 text-xs" onClick={() => onSave(entity)}>
+              <Save size={12} /> Save
+            </button>
+          ) : !scratchMode && (
+            <button
+              className="btn-ghost p-1 text-danger"
+              onClick={() => confirm(`Delete ${displayName}?`) && deleteMutation.mutate()}
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+          <button className="btn-ghost p-1" onClick={() => setExpanded(v => !v)}>
+            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Description */}
+      {(entity.description) && (
+        <div className="mt-3">
+          {editing ? (
+            <textarea
+              className="textarea text-sm"
+              rows={3}
+              value={draft.description ?? ''}
+              onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
+            />
+          ) : (
+            <p className="text-sm text-ink-muted leading-relaxed">{entity.description}</p>
+          )}
+        </div>
+      )}
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="mt-3 space-y-3 border-t border-border pt-3 animate-fade-in">
+          {entity.appearance && (
+            <Field label="Appearance" value={entity.appearance} editing={editing} onChange={v => setDraft(d => ({ ...d, appearance: v }))} draft={draft.appearance} />
+          )}
+          {entity.personality && (
+            <Field label="Personality" value={entity.personality} editing={editing} onChange={v => setDraft(d => ({ ...d, personality: v }))} draft={draft.personality} />
+          )}
+          {entity.motivations && (
+            <Field label="Motivations" value={entity.motivations} editing={editing} onChange={v => setDraft(d => ({ ...d, motivations: v }))} draft={draft.motivations} />
+          )}
+          {entity.voiceNotes && (
+            <Field label="Voice" value={entity.voiceNotes} editing={editing} onChange={v => setDraft(d => ({ ...d, voiceNotes: v }))} draft={draft.voiceNotes} />
+          )}
+          {entity.mechanicalEffect && (
+            <Field label="Mechanical Effect" value={entity.mechanicalEffect} editing={editing} onChange={v => setDraft(d => ({ ...d, mechanicalEffect: v }))} draft={draft.mechanicalEffect} />
+          )}
+          {entity.setup && (
+            <Field label="Setup (read aloud)" value={entity.setup} editing={editing} onChange={v => setDraft(d => ({ ...d, setup: v }))} draft={draft.setup} />
+          )}
+          {entity.tactics && (
+            <Field label="Tactics" value={entity.tactics} editing={editing} onChange={v => setDraft(d => ({ ...d, tactics: v }))} draft={draft.tactics} />
+          )}
+          {entity.twist && (
+            <Field label="Twist" value={entity.twist} editing={editing} onChange={v => setDraft(d => ({ ...d, twist: v }))} draft={draft.twist} />
+          )}
+
+          {/* GM Secret fields */}
+          {entity.secrets && (
+            <div className="gm-secret p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="label text-gm-secret mb-0">Secrets (DM only)</span>
+                <button className="btn-ghost p-0.5" onClick={() => setShowSecrets(v => !v)}>
+                  {showSecrets ? <EyeOff size={12} /> : <Eye size={12} />}
+                </button>
+              </div>
+              {showSecrets ? (
+                editing ? (
+                  <textarea className="textarea text-sm" rows={2} value={draft.secrets ?? ''} onChange={e => setDraft(d => ({ ...d, secrets: e.target.value }))} />
+                ) : (
+                  <p className="text-sm text-ink">{entity.secrets}</p>
+                )
+              ) : (
+                <p className="text-sm text-ink-muted italic">Hidden — click to reveal</p>
+              )}
+            </div>
+          )}
+          {entity.dmOnlyNotes && (
+            <div className="gm-secret p-3">
+              <span className="label text-gm-secret">DM Notes</span>
+              {editing ? (
+                <textarea className="textarea text-sm" rows={2} value={draft.dmOnlyNotes ?? ''} onChange={e => setDraft(d => ({ ...d, dmOnlyNotes: e.target.value }))} />
+              ) : (
+                <p className="text-sm text-ink">{entity.dmOnlyNotes}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit save/cancel bar */}
+      {editing && (
+        <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+          <button
+            className="btn-primary text-xs py-1.5"
+            onClick={() => updateMutation.mutate(draft)}
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+          </button>
+          <button className="btn-secondary text-xs py-1.5" onClick={() => { setEditing(false); setDraft(entity) }}>
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Field({ label, value, editing, onChange, draft }: {
+  label: string; value: string; editing: boolean;
+  onChange: (v: string) => void; draft?: string;
+}) {
+  return (
+    <div>
+      <span className="label">{label}</span>
+      {editing ? (
+        <textarea className="textarea text-sm" rows={2} value={draft ?? value} onChange={e => onChange(e.target.value)} />
+      ) : (
+        <p className="text-sm text-ink leading-relaxed">{value}</p>
+      )}
+    </div>
+  )
+}

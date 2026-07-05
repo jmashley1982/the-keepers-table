@@ -1,0 +1,4 @@
+- [Project stack & structure](project-stack.md) — flat pnpm root (no workspace), Express server on 3001, Vite client on 5000, shared node_modules
+- [Auth approach](auth-approach.md) — express-session + connect-pg-simple (NOT Lucia); Lucia adapter-prisma v1 was unavailable
+- [Prisma setup](prisma-setup.md) — schema at server/prisma/schema.prisma; must run `node_modules/.bin/prisma` from root, not sub-package
+- [CSS variable opacity](css-vars-opacity.md) — Tailwind v3 @apply can't use /opacity modifiers on CSS-var colors; use color-mix() in plain CSS instead
