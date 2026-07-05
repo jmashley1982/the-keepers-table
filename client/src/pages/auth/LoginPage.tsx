@@ -26,7 +26,7 @@ export default function LoginPage() {
           <img
             src="/logo.png"
             alt="The Keeper's Table"
-            className="h-32 w-auto mx-auto mb-2 logo-theme"
+            className="h-[154px] w-auto mx-auto mb-2 logo-theme"
           />
           <p className="text-ink-muted text-sm">AI-powered campaign management for GMs</p>
         </div>
