@@ -63,10 +63,12 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
   return (
     <aside className="w-56 flex flex-col bg-surface border-r border-border h-full overflow-y-auto flex-shrink-0">
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-border">
-        <h1 className="display-font text-lg font-bold text-ink leading-tight">
-          The Keeper's<br />Table
-        </h1>
+      <div className="px-4 py-3 border-b border-border">
+        <img
+          src="/logo.png"
+          alt="The Keeper's Table"
+          className="h-12 w-auto logo-theme"
+        />
         {user && (
           <p className="text-xs text-ink-muted mt-1 truncate">{user.displayName}</p>
         )}

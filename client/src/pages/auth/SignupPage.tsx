@@ -25,7 +25,11 @@ export default function SignupPage() {
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="display-font text-4xl font-bold text-ink mb-2">The Keeper's Table</h1>
+          <img
+            src="/logo.png"
+            alt="The Keeper's Table"
+            className="h-32 w-auto mx-auto mb-2 logo-theme"
+          />
           <p className="text-ink-muted text-sm">Your campaign memory starts here</p>
         </div>
 

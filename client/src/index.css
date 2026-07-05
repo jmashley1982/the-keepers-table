@@ -133,6 +133,16 @@ body {
   .display-font {
     font-family: 'Playfair Display', Georgia, serif;
   }
+
+  .logo-theme {
+    filter: none;
+  }
+}
+
+[data-theme="candlelight"] .logo-theme,
+[data-theme="slate"] .logo-theme,
+[data-theme="high-contrast"] .logo-theme {
+  filter: invert(1) sepia(0.15) brightness(0.9);
 }
 
 /* ── Animations ── */
