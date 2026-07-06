@@ -478,6 +478,18 @@ generateRouter.post('/image', async (req, res) => {
     : kind.startsWith('map_') ? 'map'
     : kind.split('_')[0] ?? 'unknown'
 
+  // Verify entity belongs to this campaign (prevents IDOR)
+  if (entityType === 'npc') {
+    const ent = await prisma.nPC.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
+    if (!ent) { res.status(404).json({ error: 'NPC not found in this campaign' }); return }
+  } else if (entityType === 'location') {
+    const ent = await prisma.location.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
+    if (!ent) { res.status(404).json({ error: 'Location not found in this campaign' }); return }
+  } else if (entityType === 'item') {
+    const ent = await prisma.item.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
+    if (!ent) { res.status(404).json({ error: 'Item not found in this campaign' }); return }
+  }
+
   const job = await prisma.generationJob.create({
     data: {
       userId,

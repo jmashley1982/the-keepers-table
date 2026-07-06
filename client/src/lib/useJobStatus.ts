@@ -5,10 +5,14 @@ export interface JobStatusState {
   status: 'queued' | 'running' | 'succeeded' | 'failed' | null
   assetId: string | null
   errorMessage: string | null
+  retry: (() => void) | null
 }
 
-export function useJobStatus(jobId: string | null): JobStatusState {
-  const [state, setState] = useState<JobStatusState>({
+export function useJobStatus(
+  jobId: string | null,
+  onRetry?: () => void,
+): JobStatusState {
+  const [state, setState] = useState<Omit<JobStatusState, 'retry'>>({
     status: null,
     assetId: null,
     errorMessage: null,
@@ -82,5 +86,8 @@ export function useJobStatus(jobId: string | null): JobStatusState {
     }
   }, [jobId, fetchStatus, stopAll])
 
-  return state
+  return {
+    ...state,
+    retry: onRetry ?? null,
+  }
 }

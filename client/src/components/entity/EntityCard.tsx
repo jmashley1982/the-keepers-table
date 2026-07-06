@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { cn } from '../../lib/cn'
@@ -147,20 +147,6 @@ function EntityPortrait({
   const [jobId, setJobId] = useState<string | null>(null)
   const [genError, setGenError] = useState<string | null>(null)
 
-  const jobStatus = useJobStatus(jobId)
-
-  useEffect(() => {
-    if (jobStatus.status === 'succeeded') {
-      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
-      onPortraitReady?.()
-      setJobId(null)
-    }
-    if (jobStatus.status === 'failed') {
-      setGenError(jobStatus.errorMessage ?? 'Generation failed')
-      setJobId(null)
-    }
-  }, [jobStatus.status, jobStatus.errorMessage, campaignId, entityType, qc, onPortraitReady])
-
   const kind = entityType === 'npc' ? 'portrait_npc'
     : entityType === 'location' ? 'location_art'
     : entityType === 'item' ? 'item_art'
@@ -180,6 +166,26 @@ function EntityPortrait({
       setGenError(apiError(err))
     },
   })
+
+  const retryGenerate = useCallback(() => {
+    setGenError(null)
+    setJobId(null)
+    generateMutation.mutate()
+  }, [generateMutation])
+
+  const jobStatus = useJobStatus(jobId, retryGenerate)
+
+  useEffect(() => {
+    if (jobStatus.status === 'succeeded') {
+      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
+      onPortraitReady?.()
+      setJobId(null)
+    }
+    if (jobStatus.status === 'failed') {
+      setGenError(jobStatus.errorMessage ?? 'Generation failed')
+      setJobId(null)
+    }
+  }, [jobStatus.status, jobStatus.errorMessage, campaignId, entityType, qc, onPortraitReady])
 
   const isGenerating = generateMutation.isPending ||
     (jobId !== null && (jobStatus.status === null || jobStatus.status === 'queued' || jobStatus.status === 'running'))

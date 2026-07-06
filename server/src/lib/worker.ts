@@ -59,7 +59,6 @@ interface ImageGenerateData {
 interface ImagePollData {
   jobId: string
   providerTaskId: string
-  evolinkKey: string
   pollCount?: number
 }
 
@@ -224,7 +223,7 @@ Return ONLY valid JSON — no prose, no markdown:
     } else {
       await getBoss().send(
         'image.poll',
-        { jobId, providerTaskId: submitData.id, evolinkKey, pollCount: 0 } satisfies ImagePollData,
+        { jobId, providerTaskId: submitData.id, pollCount: 0 } satisfies ImagePollData,
         { startAfter: 5 },
       )
       await notifyJobUpdate(jobId, 'running')
@@ -246,7 +245,7 @@ async function handleImagePoll(jobs: Job<ImagePollData>[]): Promise<void> {
 }
 
 async function processImagePoll(data: ImagePollData): Promise<void> {
-  const { jobId, providerTaskId, evolinkKey, pollCount = 0 } = data
+  const { jobId, providerTaskId, pollCount = 0 } = data
   console.log(`[image.poll] Polling job ${jobId}, task ${providerTaskId}, attempt ${pollCount + 1}`)
 
   const MAX_POLL_ATTEMPTS = 24
@@ -261,14 +260,32 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
     return
   }
 
+  // Re-decrypt EvoLink key from DB on each poll — never stored in queue payload
+  const genJob = await prisma.generationJob.findUnique({ where: { id: jobId } })
+  if (!genJob) return
+
+  const evolinkCred = await prisma.apiCredential.findUnique({
+    where: { userId_provider: { userId: genJob.userId, provider: 'evolink' } },
+  })
+  if (!evolinkCred?.encryptedKey) {
+    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: 'EvoLink credential no longer available' } })
+    await notifyJobUpdate(jobId, 'failed')
+    return
+  }
+  const evolinkKey = decrypt(evolinkCred.encryptedKey)
+
+  const reenqueue = async () => {
+    const delaySeconds = POLL_DELAYS[Math.min(pollCount, POLL_DELAYS.length - 1)]
+    await getBoss().send('image.poll', { jobId, providerTaskId, pollCount: pollCount + 1 } satisfies ImagePollData, { startAfter: delaySeconds })
+  }
+
   try {
     const response = await fetch(`https://api.eachlabs.ai/v1/prediction/${providerTaskId}`, {
       headers: { 'X-API-Key': evolinkKey },
     })
 
     if (!response.ok) {
-      const delaySeconds = POLL_DELAYS[Math.min(pollCount, POLL_DELAYS.length - 1)]
-      await getBoss().send('image.poll', { jobId, providerTaskId, evolinkKey, pollCount: pollCount + 1 }, { startAfter: delaySeconds })
+      await reenqueue()
       return
     }
 
@@ -281,9 +298,6 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
         await notifyJobUpdate(jobId, 'failed')
         return
       }
-
-      const genJob = await prisma.generationJob.findUnique({ where: { id: jobId } })
-      if (!genJob) return
 
       const input = genJob.input as Record<string, string>
 
@@ -313,13 +327,11 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
       await notifyJobUpdate(jobId, 'failed')
 
     } else {
-      const delaySeconds = POLL_DELAYS[Math.min(pollCount, POLL_DELAYS.length - 1)]
-      await getBoss().send('image.poll', { jobId, providerTaskId, evolinkKey, pollCount: pollCount + 1 }, { startAfter: delaySeconds })
+      await reenqueue()
     }
 
   } catch (err) {
-    const delaySeconds = POLL_DELAYS[Math.min(pollCount, POLL_DELAYS.length - 1)]
-    await getBoss().send('image.poll', { jobId, providerTaskId, evolinkKey, pollCount: pollCount + 1 }, { startAfter: delaySeconds })
+    await reenqueue()
     console.error(`[image.poll] Error polling ${providerTaskId}:`, err instanceof Error ? err.message : err)
   }
 }
