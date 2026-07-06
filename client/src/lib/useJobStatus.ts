@@ -5,6 +5,7 @@ export interface JobStatusState {
   status: 'queued' | 'running' | 'succeeded' | 'failed' | null
   assetId: string | null
   errorMessage: string | null
+  rawError: string | null
   retry: (() => void) | null
 }
 
@@ -16,6 +17,7 @@ export function useJobStatus(
     status: null,
     assetId: null,
     errorMessage: null,
+    rawError: null,
   })
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -29,9 +31,9 @@ export function useJobStatus(
 
   const fetchStatus = useCallback(async (targetJobId: string) => {
     try {
-      const res = await api.get<{ status: string; assetId: string | null; error: string | null }>(`/api/jobs/${targetJobId}`)
-      const { status, assetId, error } = res.data
-      setState({ status: status as JobStatusState['status'], assetId, errorMessage: error })
+      const res = await api.get<{ status: string; assetId: string | null; error: string | null; rawError: string | null }>(`/api/jobs/${targetJobId}`)
+      const { status, assetId, error, rawError } = res.data
+      setState({ status: status as JobStatusState['status'], assetId, errorMessage: error, rawError: rawError ?? null })
       if (status === 'succeeded' || status === 'failed') {
         doneRef.current = true
         stopAll()
@@ -43,12 +45,12 @@ export function useJobStatus(
 
   useEffect(() => {
     if (!jobId) {
-      setState({ status: null, assetId: null, errorMessage: null })
+      setState({ status: null, assetId: null, errorMessage: null, rawError: null })
       return
     }
 
     doneRef.current = false
-    setState({ status: null, assetId: null, errorMessage: null })
+    setState({ status: null, assetId: null, errorMessage: null, rawError: null })
 
     fetchStatus(jobId)
 
@@ -63,6 +65,7 @@ export function useJobStatus(
         status: data.status as JobStatusState['status'],
         assetId: data.assetId ?? prev.assetId,
         errorMessage: prev.errorMessage,
+        rawError: prev.rawError,
       }))
 
       if (data.status === 'succeeded' || data.status === 'failed') {

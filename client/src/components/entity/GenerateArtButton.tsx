@@ -96,7 +96,7 @@ export default function GenerateArtButton({
       }
     }
     if (jobStatus.status === 'failed') {
-      setPhase({ name: 'failed', error: jobStatus.errorMessage ?? 'Generation failed' })
+      setPhase({ name: 'failed', error: jobStatus.rawError ?? jobStatus.errorMessage ?? 'Generation failed' })
     }
   }, [jobStatus.status, jobStatus.assetId, jobStatus.errorMessage, phase.name, currentAssetId, campaignId, entityType, qc, onGenerated])
 
@@ -441,12 +441,14 @@ export function EntityAvatarWithArt({
   imageUrl,
   entityType,
   isGenerating,
+  altText,
 }: {
   assetId?: string | null
   portraitUrl?: string | null
   imageUrl?: string | null
   entityType: string
   isGenerating?: boolean
+  altText?: string | null
 }) {
   const src = assetId
     ? `/api/assets/${assetId}?size=thumb`
@@ -457,7 +459,7 @@ export function EntityAvatarWithArt({
       {src ? (
         <img
           src={src}
-          alt="entity art"
+          alt={altText ?? `${entityType} art`}
           className="w-12 h-12 rounded-card object-cover"
         />
       ) : (

@@ -57,6 +57,7 @@ jobsRouter.get('/:jobId', async (req, res) => {
     jobId: job.id,
     status: job.status,
     error: job.error,
+    rawError: outputRef?.rawError ?? null,
     assetId: outputRef?.assetId ?? null,
     craftedPrompt: input?.craftedPrompt ?? null,
     kind: job.kind,

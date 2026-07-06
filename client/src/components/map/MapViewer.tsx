@@ -5,6 +5,7 @@ interface Props {
   assetId: string | null
   className?: string
   children?: ReactNode
+  alt?: string
   onSizeLoaded?: (w: number, h: number) => void
   onGridDrag?: (dx: number, dy: number) => void
   onImageClick?: (nx: number, ny: number) => void
@@ -21,7 +22,7 @@ const MIN_SCALE = 0.05
 const MAX_SCALE = 8
 const FULL_UPGRADE_THRESHOLD = 1.2
 
-export default function MapViewer({ assetId, className, children, onSizeLoaded, onGridDrag, onImageClick, onScaleChange }: Props) {
+export default function MapViewer({ assetId, className, children, alt, onSizeLoaded, onGridDrag, onImageClick, onScaleChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, scale: 1 })
@@ -269,7 +270,7 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded, 
           <img
             ref={imgRef}
             src={imgSrc}
-            alt="Map"
+            alt={alt ?? 'Map'}
             draggable={false}
             onLoad={handleImageLoad}
             style={{

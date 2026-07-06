@@ -38,7 +38,8 @@ const ENTITY_TYPES: Record<string, string> = {
 }
 
 interface MapAssetListItem {
-  id: string; title: string; kind: string; imageAssetId?: string | null;
+  id: string; title: string; kind: string;
+  imageAsset?: { id: string } | null;
   updatedAt: string; _count?: { pins: number }
 }
 
@@ -85,7 +86,7 @@ export default function LiveSessionPage() {
     queryFn: () => api.get(`/api/campaigns/${campaignId}/maps`).then(r => r.data),
     enabled: !!campaignId && activeSection === 'maps',
   })
-  const campaignMaps: MapAssetListItem[] = (mapsData?.maps ?? []).filter(
+  const campaignMaps: MapAssetListItem[] = (mapsData?.items ?? []).filter(
     (m: MapAssetListItem) => m.kind === 'world' || m.kind === 'region'
   )
 
@@ -361,7 +362,7 @@ export default function LiveSessionPage() {
               </div>
               <div className="flex-1 relative overflow-hidden">
                 <MapViewer
-                  assetId={campaignMaps.find(m => m.id === selectedMapId)?.imageAssetId ?? null}
+                  assetId={campaignMaps.find(m => m.id === selectedMapId)?.imageAsset?.id ?? null}
                   className="w-full h-full"
                   onSizeLoaded={(w, h) => setMapImageSize({ w, h })}
                   onScaleChange={setMapScale}

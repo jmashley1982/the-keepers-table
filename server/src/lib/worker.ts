@@ -299,7 +299,7 @@ Return ONLY valid JSON — no prose, no markdown:
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Image generation failed'
     console.error(`[image.generate] Error for job ${jobId}:`, msg)
-    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: msg } })
+    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: msg, outputRef: { rawError: msg } } })
     await notifyJobUpdate(jobId, 'failed')
   }
 }
@@ -318,9 +318,10 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
   const POLL_DELAYS = [5, 10, 20, 30, 30, 30]
 
   if (pollCount >= MAX_POLL_ATTEMPTS) {
+    const timeoutMsg = 'Image generation timed out after 10 minutes'
     await prisma.generationJob.update({
       where: { id: jobId },
-      data: { status: 'failed', error: 'Image generation timed out after 10 minutes' },
+      data: { status: 'failed', error: timeoutMsg, outputRef: { rawError: timeoutMsg } },
     })
     await notifyJobUpdate(jobId, 'failed')
     return
@@ -334,7 +335,8 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
     where: { userId_provider: { userId: genJob.userId, provider: 'evolink' } },
   })
   if (!evolinkCred?.encryptedKey) {
-    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: 'EvoLink credential no longer available' } })
+    const credMsg = 'EvoLink credential no longer available'
+    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: credMsg, outputRef: { rawError: credMsg } } })
     await notifyJobUpdate(jobId, 'failed')
     return
   }
@@ -360,7 +362,8 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
     if (responseData.status === 'succeeded' || responseData.status === 'completed') {
       const outputUrl = Array.isArray(responseData.output) ? responseData.output[0] : responseData.output
       if (!outputUrl) {
-        await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: 'No output URL from provider' } })
+        const noUrlMsg = 'No output URL from provider'
+        await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: noUrlMsg, outputRef: { rawError: noUrlMsg } } })
         await notifyJobUpdate(jobId, 'failed')
         return
       }
@@ -389,7 +392,7 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
 
     } else if (responseData.status === 'failed' || responseData.status === 'error') {
       const errMsg = responseData.error ?? 'Provider reported failure'
-      await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: errMsg } })
+      await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: errMsg, outputRef: { rawError: errMsg, providerStatus: responseData.status } } })
       await notifyJobUpdate(jobId, 'failed')
 
     } else {
@@ -514,7 +517,7 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Postprocess failed'
     console.error(`[image.postprocess] Error for job ${jobId}:`, msg)
-    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: msg } })
+    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: msg, outputRef: { rawError: msg } } })
     await notifyJobUpdate(jobId, 'failed')
   }
 }

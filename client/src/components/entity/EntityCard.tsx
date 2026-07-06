@@ -182,6 +182,7 @@ export default function EntityCard({
               portraitUrl={entity.portraitUrl}
               imageUrl={entity.imageUrl}
               entityType={entityType}
+              altText={displayName}
             />
             <GenerateArtButton
               kind={artKind}
