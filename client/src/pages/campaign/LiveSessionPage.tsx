@@ -378,13 +378,12 @@ export default function LiveSessionPage() {
                     onPinsChange={() => refetchPins()}
                     availableLocations={[]}
                     onPinClick={(pin) => {
-                      if (pin.locationId) {
-                        api.get(`/api/entities/${campaignId}/locations`).then(r => {
-                          const loc = (r.data?.items ?? []).find((l: Entity) => l.id === pin.locationId)
-                          if (loc) setPeekedEntity({ entity: loc, type: 'location' })
+                      if (pin.location) {
+                        setPeekedEntity({ entity: pin.location as Entity, type: 'location' })
+                      } else if (pin.locationId) {
+                        api.get(`/api/entities/${campaignId}/locations/${pin.locationId}`).then(r => {
+                          if (r.data?.item) setPeekedEntity({ entity: r.data.item, type: 'location' })
                         }).catch(() => {})
-                      } else if (pin.label) {
-                        setPeekedEntity({ entity: { id: pin.id, name: pin.label } as Entity, type: 'location' })
                       }
                     }}
                   />

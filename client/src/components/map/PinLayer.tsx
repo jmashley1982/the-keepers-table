@@ -136,7 +136,7 @@ export default function PinLayer({
       if (dragging) return
       if (!editMode && onPinClick) {
         const pin = pins.find(p => p.id === pinId)
-        if (pin) { onPinClick(pin); return }
+        if (pin && pin.revealed && pin.locationId) { onPinClick(pin); return }
       }
       setActivePopover(prev => (prev === pinId ? null : pinId))
     },
