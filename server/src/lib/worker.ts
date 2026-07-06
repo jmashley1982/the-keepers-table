@@ -269,7 +269,16 @@ Return ONLY valid JSON — no prose, no markdown:
       throw new Error(`EvoLink submission failed (${submitRes.status}): ${errText.slice(0, 200)}`)
     }
 
-    const submitData = await submitRes.json() as { id: string; status: string; output?: string | string[]; error?: string }
+    const submitData = await submitRes.json() as {
+      id: string
+      status: string
+      output?: string | string[]
+      error?: string
+      cost?: number
+      credits?: number
+      credits_used?: number
+      metrics?: { predict_time?: number; cost?: number }
+    }
 
     await prisma.generationJob.update({ where: { id: jobId }, data: { providerTaskId: submitData.id } })
 
@@ -278,6 +287,16 @@ Return ONLY valid JSON — no prose, no markdown:
     if (syncDone) {
       const outputUrl = Array.isArray(submitData.output) ? submitData.output[0] : submitData.output
       if (!outputUrl) throw new Error('EvoLink sync succeeded but returned no output URL')
+
+      const syncCostActual = submitData.cost
+        ?? submitData.metrics?.cost
+        ?? submitData.credits_used
+        ?? submitData.credits
+        ?? null
+
+      if (syncCostActual !== null) {
+        await prisma.generationJob.update({ where: { id: jobId }, data: { costActual: syncCostActual } })
+      }
 
       const asset = await prisma.asset.create({
         data: { campaignId: genJob.campaignId!, kind, storageKeyOriginal: '', source: 'generated', generationJobId: jobId },
@@ -357,7 +376,15 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
       return
     }
 
-    const responseData = await response.json() as { status: string; output?: string | string[]; error?: string }
+    const responseData = await response.json() as {
+      status: string
+      output?: string | string[]
+      error?: string
+      cost?: number
+      credits?: number
+      credits_used?: number
+      metrics?: { predict_time?: number; cost?: number }
+    }
 
     if (responseData.status === 'succeeded' || responseData.status === 'completed') {
       const outputUrl = Array.isArray(responseData.output) ? responseData.output[0] : responseData.output
@@ -366,6 +393,16 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
         await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: noUrlMsg, outputRef: { rawError: noUrlMsg } } })
         await notifyJobUpdate(jobId, 'failed')
         return
+      }
+
+      const costActual = responseData.cost
+        ?? responseData.metrics?.cost
+        ?? responseData.credits_used
+        ?? responseData.credits
+        ?? null
+
+      if (costActual !== null) {
+        await prisma.generationJob.update({ where: { id: jobId }, data: { costActual } })
       }
 
       const input = genJob.input as Record<string, string>

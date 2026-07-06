@@ -393,10 +393,17 @@ export default function SettingsPage() {
         {/* Summary row */}
         <div className="flex gap-6 text-sm">
           <div>
-            <p className="text-ink-muted text-xs label">Estimated spend</p>
-            <p className="font-bold text-ink display-font text-xl">${totalEstimatedCost.toFixed(2)}</p>
-            {totalActualCost > 0 && (
-              <p className="text-[10px] text-ink-muted">${totalActualCost.toFixed(2)} actual</p>
+            {totalActualCost > 0 ? (
+              <>
+                <p className="text-ink-muted text-xs label">Actual spend</p>
+                <p className="font-bold text-ink display-font text-xl">${totalActualCost.toFixed(2)}</p>
+                <p className="text-[10px] text-ink-muted">~${totalEstimatedCost.toFixed(2)} estimated</p>
+              </>
+            ) : (
+              <>
+                <p className="text-ink-muted text-xs label">Estimated spend</p>
+                <p className="font-bold text-ink display-font text-xl">~${totalEstimatedCost.toFixed(2)}</p>
+              </>
             )}
           </div>
           <div>
@@ -417,11 +424,15 @@ export default function SettingsPage() {
               {providerTotals.map(pt => (
                 <div key={pt.provider} className="flex flex-col gap-0.5 bg-surface-2 border border-border rounded-card px-3 py-2 min-w-[120px]">
                   <p className="text-[10px] text-ink-muted capitalize font-medium tracking-wide uppercase">{pt.provider}</p>
-                  <p className="text-sm font-semibold text-ink">${pt.estimatedCost.toFixed(3)}</p>
-                  <p className="text-[10px] text-ink-muted">{pt.count} gen{pt.count !== 1 ? 's' : ''} · {pt.totalUnits.toLocaleString()} units</p>
-                  {pt.actualCost > 0 && (
-                    <p className="text-[10px] text-green-500">${pt.actualCost.toFixed(3)} actual</p>
+                  {pt.actualCost > 0 ? (
+                    <>
+                      <p className="text-sm font-semibold text-ink">${pt.actualCost.toFixed(3)}</p>
+                      <p className="text-[10px] text-ink-muted">~${pt.estimatedCost.toFixed(3)} est.</p>
+                    </>
+                  ) : (
+                    <p className="text-sm font-semibold text-ink">~${pt.estimatedCost.toFixed(3)}</p>
                   )}
+                  <p className="text-[10px] text-ink-muted">{pt.count} gen{pt.count !== 1 ? 's' : ''} · {pt.totalUnits.toLocaleString()} units</p>
                 </div>
               ))}
             </div>
