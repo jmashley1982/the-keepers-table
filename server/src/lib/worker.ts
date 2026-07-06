@@ -164,8 +164,27 @@ async function processImageGenerate(jobId: string): Promise<void> {
         try {
           const anthroKey = decrypt(anthropicCred.encryptedKey)
           const anthroClient = new Anthropic({ apiKey: anthroKey })
-          const isMapKind = kind.startsWith('map_')
-          const artDirectorContent = isMapKind
+          const isBattleMap = kind === 'map_battle'
+          const isWorldOrRegionMap = kind === 'map_world' || kind === 'map_region'
+          const scopeLabel = kind === 'map_world' ? 'WORLD' : 'REGION'
+          const artDirectorContent = isWorldOrRegionMap
+            ? `You are an art director for a tabletop RPG. Generate a detailed image prompt for a PAINTED FANTASY ${scopeLabel} MAP.
+
+Map context: ${JSON.stringify(entityData)}
+Art style: ${styleFragment}
+
+STRICT RULES — all must be followed:
+- Painterly fantasy cartography style — hand-illustrated, antique, evocative
+- Bird's eye geographic overview — NOT photorealistic or orthographic grid
+- NO text, NO labels, NO legends, NO compass roses, NO map borders or cartouches
+- Show natural terrain: mountains as stylised peaks, forests as clusters of illustrated trees, rivers as winding blue lines, coastlines with surf detail
+- Warm parchment or aged tones unless the style preset specifies otherwise
+- Settlements shown as small illustrated icons (tiny rooftops or towers), NOT labeled
+- ${kind === 'map_region' ? 'Focus on a single region at moderate zoom — roads, villages, rivers, a notable landmark or two clearly visible' : 'Wide view of an entire continent or world — macro geography, biome zones, major mountain ranges, ocean regions'}
+
+Return ONLY valid JSON — no prose, no markdown:
+{"prompt":"<detailed painterly ${kind === 'map_world' ? 'world' : 'region'} map description, 40-80 words>","negative_prompt":"<things to avoid>"}`
+            : isBattleMap
             ? `You are an art director for a tabletop RPG. Generate a detailed image prompt for a TOP-DOWN ORTHOGRAPHIC battle map.
 
 Map context: ${JSON.stringify(entityData)}

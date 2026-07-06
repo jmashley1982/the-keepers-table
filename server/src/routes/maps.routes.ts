@@ -49,6 +49,7 @@ mapsRouter.get('/', async (req, res) => {
     where: { campaignId, deletedAt: null, ...(kind ? { kind } : {}) },
     include: {
       imageAsset: { select: { id: true, storageKeyThumb: true, storageKeyPreview: true, width: true, height: true } },
+      _count: { select: { pins: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -67,6 +68,7 @@ mapsRouter.get('/:mapId', async (req, res) => {
     where: { id: mapId, campaignId, deletedAt: null },
     include: {
       imageAsset: { select: { id: true, storageKeyThumb: true, storageKeyPreview: true, width: true, height: true } },
+      _count: { select: { pins: true } },
     },
   })
   if (!map) { res.status(404).json({ error: 'Map not found' }); return }
@@ -183,4 +185,105 @@ mapsRouter.post('/:mapId/bake-grid', async (req, res) => {
     const msg = err instanceof Error ? err.message : 'Bake failed'
     res.status(500).json({ error: msg })
   }
+})
+
+// ── Pin endpoints ─────────────────────────────────────────────────────────────
+
+// GET /api/campaigns/:campaignId/maps/:mapId/pins
+mapsRouter.get('/:mapId/pins', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId, mapId } = req.params as { campaignId: string; mapId: string }
+
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
+
+  const map = await prisma.mapAsset.findFirst({ where: { id: mapId, campaignId, deletedAt: null } })
+  if (!map) { res.status(404).json({ error: 'Map not found' }); return }
+
+  const pins = await prisma.mapPin.findMany({
+    where: { mapAssetId: mapId },
+    include: {
+      location: { select: { id: true, name: true, type: true, description: true } },
+    },
+    orderBy: { createdAt: 'asc' },
+  })
+  res.json({ pins })
+})
+
+// POST /api/campaigns/:campaignId/maps/:mapId/pins
+mapsRouter.post('/:mapId/pins', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId, mapId } = req.params as { campaignId: string; mapId: string }
+
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
+
+  const map = await prisma.mapAsset.findFirst({ where: { id: mapId, campaignId, deletedAt: null } })
+  if (!map) { res.status(404).json({ error: 'Map not found' }); return }
+
+  const schema = z.object({
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    locationId: z.string().optional().nullable(),
+    label: z.string().default(''),
+    icon: z.string().default('📍'),
+    revealed: z.boolean().default(false),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
+
+  const pin = await prisma.mapPin.create({
+    data: { ...parsed.data, mapAssetId: mapId },
+    include: { location: { select: { id: true, name: true, type: true, description: true } } },
+  })
+  res.json({ pin })
+})
+
+// PATCH /api/campaigns/:campaignId/maps/:mapId/pins/:pinId
+mapsRouter.patch('/:mapId/pins/:pinId', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId, mapId, pinId } = req.params as { campaignId: string; mapId: string; pinId: string }
+
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
+
+  const existing = await prisma.mapPin.findFirst({
+    where: { id: pinId, mapAsset: { id: mapId, campaignId } },
+  })
+  if (!existing) { res.status(404).json({ error: 'Pin not found' }); return }
+
+  const schema = z.object({
+    x: z.number().min(0).max(1).optional(),
+    y: z.number().min(0).max(1).optional(),
+    locationId: z.string().nullable().optional(),
+    label: z.string().optional(),
+    icon: z.string().optional(),
+    revealed: z.boolean().optional(),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
+
+  const pin = await prisma.mapPin.update({
+    where: { id: pinId },
+    data: parsed.data,
+    include: { location: { select: { id: true, name: true, type: true, description: true } } },
+  })
+  res.json({ pin })
+})
+
+// DELETE /api/campaigns/:campaignId/maps/:mapId/pins/:pinId
+mapsRouter.delete('/:mapId/pins/:pinId', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId, mapId, pinId } = req.params as { campaignId: string; mapId: string; pinId: string }
+
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
+
+  const existing = await prisma.mapPin.findFirst({
+    where: { id: pinId, mapAsset: { id: mapId, campaignId } },
+  })
+  if (!existing) { res.status(404).json({ error: 'Pin not found' }); return }
+
+  await prisma.mapPin.delete({ where: { id: pinId } })
+  res.json({ ok: true })
 })

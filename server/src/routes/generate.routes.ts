@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express'
+import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { decrypt } from '../lib/crypto.js'
@@ -37,32 +37,6 @@ async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
   return null
 }
 
-async function getEvolinkKey(userId: string): Promise<string | null> {
-  const cred = await prisma.apiCredential.findUnique({
-    where: { userId_provider: { userId, provider: 'evolink' } },
-  })
-  if (!cred?.encryptedKey) return null
-  try {
-    return decrypt(cred.encryptedKey)
-  } catch {
-    return null
-  }
-}
-
-const IMAGE_MODELS: Record<string, string> = {
-  'gpt-image-2':         'gpt-image-2',
-  'nano-banana-2-lite':  'nano-banana-2-lite',
-  'seedream-4.5':        'seedream-4.5',
-  'z-image-turbo':       'z-image-turbo',
-}
-
-const DEFAULT_IMAGE_MODEL_BY_CATEGORY: Record<string, string> = {
-  npc:       'nano-banana-2-lite',
-  location:  'nano-banana-2-lite',
-  item:      'nano-banana-2-lite',
-  encounter: 'nano-banana-2-lite',
-}
-
 async function buildCampaignContext(campaignId: string, query: string): Promise<string> {
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
@@ -79,7 +53,6 @@ async function buildCampaignContext(campaignId: string, query: string): Promise<
     prisma.plotThread.findMany({ where: { campaignId, deletedAt: null, status: 'active' }, select: { id: true, title: true, description: true } }),
   ])
 
-  // Simple relevance selection: score each entity by keyword overlap
   function score(text: string) {
     return q.split(' ').filter(w => w.length > 3 && text.toLowerCase().includes(w)).length
   }
@@ -197,6 +170,8 @@ const KIND_SCHEMAS: Record<string, string> = {
   dialogue: DIALOGUE_SCHEMA,
   session_wrap: SESSION_WRAP_SCHEMA,
 }
+
+// ── Text generation ───────────────────────────────────────────────────────────
 
 generateRouter.post('/text', async (req, res) => {
   const userId = res.locals.user.id
@@ -324,13 +299,12 @@ REQUEST: ${prompt}`
       })
       const raw = message.content[0].type === 'text' ? message.content[0].text : ''
 
-      // Extract JSON from the response
-      let parsed: unknown = null
+      let result: unknown = null
       try {
         const jsonMatch = raw.match(/```json\n?([\s\S]*?)\n?```/) ?? raw.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
-        parsed = JSON.parse(jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : raw)
+        result = JSON.parse(jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : raw)
       } catch {
-        parsed = { text: raw }
+        result = { text: raw }
       }
 
       await prisma.generationJob.update({
@@ -338,11 +312,11 @@ REQUEST: ${prompt}`
         data: {
           status: 'succeeded',
           tokensOrUnits: { input: message.usage.input_tokens, output: message.usage.output_tokens },
-          outputRef: JSON.parse(JSON.stringify({ result: parsed })),
+          outputRef: JSON.parse(JSON.stringify({ result })),
         },
       })
 
-      res.json({ result: parsed, jobId: job.id })
+      res.json({ result, jobId: job.id })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Generation failed'
       await prisma.generationJob.update({ where: { id: job.id }, data: { status: 'failed', error: msg } })
@@ -351,89 +325,62 @@ REQUEST: ${prompt}`
   }
 })
 
-// ── Image generation ─────────────────────────────────────────────────────────
+// ── World / Region map context (Claude summary from campaign locations) ────────
 
-generateRouter.post('/image', async (req, res) => {
+generateRouter.post('/world-map-context', async (req, res) => {
   const userId = res.locals.user.id
   const schema = z.object({
-    entityType: z.enum(['npc', 'location', 'item', 'encounter']),
-    entityId: z.string(),
-    campaignId: z.string(),
-    prompt: z.string().optional(),
+    campaignId: z.string().min(1),
+    scope: z.enum(['world', 'region']),
+    description: z.string().optional(),
   })
-
   const parsed = schema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues[0]?.message })
-    return
-  }
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
 
-  const { entityType, entityId, campaignId, prompt } = parsed.data
+  const { campaignId, scope, description } = parsed.data
 
-  // Verify campaign ownership before any entity access
   const campaign = await prisma.campaign.findFirst({
     where: { id: campaignId, ownerUserId: userId, deletedAt: null },
   })
-  if (!campaign) {
-    res.status(404).json({ error: 'Campaign not found' })
-    return
-  }
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
 
-  const evolinkKey = await getEvolinkKey(userId)
-  if (!evolinkKey) {
-    res.status(402).json({ error: 'No Evolink API key configured. Add your key in Settings.' })
-    return
-  }
+  const client = await getAnthropicClient(userId)
+  if (!client) { res.status(402).json({ error: 'No API key configured for text generation.' }); return }
+
+  const locations = await prisma.location.findMany({
+    where: { campaignId, deletedAt: null },
+    select: { name: true, type: true, description: true },
+    take: 30,
+  })
 
   const userPref = await prisma.userPreference.findUnique({ where: { userId } })
-  const imageModelByCategory = (userPref?.imageModelByCategory ?? {}) as Record<string, string>
-  const model = imageModelByCategory[entityType] ?? DEFAULT_IMAGE_MODEL_BY_CATEGORY[entityType] ?? 'nano-banana-2-lite'
-  const resolvedModel = IMAGE_MODELS[model] ?? model
+  const textModel = userPref?.defaultTextModel ?? 'claude-opus-4-5'
 
-  // Scope entity lookup to the campaign to prevent cross-user access
-  const entityPath = entityType === 'npc' ? 'nPC' : entityType === 'item' ? 'item' : entityType === 'location' ? 'location' : 'encounter'
-  type EntityRecord = { name?: string; description?: string; appearance?: string }
-  type FindFirstModel = { findFirst: (args: { where: { id: string; campaignId: string; deletedAt: null } }) => Promise<EntityRecord | null> }
-  type UpdateModel = { update: (args: { where: { id: string; campaignId: string }; data: Record<string, string> }) => Promise<unknown> }
+  const locSummary = locations.length > 0
+    ? locations.map(l => `- ${l.name} (${l.type}): ${l.description || 'No description'}`).join('\n')
+    : 'No locations defined yet.'
 
-  const model_client = prisma[entityPath as keyof typeof prisma] as unknown as FindFirstModel & UpdateModel
-  const rec = await model_client.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
-  if (!rec) {
-    res.status(404).json({ error: 'Entity not found in this campaign' })
-    return
+  const scopeLabel = scope === 'world' ? 'world' : 'region'
+  const prompt = `Campaign: ${campaign.name}
+Setting notes: ${campaign.settingNotes || 'Not specified.'}
+
+Known locations:
+${locSummary}
+
+${description ? `GM's additional notes: ${description}\n` : ''}
+Write a concise geographic description (2-3 sentences) suitable for generating a ${scopeLabel} map image. Describe terrain, major geographic features, biomes, settlements, and atmosphere. Focus on visual elements that would appear in a painted ${scopeLabel} map — mountains, forests, oceans, rivers, roads, settlements. Be evocative and specific. Do not mention game mechanics or rules.`
+
+  try {
+    const message = await client.messages.create({
+      model: textModel,
+      max_tokens: 400,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const summary = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+    res.json({ summary })
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to generate context' })
   }
-
-  const entityName = rec.name ?? entityId
-  const entityDesc = rec.appearance ?? rec.description ?? ''
-
-  const imagePrompt = prompt ?? `Fantasy RPG tabletop illustration of a ${entityType}: ${entityName}. ${entityDesc}. Detailed, atmospheric, painterly style.`.trim()
-
-  const resp = await fetch('https://api.evolink.ai/v1/images/generations', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${evolinkKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: resolvedModel, prompt: imagePrompt, n: 1, size: '1024x1024' }),
-  })
-
-  if (!resp.ok) {
-    const body = await resp.json().catch(() => ({})) as { error?: { message?: string } }
-    res.status(resp.status).json({ error: body?.error?.message ?? `Image generation failed (HTTP ${resp.status})` })
-    return
-  }
-
-  const data = await resp.json() as { data?: Array<{ url?: string }> }
-  const imageUrl = data?.data?.[0]?.url
-  if (!imageUrl) {
-    res.status(500).json({ error: 'No image URL returned from Evolink' })
-    return
-  }
-
-  const urlField = entityType === 'npc' ? 'portraitUrl' : 'imageUrl'
-  await model_client.update({
-    where: { id: entityId, campaignId },
-    data: { [urlField]: imageUrl },
-  })
-
-  res.json({ imageUrl, urlField })
 })
 
 // ── Session Wrap trigger ──────────────────────────────────────────────────────
@@ -456,7 +403,6 @@ generateRouter.post('/session-wrap/:sessionId', async (req, res) => {
   const client = await getAnthropicClient(userId)
   if (!client) { res.status(402).json({ error: 'No Anthropic API key' }); return }
 
-  // Get previous session hooks
   const prevSession = await prisma.gameSession.findFirst({
     where: { campaignId: session.campaignId, sessionNumber: { lt: session.sessionNumber }, status: 'complete' },
     orderBy: { sessionNumber: 'desc' },
@@ -572,7 +518,7 @@ Generate 3-4 concrete next-session prep suggestions. Return JSON array:
   }
 })
 
-// ── Image generation ─────────────────────────────────────────────────────────
+// ── Image generation (pg-boss worker) ────────────────────────────────────────
 
 generateRouter.post('/image', async (req, res) => {
   const userId = res.locals.user.id
@@ -600,14 +546,12 @@ generateRouter.post('/image', async (req, res) => {
     return
   }
 
-  // Derive entityType from kind
   const entityType = kind === 'portrait_npc' ? 'npc'
     : kind === 'location_art' ? 'location'
     : kind === 'item_art' ? 'item'
     : kind.startsWith('map_') ? 'map'
     : kind.split('_')[0] ?? 'unknown'
 
-  // Verify entity belongs to this campaign (prevents IDOR)
   if (entityType === 'npc') {
     const ent = await prisma.nPC.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'NPC not found in this campaign' }); return }

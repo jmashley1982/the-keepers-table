@@ -7,6 +7,8 @@ interface Props {
   children?: ReactNode
   onSizeLoaded?: (w: number, h: number) => void
   onGridDrag?: (dx: number, dy: number) => void
+  onImageClick?: (nx: number, ny: number) => void
+  onScaleChange?: (scale: number) => void
 }
 
 interface Transform {
@@ -19,7 +21,7 @@ const MIN_SCALE = 0.05
 const MAX_SCALE = 8
 const FULL_UPGRADE_THRESHOLD = 1.2
 
-export default function MapViewer({ assetId, className, children, onSizeLoaded, onGridDrag }: Props) {
+export default function MapViewer({ assetId, className, children, onSizeLoaded, onGridDrag, onImageClick, onScaleChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, scale: 1 })
@@ -29,6 +31,11 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded, 
 
   const transformRef = useRef(transform)
   transformRef.current = transform
+
+  const naturalSizeRef = useRef(naturalSize)
+  naturalSizeRef.current = naturalSize
+
+  const clickStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null)
 
   const dragRef = useRef<{
     pointerId: number
@@ -60,6 +67,10 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded, 
       setImgSrc(`/api/assets/${assetId}?size=full`)
     }
   }, [assetId, transform.scale, useFull])
+
+  useEffect(() => {
+    onScaleChange?.(transform.scale)
+  }, [transform.scale, onScaleChange])
 
   const fitToContainer = useCallback(() => {
     const img = imgRef.current
@@ -99,6 +110,7 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded, 
     if (activePointersRef.current.size >= 2) {
       pinchDistRef.current = getPinchDistance()
       dragRef.current = null
+      clickStartRef.current = null
     } else if (e.button === 0) {
       pinchDistRef.current = null
       dragRef.current = {
@@ -108,6 +120,7 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded, 
         lastX: transformRef.current.x,
         lastY: transformRef.current.y,
       }
+      clickStartRef.current = { x: e.clientX, y: e.clientY, pointerId: e.pointerId }
     }
   }, [])
 
@@ -160,6 +173,25 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded, 
   }, [onGridDrag])
 
   const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (clickStartRef.current?.pointerId === e.pointerId && onImageClick && naturalSizeRef.current && containerRef.current) {
+      const cs = clickStartRef.current
+      const dx = e.clientX - cs.x
+      const dy = e.clientY - cs.y
+      if (Math.sqrt(dx * dx + dy * dy) < 5 && activePointersRef.current.size <= 1) {
+        const rect = containerRef.current.getBoundingClientRect()
+        const t = transformRef.current
+        const ns = naturalSizeRef.current
+        const imageX = (e.clientX - rect.left - t.x) / t.scale
+        const imageY = (e.clientY - rect.top - t.y) / t.scale
+        const nx = imageX / ns.w
+        const ny = imageY / ns.h
+        if (nx >= 0 && nx <= 1 && ny >= 0 && ny <= 1) {
+          onImageClick(nx, ny)
+        }
+      }
+    }
+    clickStartRef.current = null
+
     activePointersRef.current.delete(e.pointerId)
     if (dragRef.current?.pointerId === e.pointerId) {
       dragRef.current = null
@@ -177,7 +209,7 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded, 
         lastY: transformRef.current.y,
       }
     }
-  }, [])
+  }, [onImageClick])
 
   const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -211,7 +243,7 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded, 
       ref={containerRef}
       className={cn(
         'relative overflow-hidden bg-neutral-950 select-none',
-        onGridDrag ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing',
+        onGridDrag ? 'cursor-crosshair' : onImageClick ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing',
         className,
       )}
       style={{ touchAction: 'none' }}
@@ -237,7 +269,7 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded, 
           <img
             ref={imgRef}
             src={imgSrc}
-            alt="Battle map"
+            alt="Map"
             draggable={false}
             onLoad={handleImageLoad}
             style={{
