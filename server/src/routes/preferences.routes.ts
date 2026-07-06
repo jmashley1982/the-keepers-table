@@ -15,6 +15,7 @@ preferencesRouter.patch('/', async (req, res) => {
     contentRating: z.enum(['family', 'standard', 'grim']).optional(),
     measurementUnits: z.enum(['imperial', 'metric']).optional(),
     themePreference: z.string().optional(),
+    imageModelByCategory: z.record(z.string()).optional(),
   })
   const parsed = schema.safeParse(req.body)
   if (!parsed.success) {

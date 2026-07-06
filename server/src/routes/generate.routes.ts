@@ -10,16 +10,57 @@ export const generateRouter = Router()
 generateRouter.use(requireAuth)
 
 async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
-  const cred = await prisma.apiCredential.findUnique({
+  const anthropicCred = await prisma.apiCredential.findUnique({
     where: { userId_provider: { userId, provider: 'anthropic' } },
+  })
+  if (anthropicCred?.encryptedKey) {
+    try {
+      const key = decrypt(anthropicCred.encryptedKey)
+      return new Anthropic({ apiKey: key })
+    } catch {
+      // fall through to Evolink
+    }
+  }
+
+  const evolinkCred = await prisma.apiCredential.findUnique({
+    where: { userId_provider: { userId, provider: 'evolink' } },
+  })
+  if (evolinkCred?.encryptedKey) {
+    try {
+      const key = decrypt(evolinkCred.encryptedKey)
+      return new Anthropic({ apiKey: key, baseURL: 'https://api.evolink.ai/v1' })
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
+async function getEvolinkKey(userId: string): Promise<string | null> {
+  const cred = await prisma.apiCredential.findUnique({
+    where: { userId_provider: { userId, provider: 'evolink' } },
   })
   if (!cred?.encryptedKey) return null
   try {
-    const key = decrypt(cred.encryptedKey)
-    return new Anthropic({ apiKey: key })
+    return decrypt(cred.encryptedKey)
   } catch {
     return null
   }
+}
+
+const IMAGE_MODELS: Record<string, string> = {
+  'gpt-image-2':         'gpt-image-2',
+  'nano-banana-2-lite':  'nano-banana-2-lite',
+  'seedream-4.5':        'seedream-4.5',
+  'z-image-turbo':       'z-image-turbo',
+}
+
+const DEFAULT_IMAGE_MODEL_BY_CATEGORY: Record<string, string> = {
+  npc:       'nano-banana-2-lite',
+  location:  'nano-banana-2-lite',
+  item:      'nano-banana-2-lite',
+  encounter: 'nano-banana-2-lite',
 }
 
 async function buildCampaignContext(campaignId: string, query: string): Promise<string> {
@@ -177,7 +218,7 @@ generateRouter.post('/text', async (req, res) => {
 
   const client = await getAnthropicClient(userId)
   if (!client) {
-    res.status(402).json({ error: 'No Anthropic API key configured. Add your key in Settings.' })
+    res.status(402).json({ error: 'No API key configured. Add an Anthropic or Evolink key in Settings.' })
     return
   }
 
@@ -308,6 +349,91 @@ REQUEST: ${prompt}`
       res.status(500).json({ error: msg })
     }
   }
+})
+
+// ── Image generation ─────────────────────────────────────────────────────────
+
+generateRouter.post('/image', async (req, res) => {
+  const userId = res.locals.user.id
+  const schema = z.object({
+    entityType: z.enum(['npc', 'location', 'item', 'encounter']),
+    entityId: z.string(),
+    campaignId: z.string(),
+    prompt: z.string().optional(),
+  })
+
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message })
+    return
+  }
+
+  const { entityType, entityId, campaignId, prompt } = parsed.data
+
+  // Verify campaign ownership before any entity access
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: campaignId, ownerUserId: userId, deletedAt: null },
+  })
+  if (!campaign) {
+    res.status(404).json({ error: 'Campaign not found' })
+    return
+  }
+
+  const evolinkKey = await getEvolinkKey(userId)
+  if (!evolinkKey) {
+    res.status(402).json({ error: 'No Evolink API key configured. Add your key in Settings.' })
+    return
+  }
+
+  const userPref = await prisma.userPreference.findUnique({ where: { userId } })
+  const imageModelByCategory = (userPref?.imageModelByCategory ?? {}) as Record<string, string>
+  const model = imageModelByCategory[entityType] ?? DEFAULT_IMAGE_MODEL_BY_CATEGORY[entityType] ?? 'nano-banana-2-lite'
+  const resolvedModel = IMAGE_MODELS[model] ?? model
+
+  // Scope entity lookup to the campaign to prevent cross-user access
+  const entityPath = entityType === 'npc' ? 'nPC' : entityType === 'item' ? 'item' : entityType === 'location' ? 'location' : 'encounter'
+  type EntityRecord = { name?: string; description?: string; appearance?: string }
+  type FindFirstModel = { findFirst: (args: { where: { id: string; campaignId: string; deletedAt: null } }) => Promise<EntityRecord | null> }
+  type UpdateModel = { update: (args: { where: { id: string; campaignId: string }; data: Record<string, string> }) => Promise<unknown> }
+
+  const model_client = prisma[entityPath as keyof typeof prisma] as unknown as FindFirstModel & UpdateModel
+  const rec = await model_client.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
+  if (!rec) {
+    res.status(404).json({ error: 'Entity not found in this campaign' })
+    return
+  }
+
+  const entityName = rec.name ?? entityId
+  const entityDesc = rec.appearance ?? rec.description ?? ''
+
+  const imagePrompt = prompt ?? `Fantasy RPG tabletop illustration of a ${entityType}: ${entityName}. ${entityDesc}. Detailed, atmospheric, painterly style.`.trim()
+
+  const resp = await fetch('https://api.evolink.ai/v1/images/generations', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${evolinkKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: resolvedModel, prompt: imagePrompt, n: 1, size: '1024x1024' }),
+  })
+
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => ({})) as { error?: { message?: string } }
+    res.status(resp.status).json({ error: body?.error?.message ?? `Image generation failed (HTTP ${resp.status})` })
+    return
+  }
+
+  const data = await resp.json() as { data?: Array<{ url?: string }> }
+  const imageUrl = data?.data?.[0]?.url
+  if (!imageUrl) {
+    res.status(500).json({ error: 'No image URL returned from Evolink' })
+    return
+  }
+
+  const urlField = entityType === 'npc' ? 'portraitUrl' : 'imageUrl'
+  await model_client.update({
+    where: { id: entityId, campaignId },
+    data: { [urlField]: imageUrl },
+  })
+
+  res.json({ imageUrl, urlField })
 })
 
 // ── Session Wrap trigger ──────────────────────────────────────────────────────

@@ -190,20 +190,56 @@ function StylePresetsSection() {
   )
 }
 
+const IMAGE_MODEL_OPTIONS = [
+  { value: 'gpt-image-2',        label: 'High Detail — GPT Image 2' },
+  { value: 'nano-banana-2-lite', label: 'Medium — Nano Banana 2 Lite' },
+  { value: 'seedream-4.5',       label: 'Medium Alt — Seedream 4.5' },
+  { value: 'z-image-turbo',      label: 'Low — Z Image Turbo' },
+]
+
+const IMAGE_CATEGORIES = [
+  { key: 'npc',       label: 'NPC portraits' },
+  { key: 'location',  label: 'Location images' },
+  { key: 'item',      label: 'Item images' },
+  { key: 'encounter', label: 'Encounter images' },
+]
+
 export default function SettingsPage() {
   const { data: meData } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.get('/auth/me').then(r => r.data),
   })
 
+  const { data: prefData, refetch: refetchPref } = useQuery({
+    queryKey: ['preferences'],
+    queryFn: () => api.get('/api/preferences').then(r => r.data),
+  })
+
+  const { data: credsData } = useQuery({
+    queryKey: ['credentials'],
+    queryFn: () => api.get('/api/credentials').then(r => r.data),
+  })
+
+  const hasEvolinkKey = credsData?.credentials?.some(
+    (c: { provider: string; status: string }) => c.provider === 'evolink' && c.status === 'valid'
+  )
+
   const qc = useQueryClient()
   const [displayName, setDisplayName] = useState(meData?.user?.displayName ?? '')
   const [textModel, setTextModel] = useState(meData?.user?.preference?.defaultTextModel ?? 'claude-opus-4-5')
   const [contentRating, setContentRating] = useState(meData?.user?.preference?.contentRating ?? 'standard')
 
+  const storedImageModels: Record<string, string> = prefData?.preference?.imageModelByCategory ?? {}
+  const [imageModelByCategory, setImageModelByCategory] = useState<Record<string, string>>(storedImageModels)
+
   const updatePref = useMutation({
     mutationFn: () => api.patch('/api/preferences', { defaultTextModel: textModel, contentRating }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+  })
+
+  const updateImageModels = useMutation({
+    mutationFn: (models: Record<string, string>) => api.patch('/api/preferences', { imageModelByCategory: models }),
+    onSuccess: () => refetchPref(),
   })
 
   const { data: usageData } = useQuery({
@@ -213,6 +249,12 @@ export default function SettingsPage() {
 
   const jobs = usageData?.jobs ?? []
   const totalTokens = jobs.reduce((sum: number, j: { tokensOrUnits: { output?: number } }) => sum + (j.tokensOrUnits?.output ?? 0), 0)
+
+  function handleImageModelChange(category: string, model: string) {
+    const updated = { ...imageModelByCategory, [category]: model }
+    setImageModelByCategory(updated)
+    updateImageModels.mutate(updated)
+  }
 
   return (
     <div className="p-8 max-w-2xl mx-auto space-y-6">
@@ -225,13 +267,13 @@ export default function SettingsPage() {
         <KeySection
           provider="anthropic"
           label="Anthropic (Claude)"
-          hint="Required for all text generation. Get your key at console.anthropic.com"
+          hint="Required for text generation when no Evolink key is set. Get your key at console.anthropic.com"
         />
         <div className="border-t border-border" />
         <KeySection
           provider="evolink"
-          label="EvoLink (Images)"
-          hint="Required for portrait and map generation. Phase 3 feature."
+          label="EvoLink"
+          hint="Used for Claude text generation (fallback) and all image generation. Get your key at evolink.ai"
         />
       </div>
 
@@ -266,6 +308,35 @@ export default function SettingsPage() {
 
       {/* Style Presets */}
       <StylePresetsSection />
+
+      {/* Image Generation */}
+      <div className="card space-y-4">
+        <div>
+          <h2 className="font-semibold text-ink">Image Generation</h2>
+          <p className="text-sm text-ink-muted mt-1">
+            Choose an image quality tier per entity category. Requires an Evolink key.
+            {!hasEvolinkKey && <span className="text-amber-500 ml-1">Add an Evolink key above to enable image generation.</span>}
+          </p>
+        </div>
+        <div className="space-y-3">
+          {IMAGE_CATEGORIES.map(cat => (
+            <div key={cat.key} className="flex items-center justify-between gap-4">
+              <label className="label mb-0 min-w-[130px]">{cat.label}</label>
+              <select
+                className="input flex-1"
+                value={imageModelByCategory[cat.key] ?? 'nano-banana-2-lite'}
+                onChange={e => handleImageModelChange(cat.key, e.target.value)}
+                disabled={!hasEvolinkKey}
+              >
+                {IMAGE_MODEL_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+        {updateImageModels.isSuccess && <p className="text-xs text-green-500">✓ Image preferences saved</p>}
+      </div>
 
       {/* Usage */}
       <div className="card space-y-3">
