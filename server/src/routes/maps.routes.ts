@@ -114,6 +114,9 @@ mapsRouter.patch('/:mapId', async (req, res) => {
   const parsed = schema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
 
+  const existing = await prisma.mapAsset.findFirst({ where: { id: mapId, campaignId, deletedAt: null } })
+  if (!existing) { res.status(404).json({ error: 'Map not found' }); return }
+
   const map = await prisma.mapAsset.update({ where: { id: mapId }, data: parsed.data })
   res.json({ map })
 })
@@ -125,6 +128,9 @@ mapsRouter.delete('/:mapId', async (req, res) => {
 
   const campaign = await verifyCampaign(campaignId, userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
+
+  const existing = await prisma.mapAsset.findFirst({ where: { id: mapId, campaignId, deletedAt: null } })
+  if (!existing) { res.status(404).json({ error: 'Map not found' }); return }
 
   await prisma.mapAsset.update({ where: { id: mapId }, data: { deletedAt: new Date() } })
   res.json({ ok: true })
