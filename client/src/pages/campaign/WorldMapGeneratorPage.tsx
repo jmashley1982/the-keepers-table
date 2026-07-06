@@ -157,7 +157,8 @@ export default function WorldMapGeneratorPage() {
   }, [campaignId, scope, description])
 
   const submitImageGenerate = useCallback(async (body: Record<string, string>, confirmed?: boolean) => {
-    const payload = confirmed ? { ...body, confirmed: 'true' } : body
+    const payload: Record<string, unknown> = { ...body }
+    if (confirmed) payload.confirmed = true
     const genRes = await api.post('/api/generate/image', payload)
     setJobId((genRes.data as { jobId: string }).jobId)
     setSoftCapConfirm(null)
@@ -554,11 +555,21 @@ export default function WorldMapGeneratorPage() {
           )}
 
           {jobStatus.status === 'failed' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 z-10">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 z-10 p-6 text-center">
               <p className="text-danger text-sm mb-3">{jobStatus.errorMessage ?? 'Generation failed'}</p>
-              <button className="btn-primary" onClick={handleGenerate}>
+              <button className="btn-primary mb-3" onClick={handleGenerate}>
                 <Zap size={14} /> Retry
               </button>
+              {jobStatus.rawError && (
+                <details className="text-left w-full max-w-sm">
+                  <summary className="text-xs text-white/30 cursor-pointer hover:text-white/50 select-none">
+                    Raw error details
+                  </summary>
+                  <pre className="mt-2 text-[10px] text-white/40 bg-black/40 rounded p-2 overflow-x-auto whitespace-pre-wrap break-all">
+                    {jobStatus.rawError}
+                  </pre>
+                </details>
+              )}
             </div>
           )}
 
