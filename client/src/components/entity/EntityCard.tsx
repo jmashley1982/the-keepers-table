@@ -3,8 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import {
-  RefreshCw, Edit2, Save, Lock, Unlock, Trash2,
-  ChevronDown, ChevronUp, Shield, Eye, EyeOff, Link2
+  RefreshCw, Edit2, Save, Trash2,
+  ChevronDown, ChevronUp, Eye, EyeOff,
 } from 'lucide-react'
 
 export interface EntityCardData {
@@ -16,7 +16,7 @@ export interface EntityCardData {
   tags?: string[]
   dmOnlyNotes?: string
   pinned?: boolean
-  // NPC fields
+  // NPC
   role?: string
   status?: string
   dispositionToParty?: string
@@ -26,13 +26,13 @@ export interface EntityCardData {
   secrets?: string
   voiceNotes?: string
   statBlock?: Record<string, unknown>
-  // Item fields
+  // Item
   rarity?: string
   category?: string
   mechanicalEffect?: string
-  // Location fields
+  // Location
   type?: string
-  // Encounter fields
+  // Encounter
   difficulty?: string
   setup?: string
   tactics?: string
@@ -47,7 +47,7 @@ interface EntityCardProps {
   campaignId: string
   compact?: boolean
   onSaved?: () => void
-  scratchMode?: boolean // not saved to DB yet
+  scratchMode?: boolean
   onSave?: (entity: EntityCardData) => void
   onRegenerate?: () => void
   locked?: boolean
@@ -55,32 +55,84 @@ interface EntityCardProps {
 }
 
 const DISPOSITION_COLOR: Record<string, string> = {
-  hostile: 'text-red-500',
-  wary: 'text-orange-400',
-  neutral: 'text-ink-muted',
-  friendly: 'text-green-500',
-  complicated: 'text-purple-400',
+  hostile: 'text-red-500', wary: 'text-orange-400',
+  neutral: 'text-ink-muted', friendly: 'text-green-500', complicated: 'text-purple-400',
 }
-
 const STATUS_COLOR: Record<string, string> = {
-  alive: 'text-green-500',
-  dead: 'text-red-400',
-  missing: 'text-orange-400',
-  unknown: 'text-ink-muted',
+  alive: 'text-green-500', dead: 'text-red-400', missing: 'text-orange-400', unknown: 'text-ink-muted',
+}
+const RARITY_COLOR: Record<string, string> = {
+  common: 'text-ink-muted', uncommon: 'text-green-500', rare: 'text-blue-400',
+  'very rare': 'text-purple-400', legendary: 'text-orange-400', artifact: 'text-yellow-400',
+}
+const ENTITY_EMOJI: Record<string, string> = {
+  npc: '🧙', item: '⚔️', location: '🗺️', faction: '⚜️', encounter: '💀', plot_thread: '📜',
 }
 
-const RARITY_COLOR: Record<string, string> = {
-  common: 'text-ink-muted',
-  uncommon: 'text-green-500',
-  rare: 'text-blue-400',
-  'very rare': 'text-purple-400',
-  legendary: 'text-orange-400',
-  artifact: 'text-yellow-400',
+// D&D 5e / Pathfinder stat abbreviations
+const ABILITY_ABBR: Record<string, string> = {
+  strength: 'STR', dexterity: 'DEX', constitution: 'CON',
+  intelligence: 'INT', wisdom: 'WIS', charisma: 'CHA',
+  str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA',
+}
+
+function abilityMod(score: number): string {
+  const mod = Math.floor((score - 10) / 2)
+  return mod >= 0 ? `+${mod}` : String(mod)
+}
+
+function StatBlock({ statBlock }: { statBlock: Record<string, unknown> }) {
+  // Detect if this has ability scores
+  const keys = Object.keys(statBlock)
+  const abilityKeys = keys.filter(k => ABILITY_ABBR[k.toLowerCase()])
+  const otherKeys = keys.filter(k => !ABILITY_ABBR[k.toLowerCase()])
+
+  return (
+    <div className="space-y-3">
+      {/* Ability scores grid */}
+      {abilityKeys.length > 0 && (
+        <div className="grid grid-cols-6 gap-1">
+          {abilityKeys.map(k => {
+            const val = statBlock[k]
+            const score = typeof val === 'number' ? val : parseInt(String(val), 10)
+            const abbr = ABILITY_ABBR[k.toLowerCase()] ?? k.toUpperCase().slice(0, 3)
+            return (
+              <div key={k} className="text-center p-1.5 rounded bg-surface-2 border border-border/50">
+                <p className="text-[9px] font-bold text-ink-muted uppercase">{abbr}</p>
+                <p className="text-sm font-bold text-ink">{isNaN(score) ? String(val) : score}</p>
+                {!isNaN(score) && (
+                  <p className="text-[10px] text-accent">{abilityMod(score)}</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Other stats as key-value pairs */}
+      {otherKeys.length > 0 && (
+        <div className="space-y-1">
+          {otherKeys.map(k => {
+            const val = statBlock[k]
+            if (val === null || val === undefined || val === '') return null
+            const displayVal = typeof val === 'object' ? JSON.stringify(val) : String(val)
+            const label = k.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()
+            return (
+              <div key={k} className="flex items-start gap-2 text-xs">
+                <span className="font-semibold text-ink-muted capitalize min-w-[80px] shrink-0">{label}</span>
+                <span className="text-ink leading-snug">{displayVal}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function EntityCard({
   entity, entityType, campaignId, compact = false,
-  onSaved, scratchMode, onSave, onRegenerate, locked, onToggleLock,
+  onSaved, scratchMode, onSave, onRegenerate,
 }: EntityCardProps) {
   const qc = useQueryClient()
   const [expanded, setExpanded] = useState(!compact)
@@ -110,10 +162,7 @@ export default function EntityCard({
   const displayName = entityType === 'plot_thread' ? (entity.title ?? entity.name) : entity.name
 
   return (
-    <div className={cn(
-      'card group relative transition-all',
-      locked && 'ring-2 ring-accent/30',
-    )}>
+    <div className={cn('card group relative transition-all')}>
       {/* Header */}
       <div className="flex items-start gap-3">
         {entity.portraitUrl || entity.imageUrl ? (
@@ -124,7 +173,7 @@ export default function EntityCard({
           />
         ) : (
           <div className="w-12 h-12 rounded-card bg-surface-2 flex items-center justify-center text-xl flex-shrink-0">
-            {entityType === 'npc' ? '🧙' : entityType === 'item' ? '⚔️' : entityType === 'location' ? '🗺️' : entityType === 'faction' ? '⚜️' : entityType === 'encounter' ? '💀' : '📜'}
+            {ENTITY_EMOJI[entityType] ?? '📄'}
           </div>
         )}
 
@@ -158,12 +207,8 @@ export default function EntityCard({
                 {entity.rarity}
               </span>
             )}
-            {entity.difficulty && (
-              <span className="text-xs text-orange-400">{entity.difficulty}</span>
-            )}
-            {entity.type && (
-              <span className="text-xs text-ink-muted capitalize">{entity.type}</span>
-            )}
+            {entity.difficulty && <span className="text-xs text-orange-400">{entity.difficulty}</span>}
+            {entity.type && <span className="text-xs text-ink-muted capitalize">{entity.type}</span>}
           </div>
 
           {entity.tags && entity.tags.length > 0 && (
@@ -176,15 +221,10 @@ export default function EntityCard({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           {onRegenerate && (
             <button className="btn-ghost p-1" onClick={onRegenerate} title="Regenerate">
               <RefreshCw size={13} />
-            </button>
-          )}
-          {onToggleLock && (
-            <button className="btn-ghost p-1" onClick={onToggleLock} title={locked ? 'Unlock' : 'Lock'}>
-              {locked ? <Lock size={13} className="text-accent" /> : <Unlock size={13} />}
             </button>
           )}
           {!scratchMode && (
@@ -211,7 +251,7 @@ export default function EntityCard({
       </div>
 
       {/* Description */}
-      {(entity.description) && (
+      {entity.description && (
         <div className="mt-3">
           {editing ? (
             <textarea
@@ -252,6 +292,14 @@ export default function EntityCard({
           )}
           {entity.twist && (
             <Field label="Twist" value={entity.twist} editing={editing} onChange={v => setDraft(d => ({ ...d, twist: v }))} draft={draft.twist} />
+          )}
+
+          {/* Stat block */}
+          {entity.statBlock && Object.keys(entity.statBlock).length > 0 && (
+            <div>
+              <span className="label">Stat Block</span>
+              <StatBlock statBlock={entity.statBlock} />
+            </div>
           )}
 
           {/* GM Secret fields */}

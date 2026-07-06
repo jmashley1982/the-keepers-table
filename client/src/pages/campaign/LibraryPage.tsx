@@ -43,7 +43,7 @@ export default function LibraryPage() {
           <h1 className="display-font text-3xl font-bold text-ink">Library</h1>
           <button
             className="btn-primary"
-            onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'npc' : currentTabDef.id.slice(0, -1)}`)}
+            onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'npc' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
           >
             <Plus size={16} /> Generate {currentTabDef.label.slice(0, -1)}
           </button>
@@ -97,7 +97,7 @@ export default function LibraryPage() {
             {!search && (
               <button
                 className="btn-primary"
-                onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'npc' : currentTabDef.id.slice(0, -1)}`)}
+                onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'npc' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
               >
                 <Plus size={16} /> Generate
               </button>
@@ -108,7 +108,7 @@ export default function LibraryPage() {
             {items.map((item: Record<string, unknown>) => (
               <EntityCard
                 key={item.id as string}
-                entity={item as Parameters<typeof EntityCard>[0]['entity']}
+                entity={item as unknown as Parameters<typeof EntityCard>[0]['entity']}
                 entityType={currentTabDef.entityType as Parameters<typeof EntityCard>[0]['entityType']}
                 campaignId={campaignId!}
                 compact

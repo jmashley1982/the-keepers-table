@@ -2,3 +2,5 @@
 - [Auth approach](auth-approach.md) — express-session + connect-pg-simple (NOT Lucia); Lucia adapter-prisma v1 was unavailable
 - [Prisma setup](prisma-setup.md) — schema at server/prisma/schema.prisma; must run `node_modules/.bin/prisma` from root, not sub-package
 - [CSS variable opacity](css-vars-opacity.md) — Tailwind v3 @apply can't use /opacity modifiers on CSS-var colors; use color-mix() in plain CSS instead
+- [SSE streaming format](sse-streaming.md) — server sends `{ text: string }` chunks then `{ done: true, jobId }`; client accumulates fullText then parses as JSON after done
+- [Generator routing bugs fixed](generator-routing.md) — QuickGenerate had location→'npc'; LibraryPage used slice(-1) for encounters; both corrected to literal 'location'/'encounter'

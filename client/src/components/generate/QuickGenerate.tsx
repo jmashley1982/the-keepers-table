@@ -21,7 +21,7 @@ const KIND_MAP: Record<string, string> = {
   npc: 'npc',
   encounter: 'encounter',
   treasure: 'treasure',
-  location: 'npc', // will use quick and let Claude figure it out
+  location: 'location',
   dialogue: 'dialogue',
 }
 

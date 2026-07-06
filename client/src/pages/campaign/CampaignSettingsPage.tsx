@@ -22,12 +22,16 @@ export default function CampaignSettingsPage() {
   const campaign = campData?.campaign
   const templates = templatesData?.templates ?? []
 
-  const [name, setName] = useState(campaign?.name ?? '')
-  const [settingNotes, setSettingNotes] = useState(campaign?.settingNotes ?? '')
-  const [templateId, setTemplateId] = useState(campaign?.systemTemplateId ?? '')
+  const [name, setName] = useState<string | null>(null)
+  const [settingNotes, setSettingNotes] = useState<string | null>(null)
+  const [templateId, setTemplateId] = useState<string | null>(null)
+
+  const effectiveName = name ?? (campaign?.name ?? '')
+  const effectiveSettingNotes = settingNotes ?? (campaign?.settingNotes ?? '')
+  const effectiveTemplateId = templateId ?? (campaign?.systemTemplateId ?? '')
 
   const update = useMutation({
-    mutationFn: () => api.patch(`/api/campaigns/${campaignId}`, { name, settingNotes, systemTemplateId: templateId }),
+    mutationFn: () => api.patch(`/api/campaigns/${campaignId}`, { name: effectiveName, settingNotes: effectiveSettingNotes, systemTemplateId: effectiveTemplateId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', campaignId] }),
   })
 
@@ -55,12 +59,12 @@ export default function CampaignSettingsPage() {
 
         <div>
           <label className="label">Campaign name</label>
-          <input className="input" value={name} onChange={e => setName(e.target.value)} defaultValue={campaign.name} />
+          <input className="input" value={effectiveName} onChange={e => setName(e.target.value)} />
         </div>
 
         <div>
           <label className="label">Game system</label>
-          <select className="input" value={templateId} onChange={e => setTemplateId(e.target.value)} defaultValue={campaign.systemTemplateId}>
+          <select className="input" value={effectiveTemplateId} onChange={e => setTemplateId(e.target.value)}>
             {templates.map((t: { id: string; name: string }) => (
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
@@ -71,10 +75,9 @@ export default function CampaignSettingsPage() {
           <label className="label">Setting notes</label>
           <textarea
             className="textarea h-36"
-            value={settingNotes}
+            value={effectiveSettingNotes}
             onChange={e => setSettingNotes(e.target.value)}
             placeholder="World premise, tone, homebrew rules — always in Claude's context…"
-            defaultValue={campaign.settingNotes}
           />
         </div>
 

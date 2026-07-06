@@ -91,11 +91,11 @@ export default function ScratchTray() {
                   {(item.data.name as string) || (item.data.text as string)?.slice(0, 60) || 'Generated result'}
                 </p>
 
-                {item.data.description && (
-                  <p className="text-xs text-ink-muted line-clamp-2">{item.data.description as string}</p>
+                {!!item.data.description && (
+                  <p className="text-xs text-ink-muted line-clamp-2">{String(item.data.description)}</p>
                 )}
-                {item.data.text && !item.data.name && (
-                  <p className="text-xs text-ink-muted line-clamp-3 whitespace-pre-wrap">{item.data.text as string}</p>
+                {!!item.data.text && !item.data.name && (
+                  <p className="text-xs text-ink-muted line-clamp-3 whitespace-pre-wrap">{String(item.data.text)}</p>
                 )}
 
                 {!item.saved && campaignId && item.kind !== 'freeform' && item.kind !== 'quick' && (
