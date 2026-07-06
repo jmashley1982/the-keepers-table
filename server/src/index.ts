@@ -25,28 +25,38 @@ import './lib/auth.js'
 const app = express()
 const PORT = process.env.PORT ?? 3001
 
+// Trust Replit's HTTPS reverse proxy so cookies and req.secure work correctly
+app.set('trust proxy', 1)
+
 const PgSession = connectPgSimple(session)
+
+const sessionMiddleware = session({
+  store: new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+    errorLog: (err) => console.error('[session-store]', err),
+  }),
+  secret: process.env.SESSION_SECRET ?? process.env.ENCRYPTION_KEY ?? 'dev-secret-change-me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    // secure:true works because trust proxy is set above
+    secure: process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DOMAINS,
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    sameSite: 'lax',
+  },
+})
 
 app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({ limit: '2mb' }))
-app.use(
-  session({
-    store: new PgSession({
-      conString: process.env.DATABASE_URL,
-      tableName: 'user_sessions',
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET ?? process.env.ENCRYPTION_KEY ?? 'dev-secret-change-me',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      sameSite: 'lax',
-    },
-  }),
-)
+
+// Session middleware scoped to authenticated routes only.
+// Static file serving (GET /) deliberately runs WITHOUT session middleware
+// so a transient DB hiccup cannot return 500 on the homepage.
+app.use('/auth', sessionMiddleware)
+app.use('/api', sessionMiddleware)
 
 // Routes
 app.use('/auth', authRouter)
@@ -64,22 +74,25 @@ app.use('/api/jobs', jobsRouter)
 app.use('/api/style-presets', stylePresetsRouter)
 app.use('/api/campaigns/:campaignId/maps', mapsRouter)
 
-// Health
+// Health (no session required)
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
 
 // Serve built client (production build output)
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const clientDist = join(__dirname, '../../dist/public')
 if (existsSync(clientDist)) {
+  console.log(`📁 Serving static files from ${clientDist}`)
   app.use(express.static(clientDist))
   app.get('*', (_req, res) => {
     res.sendFile(join(clientDist, 'index.html'))
   })
+} else {
+  console.warn(`⚠️  No static build found at ${clientDist} — serving API only`)
 }
 
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err)
+  console.error('[error]', err.message, err.stack)
   res.status(500).json({ error: err.message ?? 'Internal server error' })
 })
 
