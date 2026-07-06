@@ -15,6 +15,7 @@ import EntityDetailPage from './pages/campaign/EntityDetailPage'
 import SessionLogPage from './pages/campaign/SessionLogPage'
 import LiveSessionPage from './pages/campaign/LiveSessionPage'
 import GeneratorPage from './pages/campaign/GeneratorPage'
+import BattleMapGeneratorPage from './pages/campaign/BattleMapGeneratorPage'
 import MapsPage from './pages/campaign/MapsPage'
 import CampaignSettingsPage from './pages/campaign/CampaignSettingsPage'
 import SettingsPage from './pages/SettingsPage'
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="campaign/:campaignId/library/:tab" element={<LibraryPage />} />
         <Route path="campaign/:campaignId/library/:tab/:entityId" element={<EntityDetailPage />} />
         <Route path="campaign/:campaignId/maps" element={<MapsPage />} />
+        <Route path="campaign/:campaignId/generate/battle-map" element={<BattleMapGeneratorPage />} />
         <Route path="campaign/:campaignId/generate/:kind" element={<GeneratorPage />} />
         <Route path="campaign/:campaignId/settings" element={<CampaignSettingsPage />} />
         <Route path="settings" element={<SettingsPage />} />

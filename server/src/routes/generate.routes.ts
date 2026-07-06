@@ -491,6 +491,9 @@ generateRouter.post('/image', async (req, res) => {
   } else if (entityType === 'item') {
     const ent = await prisma.item.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'Item not found in this campaign' }); return }
+  } else if (entityType === 'map') {
+    const ent = await prisma.mapAsset.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
+    if (!ent) { res.status(404).json({ error: 'Map not found in this campaign' }); return }
   }
 
   const job = await prisma.generationJob.create({

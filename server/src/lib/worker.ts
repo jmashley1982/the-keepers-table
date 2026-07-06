@@ -114,6 +114,31 @@ async function processImageGenerate(jobId: string): Promise<void> {
     } else if (entityType === 'item' || kind === 'item_art') {
       const item = await prisma.item.findUnique({ where: { id: entityId } })
       if (item) entityData = { name: item.name, category: item.category, rarity: item.rarity, description: item.description }
+    } else if (entityType === 'map' || kind.startsWith('map_')) {
+      const mapAsset = await prisma.mapAsset.findUnique({ where: { id: entityId } })
+      if (mapAsset) {
+        entityData = {
+          title: mapAsset.title,
+          scene_description: mapAsset.generationPrompt ?? '',
+        }
+        if (mapAsset.linkedEncounterId) {
+          const enc = await prisma.encounter.findUnique({ where: { id: mapAsset.linkedEncounterId } })
+          if (enc) {
+            entityData.encounter_name = enc.name
+            entityData.encounter_type = enc.type
+            entityData.encounter_description = enc.description
+            entityData.encounter_setup = enc.setup
+          }
+        }
+        if (mapAsset.linkedLocationId) {
+          const loc = await prisma.location.findUnique({ where: { id: mapAsset.linkedLocationId } })
+          if (loc) {
+            entityData.location_name = loc.name
+            entityData.location_type = loc.type
+            entityData.location_description = loc.description
+          }
+        }
+      }
     }
 
     // ── 2. Load style preset ──────────────────────────────────────────────
@@ -139,12 +164,26 @@ async function processImageGenerate(jobId: string): Promise<void> {
         try {
           const anthroKey = decrypt(anthropicCred.encryptedKey)
           const anthroClient = new Anthropic({ apiKey: anthroKey })
-          const artMsg = await anthroClient.messages.create({
-            model: 'claude-haiku-4-5',
-            max_tokens: 512,
-            messages: [{
-              role: 'user',
-              content: `You are an art director for a tabletop RPG. Given this entity, write a vivid image generation prompt.
+          const isMapKind = kind.startsWith('map_')
+          const artDirectorContent = isMapKind
+            ? `You are an art director for a tabletop RPG. Generate a detailed image prompt for a TOP-DOWN ORTHOGRAPHIC battle map.
+
+Map context: ${JSON.stringify(entityData)}
+Art style: ${styleFragment}
+Image kind: ${kind}
+
+STRICT RULES — all must be followed:
+- Strict top-down bird's eye view (camera directly overhead, 90° angle, orthographic)
+- NO grid lines or grid overlay on the image
+- NO labels, text, numbers, UI elements, or annotations
+- Consistent, flat overhead lighting (no dramatic shadows)
+- Show terrain, obstacles, furniture, props clearly from above
+- Include tactically interesting features: cover objects, pathways, elevation changes, hazards
+- Rich, detailed environment textures appropriate to the scene description
+
+Return ONLY valid JSON — no prose, no markdown:
+{"prompt":"<detailed top-down map description, 40-80 words>","negative_prompt":"<things to avoid>"}`
+            : `You are an art director for a tabletop RPG. Given this entity, write a vivid image generation prompt.
 
 Entity JSON: ${JSON.stringify(entityData)}
 Art style: ${styleFragment}
@@ -152,6 +191,12 @@ Image kind: ${kind}
 
 Return ONLY valid JSON — no prose, no markdown:
 {"prompt":"<concise, comma-separated visual description, 30–60 words>","negative_prompt":"<things to avoid>"}`
+          const artMsg = await anthroClient.messages.create({
+            model: 'claude-haiku-4-5',
+            max_tokens: 512,
+            messages: [{
+              role: 'user',
+              content: artDirectorContent,
             }],
           })
           const raw = artMsg.content[0].type === 'text' ? artMsg.content[0].text : ''
