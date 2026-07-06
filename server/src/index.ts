@@ -2,6 +2,9 @@ import express from 'express'
 import cors from 'cors'
 import session from 'express-session'
 import connectPgSimple from 'connect-pg-simple'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+import { existsSync } from 'fs'
 import { authRouter } from './routes/auth.routes.js'
 import { demoRouter } from './routes/demo.routes.js'
 import { credentialsRouter } from './routes/credentials.routes.js'
@@ -63,6 +66,16 @@ app.use('/api/campaigns/:campaignId/maps', mapsRouter)
 
 // Health
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
+
+// Serve built client (production build output)
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const clientDist = join(__dirname, '../../dist/public')
+if (existsSync(clientDist)) {
+  app.use(express.static(clientDist))
+  app.get('*', (_req, res) => {
+    res.sendFile(join(clientDist, 'index.html'))
+  })
+}
 
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
