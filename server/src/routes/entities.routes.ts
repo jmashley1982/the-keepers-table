@@ -114,6 +114,23 @@ const npcCreate = z.object({
   portraitUrl: z.string().optional(),
   portraitAssetId: z.string().nullable().optional(),
 })
+// Custom list for NPCs — includes portraitAsset.altText for accessible img alt text
+entitiesRouter.get('/:campaignId/npcs', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params as { campaignId: string }
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+  const q = (req.query.q as string) ?? ''
+  const items = await prisma.nPC.findMany({
+    where: { campaignId, deletedAt: null },
+    orderBy: { updatedAt: 'desc' },
+    include: { portraitAsset: { select: { id: true, altText: true } } },
+  })
+  const filtered = q
+    ? items.filter(i => i.name.toLowerCase().includes(q.toLowerCase()) || i.description?.toLowerCase().includes(q.toLowerCase()))
+    : items
+  res.json({ items: filtered })
+})
 entitiesRouter.use('/:campaignId/npcs', entityRoutes('nPC', prisma.nPC, npcCreate, npcCreate.partial()))
 
 // ── Location routes ──────────────────────────────────────────────────────────
@@ -131,7 +148,7 @@ const locationCreate = z.object({
   ambience: z.record(z.unknown()).optional(),
 })
 
-// Custom list for locations — includes attached mapAsset so cards can show thumbnails
+// Custom list for locations — includes attached mapAsset thumbnails and imageAsset.altText
 entitiesRouter.get('/:campaignId/locations', async (req, res) => {
   const userId = res.locals.user.id
   const { campaignId } = req.params as { campaignId: string }
@@ -141,7 +158,10 @@ entitiesRouter.get('/:campaignId/locations', async (req, res) => {
   const items = await prisma.location.findMany({
     where: { campaignId, deletedAt: null },
     orderBy: { updatedAt: 'desc' },
-    include: { mapAsset: { include: { imageAsset: true } } },
+    include: {
+      mapAsset: { include: { imageAsset: true } },
+      imageAsset: { select: { id: true, altText: true } },
+    },
   })
   const filtered = q
     ? items.filter(i => i.name.toLowerCase().includes(q.toLowerCase()) || i.description?.toLowerCase().includes(q.toLowerCase()))
@@ -165,6 +185,23 @@ const itemCreate = z.object({
   dmOnlyNotes: z.string().optional(),
   imageUrl: z.string().optional(),
   imageAssetId: z.string().nullable().optional(),
+})
+// Custom list for items — includes imageAsset.altText for accessible img alt text
+entitiesRouter.get('/:campaignId/items', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params as { campaignId: string }
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+  const q = (req.query.q as string) ?? ''
+  const items = await prisma.item.findMany({
+    where: { campaignId, deletedAt: null },
+    orderBy: { updatedAt: 'desc' },
+    include: { imageAsset: { select: { id: true, altText: true } } },
+  })
+  const filtered = q
+    ? items.filter(i => i.name.toLowerCase().includes(q.toLowerCase()) || i.description?.toLowerCase().includes(q.toLowerCase()))
+    : items
+  res.json({ items: filtered })
 })
 entitiesRouter.use('/:campaignId/items', entityRoutes('item', prisma.item, itemCreate, itemCreate.partial()))
 

@@ -46,6 +46,13 @@ export default function WorldMapGeneratorPage() {
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
 
+  const [softCapConfirm, setSoftCapConfirm] = useState<{
+    body: Record<string, string>
+    mapAsset: MapAsset
+    estimate: number
+    softCap: number
+  } | null>(null)
+
   const [mapAsset, setMapAsset] = useState<MapAsset | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
   const [imageSize, setImageSize] = useState<{ w: number; h: number }>({ w: 1280, h: 720 })
@@ -149,6 +156,24 @@ export default function WorldMapGeneratorPage() {
     }
   }, [campaignId, scope, description])
 
+  const submitImageGenerate = useCallback(async (body: Record<string, string>, confirmed?: boolean) => {
+    const payload = confirmed ? { ...body, confirmed: 'true' } : body
+    const genRes = await api.post('/api/generate/image', payload)
+    setJobId((genRes.data as { jobId: string }).jobId)
+    setSoftCapConfirm(null)
+  }, [])
+
+  const handleConfirmedGenerate = useCallback(async () => {
+    if (!softCapConfirm) return
+    try {
+      setMapAsset(softCapConfirm.mapAsset)
+      await submitImageGenerate(softCapConfirm.body, true)
+    } catch (e) {
+      alert(apiError(e))
+      setSoftCapConfirm(null)
+    }
+  }, [softCapConfirm, submitImageGenerate])
+
   const handleGenerate = useCallback(async () => {
     if (!campaignId) return
     const descToUse = customPrompt.trim() || (useFromCampaign && geoSummary ? geoSummary : description.trim())
@@ -156,6 +181,7 @@ export default function WorldMapGeneratorPage() {
 
     setMapAsset(null)
     setJobId(null)
+    setSoftCapConfirm(null)
     setShowPinPanel(false)
     setShowPinPrompt(false)
     setEditPins(false)
@@ -183,12 +209,20 @@ export default function WorldMapGeneratorPage() {
       if (selectedPreset) body.stylePreset = selectedPreset
       if (customPrompt.trim()) body.prompt = customPrompt.trim()
 
-      const genRes = await api.post('/api/generate/image', body)
-      setJobId((genRes.data as { jobId: string }).jobId)
+      try {
+        await submitImageGenerate(body)
+      } catch (e: unknown) {
+        const err = e as { response?: { status?: number; data?: { requiresConfirm?: boolean; estimate?: number; softCap?: number } } }
+        if (err?.response?.status === 402 && err?.response?.data?.requiresConfirm) {
+          setSoftCapConfirm({ body, mapAsset: map, estimate: err.response.data.estimate ?? 0, softCap: err.response.data.softCap ?? 0 })
+        } else {
+          alert(apiError(e))
+        }
+      }
     } catch (e) {
       alert(apiError(e))
     }
-  }, [campaignId, scope, description, customPrompt, useFromCampaign, geoSummary, aspect, selectedPreset])
+  }, [campaignId, scope, description, customPrompt, useFromCampaign, geoSummary, aspect, selectedPreset, submitImageGenerate])
 
   const displayAssetId = mapAsset?.imageAsset?.id ?? mapAsset?.imageAssetId ?? null
 
@@ -472,16 +506,35 @@ export default function WorldMapGeneratorPage() {
         )}
 
         {!showPinPanel && (
-          <div className="p-4 border-t border-border">
-            <button
-              className="btn-primary w-full justify-center"
-              onClick={handleGenerate}
-              disabled={!canGenerate}
-            >
-              {isGenerating
-                ? <><Loader size={14} className="animate-spin" /> Generating…</>
-                : <><Wand2 size={14} /> Generate {scope === 'world' ? 'World' : 'Region'} Map</>}
-            </button>
+          <div className="p-4 border-t border-border space-y-3">
+            {softCapConfirm && (
+              <div className="rounded-lg border border-amber-600/40 bg-amber-900/20 p-3 text-sm space-y-2">
+                <p className="font-medium text-amber-300 text-xs">Over spending limit</p>
+                <p className="text-ink-muted text-xs">
+                  Estimated cost <span className="text-ink font-medium">${softCapConfirm.estimate.toFixed(4)}</span> would
+                  exceed your soft cap of <span className="text-ink font-medium">${softCapConfirm.softCap.toFixed(2)}</span>.
+                </p>
+                <div className="flex gap-2">
+                  <button className="btn-primary flex-1 text-xs justify-center" onClick={handleConfirmedGenerate}>
+                    Proceed anyway
+                  </button>
+                  <button className="btn-ghost flex-1 text-xs justify-center" onClick={() => setSoftCapConfirm(null)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {!softCapConfirm && (
+              <button
+                className="btn-primary w-full justify-center"
+                onClick={handleGenerate}
+                disabled={!canGenerate}
+              >
+                {isGenerating
+                  ? <><Loader size={14} className="animate-spin" /> Generating…</>
+                  : <><Wand2 size={14} /> Generate {scope === 'world' ? 'World' : 'Region'} Map</>}
+              </button>
+            )}
           </div>
         )}
       </div>

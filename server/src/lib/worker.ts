@@ -524,15 +524,20 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
 
 async function attachAssetToEntity(assetId: string, entityType: string, entityId: string, kind: string): Promise<void> {
   if (!entityId || !entityType) return
-
-  if (entityType === 'npc' || kind === 'portrait_npc') {
-    await prisma.nPC.update({ where: { id: entityId }, data: { portraitAssetId: assetId } }).catch(() => {})
-  } else if (entityType === 'location' || kind === 'location_art') {
-    await prisma.location.update({ where: { id: entityId }, data: { imageAssetId: assetId } }).catch(() => {})
-  } else if (entityType === 'item' || kind === 'item_art') {
-    await prisma.item.update({ where: { id: entityId }, data: { imageAssetId: assetId } }).catch(() => {})
-  } else if (kind.startsWith('map_') && entityId) {
-    await prisma.mapAsset.update({ where: { id: entityId }, data: { imageAssetId: assetId } }).catch(() => {})
+  try {
+    if (entityType === 'npc' || kind === 'portrait_npc') {
+      await prisma.nPC.update({ where: { id: entityId }, data: { portraitAssetId: assetId } })
+    } else if (entityType === 'location' || kind === 'location_art') {
+      await prisma.location.update({ where: { id: entityId }, data: { imageAssetId: assetId } })
+    } else if (entityType === 'item' || kind === 'item_art') {
+      await prisma.item.update({ where: { id: entityId }, data: { imageAssetId: assetId } })
+    } else if (kind.startsWith('map_')) {
+      await prisma.mapAsset.update({ where: { id: entityId }, data: { imageAssetId: assetId } })
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error(`[attach] Failed to attach asset ${assetId} to ${entityType}/${entityId}: ${msg}`)
+    throw err
   }
 }
 

@@ -39,6 +39,13 @@ export default function BattleMapGeneratorPage() {
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
 
+  const [softCapConfirm, setSoftCapConfirm] = useState<{
+    mapId: string
+    body: Record<string, string>
+    estimate: number
+    softCap: number
+  } | null>(null)
+
   const [mapAsset, setMapAsset] = useState<MapAsset | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
   const [imageSize, setImageSize] = useState<{ w: number; h: number }>({ w: 1024, h: 1024 })
@@ -95,20 +102,52 @@ export default function BattleMapGeneratorPage() {
     },
   })
 
+  const handleConfirmedGenerate = useCallback(async () => {
+    if (!softCapConfirm) return
+    try {
+      const res = await api.post('/api/generate/image', { ...softCapConfirm.body, confirmed: 'true' })
+      setJobId(res.data.jobId as string)
+      setSoftCapConfirm(null)
+    } catch (e) {
+      alert(apiError(e))
+      setSoftCapConfirm(null)
+    }
+  }, [softCapConfirm])
+
   const handleGenerate = useCallback(async () => {
     if (!description.trim() && !customPrompt.trim()) return
     try {
       setMapAsset(null)
       setJobId(null)
+      setSoftCapConfirm(null)
       setGrid(DEFAULT_GRID)
       const map = await createMap.mutateAsync()
       setMapAsset(map)
-      const jid = await generateImage.mutateAsync(map.id)
-      setJobId(jid)
+
+      const body: Record<string, string> = {
+        kind: 'map_battle',
+        entityId: map.id,
+        campaignId: campaignId!,
+        aspectRatio: aspect,
+      }
+      if (selectedPreset) body.stylePreset = selectedPreset
+      if (customPrompt.trim()) body.prompt = customPrompt.trim()
+
+      try {
+        const res = await api.post('/api/generate/image', body)
+        setJobId(res.data.jobId as string)
+      } catch (e: unknown) {
+        const err = e as { response?: { status?: number; data?: { requiresConfirm?: boolean; estimate?: number; softCap?: number } } }
+        if (err?.response?.status === 402 && err?.response?.data?.requiresConfirm) {
+          setSoftCapConfirm({ mapId: map.id, body, estimate: err.response.data.estimate ?? 0, softCap: err.response.data.softCap ?? 0 })
+        } else {
+          alert(apiError(e))
+        }
+      }
     } catch (e) {
       alert(apiError(e))
     }
-  }, [description, customPrompt, aspect, selectedPreset, createMap, generateImage])
+  }, [description, customPrompt, aspect, selectedPreset, campaignId, createMap])
 
   const jobStatus = useJobStatus(jobId)
 
@@ -307,16 +346,35 @@ export default function BattleMapGeneratorPage() {
           </div>
         </div>
 
-        <div className="p-4 border-t border-border">
-          <button
-            className="btn-primary w-full justify-center"
-            onClick={handleGenerate}
-            disabled={!canGenerate}
-          >
-            {isGenerating
-              ? <><Loader size={14} className="animate-spin" /> Generating…</>
-              : <><Wand2 size={14} /> Generate Map</>}
-          </button>
+        <div className="p-4 border-t border-border space-y-3">
+          {softCapConfirm && (
+            <div className="rounded-lg border border-amber-600/40 bg-amber-900/20 p-3 text-sm space-y-2">
+              <p className="font-medium text-amber-300 text-xs">Over spending limit</p>
+              <p className="text-ink-muted text-xs">
+                Estimated cost <span className="text-ink font-medium">${softCapConfirm.estimate.toFixed(4)}</span> would
+                exceed your soft cap of <span className="text-ink font-medium">${softCapConfirm.softCap.toFixed(2)}</span>.
+              </p>
+              <div className="flex gap-2">
+                <button className="btn-primary flex-1 text-xs justify-center" onClick={handleConfirmedGenerate}>
+                  Proceed anyway
+                </button>
+                <button className="btn-ghost flex-1 text-xs justify-center" onClick={() => setSoftCapConfirm(null)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          {!softCapConfirm && (
+            <button
+              className="btn-primary w-full justify-center"
+              onClick={handleGenerate}
+              disabled={!canGenerate}
+            >
+              {isGenerating
+                ? <><Loader size={14} className="animate-spin" /> Generating…</>
+                : <><Wand2 size={14} /> Generate Map</>}
+            </button>
+          )}
         </div>
       </div>
 

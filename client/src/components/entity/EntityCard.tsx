@@ -16,6 +16,8 @@ export interface EntityCardData {
   portraitUrl?: string
   portraitAssetId?: string
   imageAssetId?: string
+  portraitAsset?: { id: string; altText?: string | null } | null
+  imageAsset?: { id: string; altText?: string | null } | null
   tags?: string[]
   dmOnlyNotes?: string
   pinned?: boolean
@@ -182,7 +184,7 @@ export default function EntityCard({
               portraitUrl={entity.portraitUrl}
               imageUrl={entity.imageUrl}
               entityType={entityType}
-              altText={displayName}
+              altText={entity.portraitAsset?.altText ?? entity.imageAsset?.altText ?? displayName}
             />
             <GenerateArtButton
               kind={artKind}
