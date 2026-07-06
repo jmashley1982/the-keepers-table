@@ -91,7 +91,7 @@ async function processImageGenerate(jobId: string): Promise<void> {
   console.log(`[image.generate] Processing job ${jobId}`)
 
   try {
-    const input = genJob.input as { kind: string; entityId: string; entityType: string; prompt?: string }
+    const input = genJob.input as { kind: string; entityId: string; entityType: string; prompt?: string; stylePreset?: string; model?: string; aspectRatio?: string }
     const { kind, entityId, entityType } = input
     const userPrompt = input.prompt ?? null
 
@@ -118,7 +118,7 @@ async function processImageGenerate(jobId: string): Promise<void> {
 
     // ── 2. Load style preset ──────────────────────────────────────────────
     const userPref = await prisma.userPreference.findUnique({ where: { userId: genJob.userId } })
-    const presetName = userPref?.imageStylePreset ?? 'Classic fantasy oil'
+    const presetName = input.stylePreset ?? userPref?.imageStylePreset ?? 'Classic fantasy oil'
     const preset = await prisma.artStylePreset.findFirst({ where: { name: presetName } })
     const styleFragment = preset?.promptFragment ?? 'fantasy art, detailed, high quality'
 
@@ -185,11 +185,11 @@ Return ONLY valid JSON — no prose, no markdown:
     // ── 5. Resolve model for entity category ──────────────────────────────
     const imageModelByCategory = (userPref?.imageModelByCategory ?? {}) as Record<string, string>
     const categoryKey = entityType === 'npc' ? 'portrait' : entityType
-    const model = imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'seedream-5'
+    const model = input.model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'seedream-5'
 
-    const isPortrait = kind === 'portrait_npc'
-    const width = isPortrait ? 768 : 1024
-    const height = isPortrait ? 1024 : 1024
+    const aspectRatio = input.aspectRatio ?? (kind === 'portrait_npc' ? 'portrait' : 'square')
+    const width = aspectRatio === 'landscape' ? 1024 : aspectRatio === 'square' ? 1024 : 768
+    const height = aspectRatio === 'landscape' ? 768 : 1024
 
     // ── 6. Submit to EvoLink ───────────────────────────────────────────────
     const submitRes = await fetch('https://api.eachlabs.ai/v1/prediction', {

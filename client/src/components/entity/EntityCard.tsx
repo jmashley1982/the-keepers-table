@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, apiError } from '../../lib/api'
+import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { useJobStatus } from '../../lib/useJobStatus'
 import {
   RefreshCw, Edit2, Save, Trash2,
   ChevronDown, ChevronUp, Eye, EyeOff,
-  Sparkles, RotateCcw, AlertCircle,
 } from 'lucide-react'
+import GenerateArtButton, { EntityAvatarWithArt } from './GenerateArtButton'
 
 export interface EntityCardData {
   id: string
@@ -130,125 +129,6 @@ function StatBlock({ statBlock }: { statBlock: Record<string, unknown> }) {
   )
 }
 
-// ── Portrait component ────────────────────────────────────────────────────────
-
-function EntityPortrait({
-  entity,
-  entityType,
-  campaignId,
-  onPortraitReady,
-}: {
-  entity: EntityCardData
-  entityType: EntityCardProps['entityType']
-  campaignId: string
-  onPortraitReady?: () => void
-}) {
-  const qc = useQueryClient()
-  const [jobId, setJobId] = useState<string | null>(null)
-  const [genError, setGenError] = useState<string | null>(null)
-
-  const kind = entityType === 'npc' ? 'portrait_npc'
-    : entityType === 'location' ? 'location_art'
-    : entityType === 'item' ? 'item_art'
-    : null
-
-  const generateMutation = useMutation({
-    mutationFn: () => api.post<{ jobId: string }>('/api/generate/image', {
-      kind,
-      entityId: entity.id,
-      campaignId,
-    }),
-    onSuccess: (res) => {
-      setGenError(null)
-      setJobId(res.data.jobId)
-    },
-    onError: (err) => {
-      setGenError(apiError(err))
-    },
-  })
-
-  const retryGenerate = useCallback(() => {
-    setGenError(null)
-    setJobId(null)
-    generateMutation.mutate()
-  }, [generateMutation])
-
-  const jobStatus = useJobStatus(jobId, retryGenerate)
-
-  useEffect(() => {
-    if (jobStatus.status === 'succeeded') {
-      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
-      onPortraitReady?.()
-      setJobId(null)
-    }
-    if (jobStatus.status === 'failed') {
-      setGenError(jobStatus.errorMessage ?? 'Generation failed')
-      setJobId(null)
-    }
-  }, [jobStatus.status, jobStatus.errorMessage, campaignId, entityType, qc, onPortraitReady])
-
-  const isGenerating = generateMutation.isPending ||
-    (jobId !== null && (jobStatus.status === null || jobStatus.status === 'queued' || jobStatus.status === 'running'))
-
-  // Resolve portrait image src
-  const assetId = entity.portraitAssetId ?? entity.imageAssetId ?? null
-  const portraitSrc = assetId
-    ? `/api/assets/${assetId}?size=thumb`
-    : entity.portraitUrl ?? entity.imageUrl ?? null
-
-  const canGenerate = kind !== null && !isGenerating
-
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="relative w-12 h-12 flex-shrink-0">
-        {portraitSrc ? (
-          <img
-            src={portraitSrc}
-            alt="portrait"
-            className="w-12 h-12 rounded-card object-cover"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-card bg-surface-2 flex items-center justify-center text-xl">
-            {ENTITY_EMOJI[entityType] ?? '📄'}
-          </div>
-        )}
-
-        {/* Spinner overlay while generating */}
-        {isGenerating && (
-          <div className="absolute inset-0 rounded-card bg-black/50 flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
-
-        {/* Generate hover button (only when not generating) */}
-        {canGenerate && !isGenerating && (
-          <button
-            onClick={() => generateMutation.mutate()}
-            className="absolute inset-0 rounded-card opacity-0 hover:opacity-100 bg-black/60 flex flex-col items-center justify-center gap-0.5 transition-opacity group/gen"
-            title="Generate portrait"
-          >
-            <Sparkles size={12} className="text-white" />
-            <span className="text-[9px] text-white/90 font-medium leading-none">Generate</span>
-          </button>
-        )}
-      </div>
-
-      {/* Error chip below avatar */}
-      {genError && !isGenerating && (
-        <div className="flex items-center gap-1 text-[10px] text-red-400 bg-red-500/10 rounded px-1.5 py-1 w-12">
-          <AlertCircle size={10} className="shrink-0" />
-          <button
-            onClick={() => { setGenError(null); generateMutation.mutate() }}
-            className="underline truncate"
-            title={genError}
-          >
-            Retry
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ── Main EntityCard ───────────────────────────────────────────────────────────
 
@@ -283,19 +163,34 @@ export default function EntityCard({
 
   const displayName = entityType === 'plot_thread' ? (entity.title ?? entity.name) : entity.name
 
-  const supportsPortrait = ['npc', 'item', 'location'].includes(entityType)
+  const supportsArt = ['npc', 'item', 'location'].includes(entityType)
+  const artKind = entityType === 'npc' ? 'portrait_npc' as const
+    : entityType === 'item' ? 'item_art' as const
+    : entityType === 'location' ? 'location_art' as const
+    : null
+  const currentAssetId = entity.portraitAssetId ?? entity.imageAssetId ?? null
 
   return (
     <div className={cn('card group relative transition-all')}>
       {/* Header */}
       <div className="flex items-start gap-3">
-        {supportsPortrait && !scratchMode ? (
-          <EntityPortrait
-            entity={entity}
-            entityType={entityType}
-            campaignId={campaignId}
-            onPortraitReady={() => qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })}
-          />
+        {supportsArt && !scratchMode && artKind ? (
+          <div className="flex flex-col gap-1 flex-shrink-0">
+            <EntityAvatarWithArt
+              assetId={currentAssetId}
+              portraitUrl={entity.portraitUrl}
+              imageUrl={entity.imageUrl}
+              entityType={entityType}
+            />
+            <GenerateArtButton
+              kind={artKind}
+              entityId={entity.id}
+              campaignId={campaignId}
+              entityType={entityType as 'npc' | 'item' | 'location'}
+              currentAssetId={currentAssetId}
+              onGenerated={() => qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })}
+            />
+          </div>
         ) : entity.portraitUrl ?? entity.imageUrl ? (
           <img
             src={entity.portraitUrl ?? entity.imageUrl}

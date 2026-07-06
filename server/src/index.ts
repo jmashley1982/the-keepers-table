@@ -13,7 +13,9 @@ import { templatesRouter } from './routes/templates.routes.js'
 import { preferencesRouter } from './routes/preferences.routes.js'
 import { assetsRouter, campaignAssetsRouter } from './routes/assets.routes.js'
 import { jobsRouter } from './routes/jobs.routes.js'
+import { stylePresetsRouter } from './routes/style-presets.routes.js'
 import { startWorker, stopWorker } from './lib/worker.js'
+import { seedBuiltinPresets } from './lib/seed-presets.js'
 import './lib/auth.js'
 
 const app = express()
@@ -55,6 +57,7 @@ app.use('/api/system-templates', templatesRouter)
 app.use('/api/preferences', preferencesRouter)
 app.use('/api/assets', assetsRouter)
 app.use('/api/jobs', jobsRouter)
+app.use('/api/style-presets', stylePresetsRouter)
 
 // Health
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
@@ -68,6 +71,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 const server = app.listen(PORT, async () => {
   console.log(`🧙 Keeper's Table server running on port ${PORT}`)
   await startWorker()
+  await seedBuiltinPresets()
 })
 
 // Graceful shutdown

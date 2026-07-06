@@ -455,6 +455,9 @@ generateRouter.post('/image', async (req, res) => {
     entityId: z.string().min(1),
     campaignId: z.string().min(1),
     prompt: z.string().optional(),
+    stylePreset: z.string().optional(),
+    model: z.string().optional(),
+    aspectRatio: z.enum(['portrait', 'square', 'landscape']).optional(),
   })
 
   const parsed = schema.safeParse(req.body)
@@ -463,7 +466,7 @@ generateRouter.post('/image', async (req, res) => {
     return
   }
 
-  const { kind, entityId, campaignId, prompt } = parsed.data
+  const { kind, entityId, campaignId, prompt, stylePreset, model, aspectRatio } = parsed.data
 
   const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId } })
   if (!campaign) {
@@ -497,7 +500,7 @@ generateRouter.post('/image', async (req, res) => {
       provider: 'evolink',
       kind,
       status: 'queued',
-      input: { kind, entityId, entityType, prompt: prompt ?? null },
+      input: { kind, entityId, entityType, prompt: prompt ?? null, stylePreset: stylePreset ?? null, model: model ?? null, aspectRatio: aspectRatio ?? null },
     },
   })
 

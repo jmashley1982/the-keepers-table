@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../lib/api'
 import { useState } from 'react'
-import { CheckCircle, XCircle, Loader, Eye, EyeOff, Save } from 'lucide-react'
+import { CheckCircle, XCircle, Loader, Eye, EyeOff, Save, Plus, Trash2, Lock } from 'lucide-react'
 
 type Provider = 'anthropic' | 'evolink'
 
@@ -65,6 +65,127 @@ function KeySection({ provider, label, hint }: { provider: Provider; label: stri
       {status === 'valid' && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle size={12} />Key is valid</p>}
       {status === 'invalid' && <p className="text-xs text-danger flex items-center gap-1"><XCircle size={12} />{error}</p>}
       <p className="text-xs text-ink-muted">{hint}</p>
+    </div>
+  )
+}
+
+interface StylePreset {
+  id: string
+  name: string
+  promptFragment: string
+  isBuiltin: boolean
+}
+
+function StylePresetsSection() {
+  const qc = useQueryClient()
+  const [newName, setNewName] = useState('')
+  const [newFragment, setNewFragment] = useState('')
+  const [createError, setCreateError] = useState('')
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['style-presets'],
+    queryFn: () => api.get('/api/style-presets').then(r => r.data),
+  })
+  const presets: StylePreset[] = data?.presets ?? []
+
+  const createMutation = useMutation({
+    mutationFn: () => api.post('/api/style-presets', { name: newName.trim(), promptFragment: newFragment.trim() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['style-presets'] })
+      setNewName('')
+      setNewFragment('')
+      setCreateError('')
+    },
+    onError: (e) => setCreateError(apiError(e)),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/style-presets/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['style-presets'] }),
+  })
+
+  const builtins = presets.filter(p => p.isBuiltin)
+  const custom = presets.filter(p => !p.isBuiltin)
+
+  return (
+    <div className="card space-y-4">
+      <div>
+        <h2 className="font-semibold text-ink">Art Style Presets</h2>
+        <p className="text-xs text-ink-muted mt-0.5">
+          Presets guide how the Art Director styles generated images. Built-ins are read-only.
+        </p>
+      </div>
+
+      {isLoading && <p className="text-xs text-ink-muted">Loading…</p>}
+
+      {builtins.length > 0 && (
+        <div>
+          <p className="label text-xs mb-2">Built-in</p>
+          <div className="space-y-1">
+            {builtins.map(p => (
+              <div key={p.id} className="flex items-start gap-2 py-1.5 border-b border-border/50 last:border-0">
+                <Lock size={11} className="text-ink-muted mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink">{p.name}</p>
+                  <p className="text-xs text-ink-muted leading-relaxed truncate">{p.promptFragment}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {custom.length > 0 && (
+        <div>
+          <p className="label text-xs mb-2">Custom</p>
+          <div className="space-y-1">
+            {custom.map(p => (
+              <div key={p.id} className="flex items-start gap-2 py-1.5 border-b border-border/50 last:border-0">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink">{p.name}</p>
+                  <p className="text-xs text-ink-muted leading-relaxed">{p.promptFragment}</p>
+                </div>
+                <button
+                  className="btn-ghost p-1 text-danger shrink-0"
+                  onClick={() => deleteMutation.mutate(p.id)}
+                  disabled={deleteMutation.isPending}
+                  title="Delete preset"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="border-t border-border pt-4 space-y-2">
+        <p className="label text-xs mb-2">Create custom preset</p>
+        <input
+          className="input text-sm"
+          placeholder="Preset name (e.g. Comic book)"
+          value={newName}
+          onChange={e => setNewName(e.target.value)}
+          maxLength={60}
+        />
+        <textarea
+          className="textarea text-sm"
+          rows={2}
+          placeholder="Prompt fragment appended to every generation with this style…"
+          value={newFragment}
+          onChange={e => setNewFragment(e.target.value)}
+          maxLength={500}
+        />
+        {createError && <p className="text-xs text-danger">{createError}</p>}
+        <button
+          className="btn-secondary text-xs py-1.5 flex items-center gap-1"
+          onClick={() => createMutation.mutate()}
+          disabled={!newName.trim() || !newFragment.trim() || createMutation.isPending}
+        >
+          {createMutation.isPending ? <Loader size={12} className="animate-spin" /> : <Plus size={12} />}
+          Add preset
+        </button>
+      </div>
     </div>
   )
 }
@@ -142,6 +263,9 @@ export default function SettingsPage() {
         </button>
         {updatePref.isSuccess && <p className="text-xs text-green-500">✓ Saved</p>}
       </div>
+
+      {/* Style Presets */}
+      <StylePresetsSection />
 
       {/* Usage */}
       <div className="card space-y-3">

@@ -43,7 +43,7 @@ jobsRouter.get('/:jobId', async (req, res) => {
 
   const job = await prisma.generationJob.findUnique({
     where: { id: jobId },
-    select: { id: true, userId: true, status: true, error: true, outputRef: true, kind: true, createdAt: true, updatedAt: true },
+    select: { id: true, userId: true, status: true, error: true, outputRef: true, input: true, kind: true, createdAt: true, updatedAt: true },
   })
 
   if (!job || job.userId !== userId) {
@@ -52,11 +52,13 @@ jobsRouter.get('/:jobId', async (req, res) => {
   }
 
   const outputRef = job.outputRef as Record<string, unknown>
+  const input = job.input as Record<string, unknown>
   res.json({
     jobId: job.id,
     status: job.status,
     error: job.error,
     assetId: outputRef?.assetId ?? null,
+    craftedPrompt: input?.craftedPrompt ?? null,
     kind: job.kind,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
