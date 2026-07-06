@@ -571,8 +571,8 @@ generateRouter.post('/image', async (req, res) => {
   // ── Cost estimate + soft-cap confirm ──────────────────────────────────────
   const userPref = await prisma.userPreference.findUnique({ where: { userId } })
   const imageModelByCategory = (userPref?.imageModelByCategory ?? {}) as Record<string, string>
-  const categoryKey = entityType === 'npc' ? 'portrait' : entityType
-  const resolvedModel = model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'seedream-5'
+  const categoryKey = entityType === 'map' ? 'encounter' : entityType
+  const resolvedModel = model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'nano-banana-2-lite'
   const costEstimate = getImageCostEstimate(resolvedModel)
   const minimumThreshold = getMinimumConfirmThreshold()
   const pricingMeta = getPricingMeta()

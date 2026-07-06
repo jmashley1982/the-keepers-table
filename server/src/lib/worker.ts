@@ -250,14 +250,16 @@ Return ONLY valid JSON — no prose, no markdown:
 
     // ── 5. Resolve model for entity category ──────────────────────────────
     const imageModelByCategory = (userPref?.imageModelByCategory ?? {}) as Record<string, string>
-    const categoryKey = entityType === 'npc' ? 'portrait' : entityType
-    const model = input.model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'seedream-5'
+    // Category key must match what the Settings UI stores (npc, location, item, encounter)
+    const categoryKey = entityType === 'map' ? 'encounter' : entityType
+    const model = input.model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'nano-banana-2-lite'
 
     const aspectRatio = input.aspectRatio ?? (kind === 'portrait_npc' ? 'portrait' : 'square')
     const width = aspectRatio === 'widescreen' ? 1280 : aspectRatio === 'landscape' ? 1024 : aspectRatio === 'square' ? 1024 : 768
     const height = aspectRatio === 'widescreen' ? 720 : aspectRatio === 'landscape' ? 768 : 1024
 
     // ── 6. Submit to EvoLink ───────────────────────────────────────────────
+    console.log(`[image.generate] Submitting job ${jobId}: model=${model} size=${width}x${height} entityType=${entityType}`)
     const submitRes = await fetch('https://api.eachlabs.ai/v1/prediction', {
       method: 'POST',
       headers: { 'X-API-Key': evolinkKey, 'Content-Type': 'application/json' },
@@ -573,10 +575,12 @@ async function attachAssetToEntity(assetId: string, entityType: string, entityId
     } else if (kind.startsWith('map_')) {
       await prisma.mapAsset.update({ where: { id: entityId }, data: { imageAssetId: assetId } })
     }
+    console.log(`[attach] Linked asset ${assetId} → ${entityType}/${entityId}`)
   } catch (err) {
+    // Best-effort: the asset was saved successfully; only the back-link failed.
+    // Log and continue so the job is marked succeeded rather than failed.
     const msg = err instanceof Error ? err.message : String(err)
-    console.error(`[attach] Failed to attach asset ${assetId} to ${entityType}/${entityId}: ${msg}`)
-    throw err
+    console.warn(`[attach] Could not link asset ${assetId} to ${entityType}/${entityId} — ${msg}`)
   }
 }
 
