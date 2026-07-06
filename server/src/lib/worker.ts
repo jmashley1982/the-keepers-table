@@ -254,8 +254,8 @@ Return ONLY valid JSON — no prose, no markdown:
     const model = input.model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'seedream-5'
 
     const aspectRatio = input.aspectRatio ?? (kind === 'portrait_npc' ? 'portrait' : 'square')
-    const width = aspectRatio === 'landscape' ? 1024 : aspectRatio === 'square' ? 1024 : 768
-    const height = aspectRatio === 'landscape' ? 768 : 1024
+    const width = aspectRatio === 'widescreen' ? 1280 : aspectRatio === 'landscape' ? 1024 : aspectRatio === 'square' ? 1024 : 768
+    const height = aspectRatio === 'widescreen' ? 720 : aspectRatio === 'landscape' ? 768 : 1024
 
     // ── 6. Submit to EvoLink ───────────────────────────────────────────────
     const submitRes = await fetch('https://api.eachlabs.ai/v1/prediction', {

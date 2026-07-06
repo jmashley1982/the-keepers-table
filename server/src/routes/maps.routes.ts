@@ -232,6 +232,13 @@ mapsRouter.post('/:mapId/pins', async (req, res) => {
   const parsed = schema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
 
+  if (parsed.data.locationId) {
+    const loc = await prisma.location.findFirst({
+      where: { id: parsed.data.locationId, campaignId, deletedAt: null },
+    })
+    if (!loc) { res.status(400).json({ error: 'Location not found in this campaign' }); return }
+  }
+
   const pin = await prisma.mapPin.create({
     data: { ...parsed.data, mapAssetId: mapId },
     include: { location: { select: { id: true, name: true, type: true, description: true } } },
@@ -262,6 +269,13 @@ mapsRouter.patch('/:mapId/pins/:pinId', async (req, res) => {
   })
   const parsed = schema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
+
+  if (parsed.data.locationId) {
+    const loc = await prisma.location.findFirst({
+      where: { id: parsed.data.locationId, campaignId, deletedAt: null },
+    })
+    if (!loc) { res.status(400).json({ error: 'Location not found in this campaign' }); return }
+  }
 
   const pin = await prisma.mapPin.update({
     where: { id: pinId },

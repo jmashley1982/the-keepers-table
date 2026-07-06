@@ -5,7 +5,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { Map, X, Download, Grid, Wand2, Upload, MapPin as PinIcon, Globe } from 'lucide-react'
 import MapViewer from '../../components/map/MapViewer'
 import PinLayer from '../../components/map/PinLayer'
-import type { MapPin } from '../../components/map/PinLayer'
+import type { MapPin, AvailableLocation } from '../../components/map/PinLayer'
 import { GridOverlay, GridEditor, DEFAULT_GRID } from '../../components/map/GridOverlay'
 import type { GridSettings } from '../../components/map/GridOverlay'
 import { useJobStatus } from '../../lib/useJobStatus'
@@ -71,6 +71,15 @@ export default function MapsPage() {
     enabled: !!viewingMap?.id,
   })
   const pins: MapPin[] = pinsQuery.data?.pins ?? []
+
+  const { data: locationsData } = useQuery({
+    queryKey: ['entities', campaignId, 'locations'],
+    queryFn: () => api.get(`/api/entities/${campaignId}/locations`).then(r => r.data),
+    enabled: !!campaignId,
+  })
+  const availableLocations: AvailableLocation[] = (locationsData?.items ?? []).map(
+    (l: { id: string; name: string; type: string }) => ({ id: l.id, name: l.name, type: l.type }),
+  )
 
   const deleteMutation = useMutation({
     mutationFn: (mapId: string) => api.delete(`/api/campaigns/${campaignId}/maps/${mapId}`),
@@ -191,7 +200,7 @@ export default function MapsPage() {
   }, [doUpload])
 
   const viewingAssetId = viewingMap?.imageAsset?.id ?? viewingMap?.imageAssetId ?? null
-  const isWorldOrRegion = viewingMap?.kind === 'world' || viewingMap?.kind === 'region'
+  const isWorldMap = viewingMap?.kind === 'world'
 
   return (
     <div
@@ -421,13 +430,14 @@ export default function MapsPage() {
                     void pinsQuery.refetch()
                     qc.invalidateQueries({ queryKey: ['maps', campaignId] })
                   }}
+                  availableLocations={availableLocations}
                 />
               )}
             </MapViewer>
           </div>
 
-          {/* Bottom toolbar — grid editor (skip for world/region maps) */}
-          {viewingAssetId && !isWorldOrRegion && (
+          {/* Bottom toolbar — grid editor (skip for world maps; region maps may use grid) */}
+          {viewingAssetId && !isWorldMap && (
             <div className="bg-neutral-900/95 border-t border-white/10 flex-shrink-0 p-4">
               <div className="max-w-2xl mx-auto flex gap-6 items-start">
                 <div className="flex-1">

@@ -5,14 +5,14 @@ import { api, apiError } from '../../lib/api'
 import { useJobStatus } from '../../lib/useJobStatus'
 import MapViewer from '../../components/map/MapViewer'
 import PinLayer from '../../components/map/PinLayer'
-import type { MapPin } from '../../components/map/PinLayer'
+import type { MapPin, AvailableLocation } from '../../components/map/PinLayer'
 import {
-  Globe, Loader, ArrowLeft, Wand2, Zap, MapPin as PinIcon, ChevronDown, ChevronUp, Sparkles,
+  Globe, Loader, ArrowLeft, Wand2, Zap, MapPin as PinIcon,
+  ChevronDown, ChevronUp, Sparkles, Check,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
 interface StylePreset { id: string; name: string; isBuiltin: boolean }
-interface EntityOption { id: string; name: string }
 
 interface MapAsset {
   id: string
@@ -22,10 +22,11 @@ interface MapAsset {
   imageAsset?: { id: string; width?: number; height?: number }
 }
 
+// 16:9 → widescreen (1280×720), 4:3 → landscape (1024×768), 1:1 → square (1024×1024)
 const ASPECT_OPTIONS = [
-  { value: 'landscape', label: '16:9' },
-  { value: 'square', label: '1:1' },
-  { value: 'portrait', label: '2:3' },
+  { value: 'widescreen', label: '16:9', hint: '1280×720' },
+  { value: 'landscape', label: '4:3', hint: '1024×768' },
+  { value: 'square', label: '1:1', hint: '1024×1024' },
 ] as const
 
 type Aspect = typeof ASPECT_OPTIONS[number]['value']
@@ -40,26 +41,37 @@ export default function WorldMapGeneratorPage() {
   const [useFromCampaign, setUseFromCampaign] = useState(false)
   const [geoSummary, setGeoSummary] = useState('')
   const [geoLoading, setGeoLoading] = useState(false)
-  const [aspect, setAspect] = useState<Aspect>('landscape')
+  const [aspect, setAspect] = useState<Aspect>('widescreen')
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
 
   const [mapAsset, setMapAsset] = useState<MapAsset | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
-  const [imageSize, setImageSize] = useState<{ w: number; h: number }>({ w: 1024, h: 1024 })
+  const [imageSize, setImageSize] = useState<{ w: number; h: number }>({ w: 1280, h: 720 })
   const [mapScale, setMapScale] = useState(1)
   const [editPins, setEditPins] = useState(false)
-  const [showPinPrompt, setShowPinPrompt] = useState(false)
+  const [showPinPanel, setShowPinPanel] = useState(false)
+  const [pendingLocationId, setPendingLocationId] = useState<string | null>(null)
 
   const { data: presetsData } = useQuery({
     queryKey: ['style-presets'],
     queryFn: () => api.get('/api/style-presets').then(r => r.data),
   })
 
+  const { data: locationsData } = useQuery({
+    queryKey: ['entities', campaignId, 'locations'],
+    queryFn: () => api.get(`/api/entities/${campaignId}/locations`).then(r => r.data),
+    enabled: !!campaignId,
+  })
+
   const presets: StylePreset[] = presetsData
     ? [...(presetsData.builtins ?? []), ...(presetsData.custom ?? [])]
     : []
+
+  const allLocations: AvailableLocation[] = (locationsData?.items ?? []).map(
+    (l: { id: string; name: string; type: string }) => ({ id: l.id, name: l.name, type: l.type }),
+  )
 
   const pinsQuery = useQuery<{ pins: MapPin[] }>({
     queryKey: ['pins', mapAsset?.id],
@@ -68,6 +80,9 @@ export default function WorldMapGeneratorPage() {
   })
 
   const pins: MapPin[] = pinsQuery.data?.pins ?? []
+  const pinnedLocationIds = new Set(pins.map(p => p.locationId).filter(Boolean))
+  const unpinnedLocations = allLocations.filter(l => !pinnedLocationIds.has(l.id))
+  const pinnedLocations = allLocations.filter(l => pinnedLocationIds.has(l.id))
 
   const jobStatus = useJobStatus(jobId)
 
@@ -79,8 +94,7 @@ export default function WorldMapGeneratorPage() {
     if (!mapAsset) return
     try {
       const res = await api.get(`/api/campaigns/${campaignId}/maps/${mapAsset.id}`)
-      const refreshed = res.data.map as MapAsset
-      setMapAsset(refreshed)
+      setMapAsset(res.data.map as MapAsset)
       qc.invalidateQueries({ queryKey: ['maps', campaignId] })
     } catch {
       // ignore
@@ -91,8 +105,9 @@ export default function WorldMapGeneratorPage() {
     refreshMap()
   }
 
-  if (jobStatus.status === 'succeeded' && jobStatus.assetId && !showPinPrompt && hasMap) {
-    setShowPinPrompt(true)
+  if (jobStatus.status === 'succeeded' && jobStatus.assetId && !showPinPanel && hasMap) {
+    setShowPinPanel(true)
+    setEditPins(true)
   }
 
   const handlePreviewContext = useCallback(async () => {
@@ -119,8 +134,9 @@ export default function WorldMapGeneratorPage() {
 
     setMapAsset(null)
     setJobId(null)
-    setShowPinPrompt(false)
+    setShowPinPanel(false)
     setEditPins(false)
+    setPendingLocationId(null)
 
     try {
       const title = description.trim().slice(0, 60) || `${scope === 'world' ? 'World' : 'Region'} Map`
@@ -142,6 +158,7 @@ export default function WorldMapGeneratorPage() {
       if (selectedPreset) body.stylePreset = selectedPreset
       if (customPrompt.trim()) body.prompt = customPrompt.trim()
       else if (useFromCampaign && geoSummary) body.prompt = geoSummary
+
       const genRes = await api.post('/api/generate/image', body)
       setJobId((genRes.data as { jobId: string }).jobId)
     } catch (e) {
@@ -154,6 +171,15 @@ export default function WorldMapGeneratorPage() {
   const canGenerate =
     (description.trim().length > 0 || customPrompt.trim().length > 0 || (useFromCampaign && geoSummary.length > 0)) &&
     !isGenerating
+
+  const handlePendingLocationConsumed = useCallback(() => {
+    setPendingLocationId(null)
+  }, [])
+
+  const handlePinsChange = useCallback(() => {
+    void pinsQuery.refetch()
+    qc.invalidateQueries({ queryKey: ['maps', campaignId] })
+  }, [pinsQuery, qc, campaignId])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -171,160 +197,269 @@ export default function WorldMapGeneratorPage() {
           </span>
         </div>
 
-        <div className="p-4 space-y-4 flex-1">
-          {/* Scope toggle */}
-          <div>
-            <label className="label">Map scope</label>
-            <div className="flex gap-2">
-              {(['world', 'region'] as const).map(s => (
+        {/* === PIN MODE PANEL === */}
+        {showPinPanel && hasMap ? (
+          <div className="flex-1 flex flex-col">
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-ink flex items-center gap-1.5">
+                  <PinIcon size={13} /> Pin locations
+                </h2>
                 <button
-                  key={s}
-                  onClick={() => setScope(s)}
-                  className={cn('btn-ghost text-xs flex-1 capitalize', scope === s && 'bg-accent/10 text-accent border-accent/30')}
+                  onClick={() => { setShowPinPanel(false); setEditPins(false); setPendingLocationId(null) }}
+                  className="text-xs text-ink-muted hover:text-ink"
                 >
-                  {s === 'world' ? '🌍 World' : '🗺 Region'}
+                  Done
                 </button>
-              ))}
-            </div>
-            <p className="text-xs text-ink-muted mt-1.5">
-              {scope === 'world'
-                ? 'Full continent or world overview — macro geography, biomes, ocean regions.'
-                : 'A single region at moderate detail — roads, villages, landmarks.'}
-            </p>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="label">Geographic description</label>
-            <textarea
-              className="textarea h-24"
-              placeholder={scope === 'world'
-                ? 'A vast continent spanning arctic wastes in the north, ancient forests in the centre, and volcanic archipelagos to the south…'
-                : 'Rolling hills and ancient ruins around the River Anor, with a dwarven keep dominating the eastern ridge…'}
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-            />
-          </div>
-
-          {/* Generate from campaign */}
-          <div className="card p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="useFromCampaign"
-                checked={useFromCampaign}
-                onChange={e => setUseFromCampaign(e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="useFromCampaign" className="text-sm text-ink cursor-pointer select-none">
-                Generate from campaign locations
-              </label>
-            </div>
-            {useFromCampaign && (
-              <div className="space-y-2 animate-fade-in">
-                <button
-                  onClick={handlePreviewContext}
-                  disabled={geoLoading}
-                  className="btn-secondary text-xs w-full gap-1"
-                >
-                  {geoLoading
-                    ? <><Loader size={12} className="animate-spin" /> Summarising…</>
-                    : <><Sparkles size={12} /> Preview geography context</>}
-                </button>
-                {geoSummary && (
-                  <div>
-                    <p className="text-xs text-ink-muted mb-1">Claude's geography summary (editable):</p>
-                    <textarea
-                      className="textarea h-20 text-xs"
-                      value={geoSummary}
-                      onChange={e => setGeoSummary(e.target.value)}
-                    />
-                  </div>
-                )}
               </div>
-            )}
-          </div>
+              <p className="text-xs text-ink-muted">
+                Select a location below, then click on the map to place its pin.
+              </p>
+            </div>
 
-          {/* Aspect ratio */}
-          <div>
-            <label className="label">Aspect ratio</label>
-            <div className="flex gap-1.5">
-              {ASPECT_OPTIONS.map(({ value, label }) => (
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {unpinnedLocations.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-1.5 px-1">
+                    Unpinned ({unpinnedLocations.length})
+                  </p>
+                  {unpinnedLocations.map(loc => {
+                    const isArmed = pendingLocationId === loc.id
+                    return (
+                      <button
+                        key={loc.id}
+                        onClick={() => setPendingLocationId(isArmed ? null : loc.id)}
+                        className={cn(
+                          'w-full text-left px-3 py-2 rounded-lg border transition-colors text-sm',
+                          isArmed
+                            ? 'bg-amber-900/30 border-amber-600/40 text-amber-200'
+                            : 'bg-surface-2 border-border hover:border-accent/40 text-ink',
+                        )}
+                      >
+                        <span className="font-medium">{loc.name}</span>
+                        <span className="text-xs text-ink-muted capitalize ml-2">{loc.type}</span>
+                        {isArmed && (
+                          <p className="text-xs text-amber-300 mt-0.5">Click map to place ↗</p>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {pinnedLocations.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-1.5 px-1 mt-3">
+                    Pinned ({pinnedLocations.length})
+                  </p>
+                  {pinnedLocations.map(loc => (
+                    <div
+                      key={loc.id}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-2 border border-border text-sm"
+                    >
+                      <Check size={12} className="text-accent flex-shrink-0" />
+                      <span className="text-ink-muted truncate">{loc.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {allLocations.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-xs text-ink-muted">No locations in campaign library yet.</p>
+                  <p className="text-xs text-ink-muted mt-1">Place anonymous pins freely, or add locations to the library first.</p>
+                </div>
+              )}
+
+              <div className="pt-2">
                 <button
-                  key={value}
-                  onClick={() => setAspect(value)}
-                  className={cn('btn-ghost text-xs flex-1', aspect === value && 'bg-accent/10 text-accent border-accent/30')}
+                  onClick={() => {
+                    setPendingLocationId(null)
+                    setEditPins(prev => !prev)
+                  }}
+                  className={cn(
+                    'w-full btn-secondary text-xs',
+                    !editPins && 'opacity-60',
+                  )}
                 >
-                  {label}
+                  <PinIcon size={11} />
+                  {editPins ? 'Free-place pins active' : 'Enable free-place pins'}
                 </button>
-              ))}
+              </div>
+            </div>
+
+            <div className="p-3 border-t border-border">
+              <button
+                className="btn-secondary w-full text-xs gap-1"
+                onClick={() => navigate(`/campaign/${campaignId}/maps`)}
+              >
+                View in Maps gallery
+              </button>
             </div>
           </div>
-
-          {/* Style presets */}
-          {presets.length > 0 && (
+        ) : (
+          /* === GENERATOR FORM PANEL === */
+          <div className="p-4 space-y-4 flex-1">
+            {/* Scope toggle */}
             <div>
-              <label className="label">Style preset</label>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setSelectedPreset(null)}
-                  className={cn('px-2 py-0.5 rounded-full text-xs border transition-colors',
-                    !selectedPreset
-                      ? 'bg-accent text-white border-accent'
-                      : 'bg-surface-2 text-ink-muted border-border hover:border-accent/40')}
-                >
-                  Default
-                </button>
-                {presets.map(p => (
+              <label className="label">Map scope</label>
+              <div className="flex gap-2">
+                {(['world', 'region'] as const).map(s => (
                   <button
-                    key={p.id}
-                    onClick={() => setSelectedPreset(p.name === selectedPreset ? null : p.name)}
-                    className={cn('px-2 py-0.5 rounded-full text-xs border transition-colors',
-                      selectedPreset === p.name
-                        ? 'bg-accent text-white border-accent'
-                        : 'bg-surface-2 text-ink-muted border-border hover:border-accent/40')}
+                    key={s}
+                    onClick={() => setScope(s)}
+                    className={cn('btn-ghost text-xs flex-1 capitalize', scope === s && 'bg-accent/10 text-accent border-accent/30')}
                   >
-                    {p.name}
+                    {s === 'world' ? '🌍 World' : '🗺 Region'}
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-ink-muted mt-1.5">
+                {scope === 'world'
+                  ? 'Full continent or world overview — macro geography, biomes, ocean regions.'
+                  : 'A single region at moderate detail — roads, villages, landmarks.'}
+              </p>
             </div>
-          )}
 
-          {/* Advanced */}
-          <div>
-            <button
-              onClick={() => setAdvancedOpen(v => !v)}
-              className="flex items-center gap-1 text-xs text-ink-muted hover:text-ink transition-colors"
-            >
-              {advancedOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              Advanced
-            </button>
-            {advancedOpen && (
-              <div className="mt-2 space-y-2 animate-fade-in">
-                <label className="label text-xs">Custom prompt (overrides AI director)</label>
-                <textarea
-                  className="textarea h-20 text-xs"
-                  placeholder="painterly fantasy world map, parchment tones, mountains in the north, great forest in the centre…"
-                  value={customPrompt}
-                  onChange={e => setCustomPrompt(e.target.value)}
+            {/* Description */}
+            <div>
+              <label className="label">Geographic description</label>
+              <textarea
+                className="textarea h-24"
+                placeholder={scope === 'world'
+                  ? 'A vast continent with arctic wastes in the north, ancient forests in the centre, and volcanic archipelagos to the south…'
+                  : 'Rolling hills and ancient ruins around the River Anor, with a dwarven keep dominating the eastern ridge…'}
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+              />
+            </div>
+
+            {/* Generate from campaign */}
+            <div className="card p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="useFromCampaign"
+                  checked={useFromCampaign}
+                  onChange={e => setUseFromCampaign(e.target.checked)}
+                  className="rounded"
                 />
+                <label htmlFor="useFromCampaign" className="text-sm text-ink cursor-pointer select-none">
+                  Generate from campaign locations
+                </label>
+              </div>
+              {useFromCampaign && (
+                <div className="space-y-2 animate-fade-in">
+                  <button
+                    onClick={handlePreviewContext}
+                    disabled={geoLoading}
+                    className="btn-secondary text-xs w-full gap-1"
+                  >
+                    {geoLoading
+                      ? <><Loader size={12} className="animate-spin" /> Summarising…</>
+                      : <><Sparkles size={12} /> Preview geography context</>}
+                  </button>
+                  {geoSummary && (
+                    <div>
+                      <p className="text-xs text-ink-muted mb-1">Claude's geography summary (editable):</p>
+                      <textarea
+                        className="textarea h-20 text-xs"
+                        value={geoSummary}
+                        onChange={e => setGeoSummary(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Aspect ratio — 16:9 default */}
+            <div>
+              <label className="label">Aspect ratio</label>
+              <div className="flex gap-1.5">
+                {ASPECT_OPTIONS.map(({ value, label, hint }) => (
+                  <button
+                    key={value}
+                    onClick={() => setAspect(value)}
+                    className={cn('btn-ghost text-xs flex-1 flex-col gap-0.5', aspect === value && 'bg-accent/10 text-accent border-accent/30')}
+                    title={hint}
+                  >
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-ink-muted mt-1">
+                {ASPECT_OPTIONS.find(a => a.value === aspect)?.hint}
+              </p>
+            </div>
+
+            {/* Style presets */}
+            {presets.length > 0 && (
+              <div>
+                <label className="label">Style preset</label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setSelectedPreset(null)}
+                    className={cn('px-2 py-0.5 rounded-full text-xs border transition-colors',
+                      !selectedPreset
+                        ? 'bg-accent text-white border-accent'
+                        : 'bg-surface-2 text-ink-muted border-border hover:border-accent/40')}
+                  >
+                    Default
+                  </button>
+                  {presets.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedPreset(p.name === selectedPreset ? null : p.name)}
+                      className={cn('px-2 py-0.5 rounded-full text-xs border transition-colors',
+                        selectedPreset === p.name
+                          ? 'bg-accent text-white border-accent'
+                          : 'bg-surface-2 text-ink-muted border-border hover:border-accent/40')}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
-        </div>
 
-        <div className="p-4 border-t border-border">
-          <button
-            className="btn-primary w-full justify-center"
-            onClick={handleGenerate}
-            disabled={!canGenerate}
-          >
-            {isGenerating
-              ? <><Loader size={14} className="animate-spin" /> Generating…</>
-              : <><Wand2 size={14} /> Generate {scope === 'world' ? 'World' : 'Region'} Map</>}
-          </button>
-        </div>
+            {/* Advanced */}
+            <div>
+              <button
+                onClick={() => setAdvancedOpen(v => !v)}
+                className="flex items-center gap-1 text-xs text-ink-muted hover:text-ink transition-colors"
+              >
+                {advancedOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                Advanced
+              </button>
+              {advancedOpen && (
+                <div className="mt-2 space-y-2 animate-fade-in">
+                  <label className="label text-xs">Custom prompt (overrides AI director)</label>
+                  <textarea
+                    className="textarea h-20 text-xs"
+                    placeholder="painterly fantasy world map, parchment tones, mountains in the north, great forest in the centre…"
+                    value={customPrompt}
+                    onChange={e => setCustomPrompt(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!showPinPanel && (
+          <div className="p-4 border-t border-border">
+            <button
+              className="btn-primary w-full justify-center"
+              onClick={handleGenerate}
+              disabled={!canGenerate}
+            >
+              {isGenerating
+                ? <><Loader size={14} className="animate-spin" /> Generating…</>
+                : <><Wand2 size={14} /> Generate {scope === 'world' ? 'World' : 'Region'} Map</>}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main area */}
@@ -362,7 +497,6 @@ export default function WorldMapGeneratorPage() {
             className="w-full h-full"
             onSizeLoaded={(w, h) => setImageSize({ w, h })}
             onScaleChange={setMapScale}
-            onImageClick={editPins && mapAsset ? undefined : undefined}
           >
             {mapAsset?.id && (
               <PinLayer
@@ -373,64 +507,50 @@ export default function WorldMapGeneratorPage() {
                 imageHeight={imageSize.h}
                 scale={mapScale}
                 editMode={editPins}
-                onPinsChange={() => {
-                  void pinsQuery.refetch()
-                  qc.invalidateQueries({ queryKey: ['maps', campaignId] })
-                }}
+                onPinsChange={handlePinsChange}
+                availableLocations={allLocations}
+                pendingLocationId={pendingLocationId}
+                onPendingLocationConsumed={handlePendingLocationConsumed}
               />
             )}
           </MapViewer>
         </div>
 
-        {/* Bottom toolbar — visible once map is ready */}
-        {hasMap && (
+        {/* Bottom toolbar — once map is ready and not in pin panel (pin panel is in sidebar) */}
+        {hasMap && !showPinPanel && (
           <div className="border-t border-border bg-surface flex-shrink-0 px-4 py-2 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setEditPins(v => !v)}
-                className={cn('btn-secondary text-xs gap-1.5', editPins && 'bg-accent/15 border-accent/40 text-accent')}
+                onClick={() => { setShowPinPanel(true); setEditPins(true) }}
+                className="btn-secondary text-xs gap-1.5"
               >
-                <PinIcon size={12} />
-                {editPins ? 'Stop editing pins' : 'Edit pins'}
+                <PinIcon size={12} /> Pin locations
               </button>
-              {editPins && (
-                <span className="text-xs text-ink-muted">
-                  Click map to place pin · Click pin to view · Drag pin to move
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
               {pins.length > 0 && (
                 <span className="text-xs text-ink-muted">{pins.length} pin{pins.length !== 1 ? 's' : ''}</span>
               )}
-              <button
-                className="btn-ghost text-xs gap-1 text-ink-muted"
-                onClick={() => navigate(`/campaign/${campaignId}/maps`)}
-              >
-                View in Maps gallery
-              </button>
             </div>
+            <button
+              className="btn-ghost text-xs gap-1 text-ink-muted"
+              onClick={() => navigate(`/campaign/${campaignId}/maps`)}
+            >
+              View in Maps gallery
+            </button>
           </div>
         )}
 
-        {/* "Drop pins" prompt banner */}
-        {showPinPrompt && !editPins && (
-          <div className="border-t border-accent/30 bg-accent/5 flex-shrink-0 px-4 py-3 flex items-center gap-3">
-            <PinIcon size={16} className="text-accent flex-shrink-0" />
-            <p className="text-sm text-ink flex-1">
-              Your {scope} map is ready! Want to pin your campaign locations onto it?
-            </p>
+        {/* Pending location top hint bar */}
+        {pendingLocationId && (
+          <div className="absolute top-0 left-0 right-0 bg-amber-900/80 border-b border-amber-600/30 px-4 py-2 flex items-center gap-2 z-20">
+            <PinIcon size={13} className="text-amber-300" />
+            <span className="text-sm text-amber-100 flex-1">
+              Click anywhere on the map to place a pin for <strong>{allLocations.find(l => l.id === pendingLocationId)?.name}</strong>
+            </span>
             <button
-              className="btn-primary text-xs"
-              onClick={() => { setEditPins(true); setShowPinPrompt(false) }}
+              onClick={() => setPendingLocationId(null)}
+              className="text-xs text-amber-300 hover:text-amber-100"
             >
-              Drop pins
-            </button>
-            <button
-              className="btn-ghost text-xs text-ink-muted"
-              onClick={() => setShowPinPrompt(false)}
-            >
-              Skip
+              Cancel
             </button>
           </div>
         )}

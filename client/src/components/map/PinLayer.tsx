@@ -13,6 +13,12 @@ export interface MapPin {
   location?: { id: string; name: string; type: string; description: string } | null
 }
 
+export interface AvailableLocation {
+  id: string
+  name: string
+  type: string
+}
+
 interface PinLayerProps {
   mapId: string
   campaignId: string
@@ -22,6 +28,9 @@ interface PinLayerProps {
   scale: number
   editMode: boolean
   onPinsChange: () => void
+  availableLocations?: AvailableLocation[]
+  pendingLocationId?: string | null
+  onPendingLocationConsumed?: () => void
 }
 
 export default function PinLayer({
@@ -33,6 +42,9 @@ export default function PinLayer({
   scale,
   editMode,
   onPinsChange,
+  availableLocations = [],
+  pendingLocationId,
+  onPendingLocationConsumed,
 }: PinLayerProps) {
   const [dragging, setDragging] = useState<{ id: string; x: number; y: number } | null>(null)
   const [activePopover, setActivePopover] = useState<string | null>(null)
@@ -49,19 +61,27 @@ export default function PinLayer({
       if ((e.target as HTMLElement).closest('[data-pin]')) return
       const x = Math.max(0, Math.min(1, e.nativeEvent.offsetX / imageWidth))
       const y = Math.max(0, Math.min(1, e.nativeEvent.offsetY / imageHeight))
+      const loc = pendingLocationId
+        ? availableLocations.find(l => l.id === pendingLocationId)
+        : null
       setCreating(true)
       try {
         await api.post(`/api/campaigns/${campaignId}/maps/${mapId}/pins`, {
-          x, y, label: '', icon: '📍',
+          x,
+          y,
+          label: loc?.name ?? '',
+          icon: '📍',
+          ...(pendingLocationId ? { locationId: pendingLocationId } : {}),
         })
         onPinsChange()
+        if (pendingLocationId) onPendingLocationConsumed?.()
       } catch {
         // ignore
       } finally {
         setCreating(false)
       }
     },
-    [editMode, creating, imageWidth, imageHeight, campaignId, mapId, onPinsChange],
+    [editMode, creating, imageWidth, imageHeight, campaignId, mapId, onPinsChange, pendingLocationId, availableLocations, onPendingLocationConsumed],
   )
 
   const handlePinPointerDown = useCallback(
@@ -130,12 +150,36 @@ export default function PinLayer({
     [campaignId, mapId, onPinsChange],
   )
 
+  const handleLocationLink = useCallback(
+    async (pinId: string, locationId: string | null) => {
+      const locName = locationId ? availableLocations.find(l => l.id === locationId)?.name : null
+      try {
+        await api.patch(`/api/campaigns/${campaignId}/maps/${mapId}/pins/${pinId}`, {
+          locationId: locationId ?? null,
+          ...(locName ? { label: locName } : {}),
+        })
+        onPinsChange()
+      } catch {
+        // ignore
+      }
+    },
+    [campaignId, mapId, onPinsChange, availableLocations],
+  )
+
+  const cursorStyle = pendingLocationId
+    ? 'cell'
+    : editMode
+    ? creating
+      ? 'wait'
+      : 'crosshair'
+    : 'default'
+
   return (
     <div
       style={{
         position: 'absolute',
         inset: 0,
-        cursor: editMode ? (creating ? 'wait' : 'crosshair') : 'default',
+        cursor: cursorStyle,
         userSelect: 'none',
       }}
       onClick={handleBgClick}
@@ -165,7 +209,9 @@ export default function PinLayer({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                filter: isDraggingThis ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.8))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))',
+                filter: isDraggingThis
+                  ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.8))'
+                  : 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))',
                 transition: isDraggingThis ? 'none' : 'filter 0.15s',
                 pointerEvents: 'none',
               }}
@@ -203,16 +249,18 @@ export default function PinLayer({
                   border: '1px solid rgba(255,255,255,0.15)',
                   borderRadius: 8,
                   padding: '10px 12px',
-                  minWidth: 180,
-                  maxWidth: 240,
+                  minWidth: 200,
+                  maxWidth: 260,
                   boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
                   pointerEvents: 'all',
+                  zIndex: 60,
                 }}
                 onClick={e => e.stopPropagation()}
               >
+                {/* Location info */}
                 {pin.location ? (
                   <>
-                    <p style={{ color: '#e2d9c8', fontWeight: 600, fontSize: 13, margin: '0 0 4px' }}>
+                    <p style={{ color: '#e2d9c8', fontWeight: 600, fontSize: 13, margin: '0 0 2px' }}>
                       {pin.location.name}
                     </p>
                     <p style={{ color: '#a09080', fontSize: 11, textTransform: 'capitalize', margin: '0 0 6px' }}>
@@ -229,7 +277,34 @@ export default function PinLayer({
                 ) : (
                   <p style={{ color: '#a09080', fontSize: 12, margin: '0 0 8px' }}>Unnamed pin</p>
                 )}
-                {editMode && (
+
+                {/* Location selector — edit mode only */}
+                {editMode && availableLocations.length > 0 && (
+                  <div style={{ marginBottom: 8 }}>
+                    <p style={{ color: '#a09080', fontSize: 10, marginBottom: 4 }}>Link to location</p>
+                    <select
+                      defaultValue={pin.locationId ?? ''}
+                      onChange={e => { void handleLocationLink(pin.id, e.target.value || null) }}
+                      style={{
+                        width: '100%',
+                        background: '#0d0d1a',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: 4,
+                        color: '#e2d9c8',
+                        fontSize: 11,
+                        padding: '4px 6px',
+                      }}
+                    >
+                      <option value="">— no location —</option>
+                      {availableLocations.map(l => (
+                        <option key={l.id} value={l.id}>{l.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Actions */}
+                {editMode ? (
                   <button
                     onClick={() => handleDeletePin(pin.id)}
                     style={{
@@ -241,8 +316,7 @@ export default function PinLayer({
                   >
                     <X size={10} /> Remove pin
                   </button>
-                )}
-                {!editMode && (
+                ) : (
                   <button
                     onClick={() => setActivePopover(null)}
                     style={{
@@ -260,7 +334,23 @@ export default function PinLayer({
         )
       })}
 
-      {editMode && pins.length === 0 && !creating && (
+      {/* Pending location indicator */}
+      {pendingLocationId && (
+        <div
+          style={{
+            position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(139,90,43,0.9)', border: '1px solid rgba(255,200,100,0.4)',
+            borderRadius: 8, padding: '8px 14px',
+            color: '#fde8c0', fontSize: 12, whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+          }}
+        >
+          <PinIcon size={12} style={{ display: 'inline', marginRight: 6 }} />
+          Click anywhere on the map to place this pin
+        </div>
+      )}
+
+      {editMode && pins.length === 0 && !creating && !pendingLocationId && (
         <div
           style={{
             position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
