@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
@@ -52,7 +52,10 @@ export default function WorldMapGeneratorPage() {
   const [mapScale, setMapScale] = useState(1)
   const [editPins, setEditPins] = useState(false)
   const [showPinPanel, setShowPinPanel] = useState(false)
+  const [showPinPrompt, setShowPinPrompt] = useState(false)
   const [pendingLocationId, setPendingLocationId] = useState<string | null>(null)
+  const mapRefreshedRef = useRef(false)
+  const pinPromptShownRef = useRef(false)
 
   const { data: presetsData } = useQuery({
     queryKey: ['style-presets'],
@@ -101,14 +104,33 @@ export default function WorldMapGeneratorPage() {
     }
   }, [mapAsset, campaignId, qc])
 
-  if (jobStatus.status === 'succeeded' && jobStatus.assetId && mapAsset && !mapAsset.imageAssetId && !mapAsset.imageAsset) {
-    refreshMap()
-  }
+  useEffect(() => {
+    if (
+      jobStatus.status === 'succeeded' &&
+      jobStatus.assetId &&
+      mapAsset &&
+      !mapAsset.imageAssetId &&
+      !mapAsset.imageAsset &&
+      !mapRefreshedRef.current
+    ) {
+      mapRefreshedRef.current = true
+      void refreshMap()
+    }
+  }, [jobStatus.status, jobStatus.assetId, mapAsset, refreshMap])
 
-  if (jobStatus.status === 'succeeded' && jobStatus.assetId && !showPinPanel && hasMap) {
-    setShowPinPanel(true)
-    setEditPins(true)
-  }
+  useEffect(() => {
+    if (
+      jobStatus.status === 'succeeded' &&
+      jobStatus.assetId &&
+      hasMap &&
+      !showPinPanel &&
+      !showPinPrompt &&
+      !pinPromptShownRef.current
+    ) {
+      pinPromptShownRef.current = true
+      setShowPinPrompt(true)
+    }
+  }, [jobStatus.status, jobStatus.assetId, hasMap, showPinPanel, showPinPrompt])
 
   const handlePreviewContext = useCallback(async () => {
     if (!campaignId) return
@@ -135,8 +157,11 @@ export default function WorldMapGeneratorPage() {
     setMapAsset(null)
     setJobId(null)
     setShowPinPanel(false)
+    setShowPinPrompt(false)
     setEditPins(false)
     setPendingLocationId(null)
+    mapRefreshedRef.current = false
+    pinPromptShownRef.current = false
 
     try {
       const title = description.trim().slice(0, 60) || `${scope === 'world' ? 'World' : 'Region'} Map`
@@ -157,7 +182,6 @@ export default function WorldMapGeneratorPage() {
       }
       if (selectedPreset) body.stylePreset = selectedPreset
       if (customPrompt.trim()) body.prompt = customPrompt.trim()
-      else if (useFromCampaign && geoSummary) body.prompt = geoSummary
 
       const genRes = await api.post('/api/generate/image', body)
       setJobId((genRes.data as { jobId: string }).jobId)
@@ -516,8 +540,30 @@ export default function WorldMapGeneratorPage() {
           </MapViewer>
         </div>
 
-        {/* Bottom toolbar — once map is ready and not in pin panel (pin panel is in sidebar) */}
-        {hasMap && !showPinPanel && (
+        {/* Explicit pin-locations accept/skip prompt (appears once generation succeeds) */}
+        {showPinPrompt && hasMap && !showPinPanel && (
+          <div className="border-t border-accent/30 bg-accent/5 flex-shrink-0 px-4 py-3 flex items-center gap-3">
+            <PinIcon size={16} className="text-accent flex-shrink-0" />
+            <p className="text-sm text-ink flex-1">
+              Your {scope} map is ready! Want to pin your campaign locations onto it?
+            </p>
+            <button
+              className="btn-primary text-xs"
+              onClick={() => { setShowPinPanel(true); setEditPins(true); setShowPinPrompt(false) }}
+            >
+              Pin locations
+            </button>
+            <button
+              className="btn-ghost text-xs text-ink-muted"
+              onClick={() => setShowPinPrompt(false)}
+            >
+              Skip
+            </button>
+          </div>
+        )}
+
+        {/* Bottom toolbar — once map is ready and not in pin panel or pin prompt */}
+        {hasMap && !showPinPanel && !showPinPrompt && (
           <div className="border-t border-border bg-surface flex-shrink-0 px-4 py-2 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <button
@@ -539,7 +585,7 @@ export default function WorldMapGeneratorPage() {
           </div>
         )}
 
-        {/* Pending location top hint bar */}
+        {/* Pending location hint bar */}
         {pendingLocationId && (
           <div className="absolute top-0 left-0 right-0 bg-amber-900/80 border-b border-amber-600/30 px-4 py-2 flex items-center gap-2 z-20">
             <PinIcon size={13} className="text-amber-300" />
