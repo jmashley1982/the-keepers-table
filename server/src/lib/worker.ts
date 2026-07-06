@@ -2,7 +2,9 @@ import { PgBoss } from 'pg-boss'
 import type { Job } from 'pg-boss'
 import { prisma } from './prisma.js'
 import { StorageService } from './storage.js'
+import { decrypt } from './crypto.js'
 import sharp from 'sharp'
+import Anthropic from '@anthropic-ai/sdk'
 
 let boss: PgBoss | null = null
 
@@ -75,19 +77,165 @@ interface ImagePostprocessData {
 
 async function handleImageGenerate(jobs: Job<ImageGenerateData>[]): Promise<void> {
   for (const job of jobs) {
-    const { jobId } = job.data
-    console.log(`[image.generate] Processing job ${jobId}`)
+    await processImageGenerate(job.data.jobId)
+  }
+}
 
-    const genJob = await prisma.generationJob.findUnique({ where: { id: jobId } })
-    if (!genJob) {
-      console.error(`[image.generate] GenerationJob ${jobId} not found`)
-      continue
+async function processImageGenerate(jobId: string): Promise<void> {
+  const genJob = await prisma.generationJob.findUnique({ where: { id: jobId } })
+  if (!genJob) {
+    console.error(`[image.generate] GenerationJob ${jobId} not found`)
+    return
+  }
+
+  await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'running' } })
+  console.log(`[image.generate] Processing job ${jobId}`)
+
+  try {
+    const input = genJob.input as { kind: string; entityId: string; entityType: string; prompt?: string }
+    const { kind, entityId, entityType } = input
+    const userPrompt = input.prompt ?? null
+
+    // ── 1. Load entity data ────────────────────────────────────────────────
+    let entityData: Record<string, string> = {}
+    if (entityType === 'npc' || kind === 'portrait_npc') {
+      const npc = await prisma.nPC.findUnique({ where: { id: entityId } })
+      if (npc) {
+        entityData = {
+          name: npc.name,
+          role: npc.role,
+          appearance: npc.appearance,
+          personality: npc.personality,
+          description: npc.description,
+        }
+      }
+    } else if (entityType === 'location' || kind === 'location_art') {
+      const loc = await prisma.location.findUnique({ where: { id: entityId } })
+      if (loc) entityData = { name: loc.name, type: loc.type, description: loc.description }
+    } else if (entityType === 'item' || kind === 'item_art') {
+      const item = await prisma.item.findUnique({ where: { id: entityId } })
+      if (item) entityData = { name: item.name, category: item.category, rarity: item.rarity, description: item.description }
     }
 
+    // ── 2. Load style preset ──────────────────────────────────────────────
+    const userPref = await prisma.userPreference.findUnique({ where: { userId: genJob.userId } })
+    const presetName = userPref?.imageStylePreset ?? 'Classic fantasy oil'
+    const preset = await prisma.artStylePreset.findFirst({ where: { name: presetName } })
+    const styleFragment = preset?.promptFragment ?? 'fantasy art, detailed, high quality'
+
+    // ── 3. Art Director: Claude Haiku crafts image prompt ─────────────────
+    let finalPrompt: string
+    let negativePrompt = 'watermark, text, signature, blurry, low quality, distorted, deformed, duplicate, extra limbs'
+
+    if (userPrompt) {
+      finalPrompt = `${userPrompt}, ${styleFragment}`
+    } else {
+      const anthropicCred = await prisma.apiCredential.findUnique({
+        where: { userId_provider: { userId: genJob.userId, provider: 'anthropic' } },
+      })
+
+      if (anthropicCred?.encryptedKey) {
+        try {
+          const anthroKey = decrypt(anthropicCred.encryptedKey)
+          const anthroClient = new Anthropic({ apiKey: anthroKey })
+          const artMsg = await anthroClient.messages.create({
+            model: 'claude-haiku-4-5',
+            max_tokens: 512,
+            messages: [{
+              role: 'user',
+              content: `You are an art director for a tabletop RPG. Given this entity, write a vivid image generation prompt.
+
+Entity JSON: ${JSON.stringify(entityData)}
+Art style: ${styleFragment}
+Image kind: ${kind}
+
+Return ONLY valid JSON — no prose, no markdown:
+{"prompt":"<concise, comma-separated visual description, 30–60 words>","negative_prompt":"<things to avoid>"}`
+            }],
+          })
+          const raw = artMsg.content[0].type === 'text' ? artMsg.content[0].text : ''
+          const match = raw.match(/\{[\s\S]*\}/)
+          if (match) {
+            const parsed = JSON.parse(match[0]) as { prompt?: string; negative_prompt?: string }
+            finalPrompt = parsed.prompt ?? `${entityData.name ?? 'character'}, ${styleFragment}`
+            negativePrompt = parsed.negative_prompt ?? negativePrompt
+          } else {
+            finalPrompt = `${entityData.name ?? 'character'}, ${styleFragment}`
+          }
+        } catch {
+          finalPrompt = `${entityData.name ?? 'character'}, ${styleFragment}`
+        }
+      } else {
+        finalPrompt = `${entityData.name ?? 'character'}, ${styleFragment}`
+      }
+    }
+
+    // Store crafted prompt on the job for inspection
     await prisma.generationJob.update({
       where: { id: jobId },
-      data: { status: 'running' },
+      data: { input: { ...input, craftedPrompt: finalPrompt, negativePrompt } },
     })
+
+    // ── 4. Get EvoLink key ─────────────────────────────────────────────────
+    const evolinkCred = await prisma.apiCredential.findUnique({
+      where: { userId_provider: { userId: genJob.userId, provider: 'evolink' } },
+    })
+    if (!evolinkCred?.encryptedKey) throw new Error('No EvoLink API key configured')
+    const evolinkKey = decrypt(evolinkCred.encryptedKey)
+
+    // ── 5. Resolve model for entity category ──────────────────────────────
+    const imageModelByCategory = (userPref?.imageModelByCategory ?? {}) as Record<string, string>
+    const categoryKey = entityType === 'npc' ? 'portrait' : entityType
+    const model = imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'seedream-5'
+
+    const isPortrait = kind === 'portrait_npc'
+    const width = isPortrait ? 768 : 1024
+    const height = isPortrait ? 1024 : 1024
+
+    // ── 6. Submit to EvoLink ───────────────────────────────────────────────
+    const submitRes = await fetch('https://api.eachlabs.ai/v1/prediction', {
+      method: 'POST',
+      headers: { 'X-API-Key': evolinkKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, input: { prompt: finalPrompt, negative_prompt: negativePrompt, width, height } }),
+    })
+
+    if (!submitRes.ok) {
+      const errText = await submitRes.text()
+      throw new Error(`EvoLink submission failed (${submitRes.status}): ${errText.slice(0, 200)}`)
+    }
+
+    const submitData = await submitRes.json() as { id: string; status: string; output?: string | string[]; error?: string }
+
+    await prisma.generationJob.update({ where: { id: jobId }, data: { providerTaskId: submitData.id } })
+
+    // ── 7. Sync result or enqueue poll ────────────────────────────────────
+    const syncDone = submitData.status === 'succeeded' || submitData.status === 'completed'
+    if (syncDone) {
+      const outputUrl = Array.isArray(submitData.output) ? submitData.output[0] : submitData.output
+      if (!outputUrl) throw new Error('EvoLink sync succeeded but returned no output URL')
+
+      const asset = await prisma.asset.create({
+        data: { campaignId: genJob.campaignId!, kind, storageKeyOriginal: '', source: 'generated', generationJobId: jobId },
+      })
+      await getBoss().send('image.postprocess', {
+        jobId, assetId: asset.id, sourceUrl: outputUrl,
+        campaignId: genJob.campaignId!, entityType, entityId, kind,
+      } satisfies ImagePostprocessData)
+    } else {
+      await getBoss().send(
+        'image.poll',
+        { jobId, providerTaskId: submitData.id, evolinkKey, pollCount: 0 } satisfies ImagePollData,
+        { startAfter: 5 },
+      )
+      await notifyJobUpdate(jobId, 'running')
+    }
+
+    console.log(`[image.generate] Job ${jobId} submitted to EvoLink (sync=${syncDone})`)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Image generation failed'
+    console.error(`[image.generate] Error for job ${jobId}:`, msg)
+    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: msg } })
+    await notifyJobUpdate(jobId, 'failed')
   }
 }
 

@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js'
 import { decrypt } from '../lib/crypto.js'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
+import { getBoss } from '../lib/worker.js'
 
 export const generateRouter = Router()
 generateRouter.use(requireAuth)
@@ -443,6 +444,54 @@ Generate 3-4 concrete next-session prep suggestions. Return JSON array:
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed' })
   }
+})
+
+// ── Image generation ─────────────────────────────────────────────────────────
+
+generateRouter.post('/image', async (req, res) => {
+  const userId = res.locals.user.id
+  const schema = z.object({
+    kind: z.string().min(1),
+    entityId: z.string().min(1),
+    campaignId: z.string().min(1),
+    prompt: z.string().optional(),
+  })
+
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+
+  const { kind, entityId, campaignId, prompt } = parsed.data
+
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId } })
+  if (!campaign) {
+    res.status(403).json({ error: 'Campaign not found or forbidden' })
+    return
+  }
+
+  // Derive entityType from kind
+  const entityType = kind === 'portrait_npc' ? 'npc'
+    : kind === 'location_art' ? 'location'
+    : kind === 'item_art' ? 'item'
+    : kind.startsWith('map_') ? 'map'
+    : kind.split('_')[0] ?? 'unknown'
+
+  const job = await prisma.generationJob.create({
+    data: {
+      userId,
+      campaignId,
+      provider: 'evolink',
+      kind,
+      status: 'queued',
+      input: { kind, entityId, entityType, prompt: prompt ?? null },
+    },
+  })
+
+  await getBoss().send('image.generate', { jobId: job.id })
+
+  res.json({ jobId: job.id })
 })
 
 // ── Usage ────────────────────────────────────────────────────────────────────

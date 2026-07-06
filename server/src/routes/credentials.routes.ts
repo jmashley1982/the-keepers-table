@@ -54,8 +54,15 @@ credentialsRouter.post('/:provider/validate', async (req, res) => {
       })
       valid = true
     } else if (provider === 'evolink') {
-      // Basic ping — just check it's non-empty for now
-      valid = key.length > 8
+      const evolinkRes = await fetch('https://api.eachlabs.ai/v1/models', {
+        headers: { 'X-API-Key': key },
+      })
+      if (evolinkRes.ok) {
+        valid = true
+      } else {
+        const body = await evolinkRes.json().catch(() => ({} as Record<string, unknown>)) as Record<string, unknown>
+        errorMsg = (body.message as string | undefined) ?? `EvoLink returned ${evolinkRes.status}`
+      }
     }
   } catch (e: unknown) {
     errorMsg = e instanceof Error ? e.message : 'Validation failed'
