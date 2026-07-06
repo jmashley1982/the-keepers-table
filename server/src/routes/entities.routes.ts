@@ -127,8 +127,28 @@ const locationCreate = z.object({
   dmOnlyNotes: z.string().optional(),
   imageUrl: z.string().optional(),
   imageAssetId: z.string().nullable().optional(),
+  mapAssetId: z.string().nullable().optional(),
   ambience: z.record(z.unknown()).optional(),
 })
+
+// Custom list for locations — includes attached mapAsset so cards can show thumbnails
+entitiesRouter.get('/:campaignId/locations', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params as { campaignId: string }
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+  const q = (req.query.q as string) ?? ''
+  const items = await prisma.location.findMany({
+    where: { campaignId, deletedAt: null },
+    orderBy: { updatedAt: 'desc' },
+    include: { mapAsset: { include: { imageAsset: true } } },
+  })
+  const filtered = q
+    ? items.filter(i => i.name.toLowerCase().includes(q.toLowerCase()) || i.description?.toLowerCase().includes(q.toLowerCase()))
+    : items
+  res.json({ items: filtered })
+})
+
 entitiesRouter.use('/:campaignId/locations', entityRoutes('location', prisma.location, locationCreate, locationCreate.partial()))
 
 // ── Item routes ──────────────────────────────────────────────────────────────
@@ -177,7 +197,35 @@ const encounterCreate = z.object({
   tags: z.array(z.string()).optional(),
   dmOnlyNotes: z.string().optional(),
   description: z.string().optional(),
+  mapAssetId: z.string().nullable().optional(),
 })
+
+// Custom list for encounters — enriches with attached mapAsset so cards can show thumbnails
+entitiesRouter.get('/:campaignId/encounters', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params as { campaignId: string }
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+  const q = (req.query.q as string) ?? ''
+  const items = await prisma.encounter.findMany({
+    where: { campaignId, deletedAt: null },
+    orderBy: { updatedAt: 'desc' },
+  })
+  const filtered = q
+    ? items.filter(i => i.name.toLowerCase().includes(q.toLowerCase()) || i.description?.toLowerCase().includes(q.toLowerCase()))
+    : items
+  const mapAssetIds = [...new Set(filtered.map(i => i.mapAssetId).filter(Boolean))] as string[]
+  const mapAssets = mapAssetIds.length > 0
+    ? await prisma.mapAsset.findMany({ where: { id: { in: mapAssetIds } }, include: { imageAsset: true } })
+    : []
+  const mapAssetMap = Object.fromEntries(mapAssets.map(m => [m.id, m]))
+  const enriched = filtered.map(i => ({
+    ...i,
+    mapAsset: i.mapAssetId ? (mapAssetMap[i.mapAssetId] ?? null) : null,
+  }))
+  res.json({ items: enriched })
+})
+
 entitiesRouter.use('/:campaignId/encounters', entityRoutes('encounter', prisma.encounter, encounterCreate, encounterCreate.partial()))
 
 // ── Plot threads ─────────────────────────────────────────────────────────────

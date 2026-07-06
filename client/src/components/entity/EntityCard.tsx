@@ -33,8 +33,9 @@ export interface EntityCardData {
   rarity?: string
   category?: string
   mechanicalEffect?: string
-  // Location
+  // Location / Encounter — attached battle map
   type?: string
+  mapAsset?: { id: string; imageAsset?: { id: string } | null } | null
   // Encounter
   difficulty?: string
   setup?: string
@@ -324,6 +325,17 @@ export default function EntityCard({
             <div>
               <span className="label">Stat Block</span>
               <StatBlock statBlock={entity.statBlock} />
+            </div>
+          )}
+
+          {(entityType === 'encounter' || entityType === 'location') && entity.mapAsset?.imageAsset?.id && (
+            <div>
+              <span className="label">Battle Map</span>
+              <img
+                src={`/api/assets/${entity.mapAsset.imageAsset.id}?size=thumb`}
+                alt="Attached battle map"
+                className="w-full max-h-36 object-cover rounded-card border border-border mt-1"
+              />
             </div>
           )}
 

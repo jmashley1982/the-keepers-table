@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
-import { useState, useCallback } from 'react'
-import { Map, X, Download, Grid, Wand2 } from 'lucide-react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { Map, X, Download, Grid, Wand2, Upload } from 'lucide-react'
 import MapViewer from '../../components/map/MapViewer'
 import { GridOverlay, GridEditor, DEFAULT_GRID } from '../../components/map/GridOverlay'
 import type { GridSettings } from '../../components/map/GridOverlay'
+import { useJobStatus } from '../../lib/useJobStatus'
 import { cn } from '../../lib/cn'
 
 type KindFilter = 'all' | 'battle' | 'region' | 'world' | 'other'
@@ -30,12 +31,25 @@ export default function MapsPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [kindFilter, setKindFilter] = useState<KindFilter>('all')
   const [viewingMap, setViewingMap] = useState<MapAssetRow | null>(null)
   const [imageSize, setImageSize] = useState<{ w: number; h: number }>({ w: 1024, h: 1024 })
   const [grid, setGrid] = useState<GridSettings>(DEFAULT_GRID)
   const [gridSaving, setGridSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadJobId, setUploadJobId] = useState<string | null>(null)
+
+  const uploadStatus = useJobStatus(uploadJobId)
+
+  useEffect(() => {
+    if (uploadStatus.status === 'succeeded' || uploadStatus.status === 'failed') {
+      qc.invalidateQueries({ queryKey: ['maps', campaignId] })
+      setUploadJobId(null)
+      setUploading(false)
+    }
+  }, [uploadStatus.status, campaignId, qc])
 
   const { data, isLoading } = useQuery({
     queryKey: ['maps', campaignId],
@@ -94,6 +108,47 @@ export default function MapsPage() {
     }
   }, [viewingMap, campaignId, grid])
 
+  const handleGridDrag = useCallback((dx: number, dy: number) => {
+    setGrid(prev => ({
+      ...prev,
+      offsetX: Math.round((prev.offsetX + dx) % prev.cellSize),
+      offsetY: Math.round((prev.offsetY + dy) % prev.cellSize),
+    }))
+  }, [])
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !campaignId) return
+    e.target.value = ''
+    const title = file.name.replace(/\.[^.]+$/, '').replace(/[_\-]/g, ' ') || 'Uploaded Map'
+    setUploading(true)
+    try {
+      const mapRes = await api.post(`/api/campaigns/${campaignId}/maps`, {
+        title,
+        kind: 'battle',
+        source: 'uploaded',
+        generationPrompt: '',
+      })
+      const mapAsset = mapRes.data.map as { id: string }
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('entityType', 'map')
+      formData.append('entityId', mapAsset.id)
+      formData.append('kind', 'map_battle')
+      const uploadRes = await api.post(
+        `/api/campaigns/${campaignId}/assets/upload`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      )
+      setUploadJobId(uploadRes.data.jobId as string)
+      qc.invalidateQueries({ queryKey: ['maps', campaignId] })
+    } catch (e) {
+      alert(apiError(e))
+      setUploading(false)
+    }
+  }, [campaignId, qc])
+
   const viewingAssetId = viewingMap?.imageAsset?.id ?? viewingMap?.imageAssetId ?? null
 
   return (
@@ -103,12 +158,33 @@ export default function MapsPage() {
         <h1 className="display-font text-3xl font-bold text-ink flex items-center gap-3">
           <Map size={28} /> Maps
         </h1>
-        <button
-          className="btn-primary gap-1"
-          onClick={() => navigate(`/campaign/${campaignId}/generate/battle-map`)}
-        >
-          <Wand2 size={14} /> Generate Battle Map
-        </button>
+        <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <button
+            className="btn-secondary gap-1"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            <Upload size={14} />
+            {uploading
+              ? (uploadStatus.status === 'queued' || uploadStatus.status === 'running'
+                  ? 'Processing…'
+                  : 'Uploading…')
+              : 'Upload Map'}
+          </button>
+          <button
+            className="btn-primary gap-1"
+            onClick={() => navigate(`/campaign/${campaignId}/generate/battle-map`)}
+          >
+            <Wand2 size={14} /> Generate Battle Map
+          </button>
+        </div>
       </div>
 
       {/* Filter chips */}
@@ -138,13 +214,21 @@ export default function MapsPage() {
           <h2 className="display-font text-xl text-ink mb-2">
             {kindFilter === 'all' ? 'No maps yet' : `No ${KIND_LABELS[kindFilter] ?? kindFilter}s yet`}
           </h2>
-          <p className="text-sm text-ink-muted mb-6">Generate a battle map with AI to get started.</p>
-          <button
-            className="btn-primary"
-            onClick={() => navigate(`/campaign/${campaignId}/generate/battle-map`)}
-          >
-            <Wand2 size={14} /> Generate Battle Map
-          </button>
+          <p className="text-sm text-ink-muted mb-6">Generate a battle map with AI or upload your own image.</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              className="btn-secondary gap-1"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload size={14} /> Upload Map
+            </button>
+            <button
+              className="btn-primary gap-1"
+              onClick={() => navigate(`/campaign/${campaignId}/generate/battle-map`)}
+            >
+              <Wand2 size={14} /> Generate Battle Map
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -209,6 +293,7 @@ export default function MapsPage() {
               assetId={viewingAssetId}
               className="w-full h-full"
               onSizeLoaded={(w, h) => setImageSize({ w, h })}
+              onGridDrag={grid.visible ? handleGridDrag : undefined}
             >
               <GridOverlay
                 settings={grid}

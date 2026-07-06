@@ -6,6 +6,7 @@ interface Props {
   className?: string
   children?: ReactNode
   onSizeLoaded?: (w: number, h: number) => void
+  onGridDrag?: (dx: number, dy: number) => void
 }
 
 interface Transform {
@@ -18,14 +19,27 @@ const MIN_SCALE = 0.05
 const MAX_SCALE = 8
 const FULL_UPGRADE_THRESHOLD = 1.2
 
-export default function MapViewer({ assetId, className, children, onSizeLoaded }: Props) {
+export default function MapViewer({ assetId, className, children, onSizeLoaded, onGridDrag }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, scale: 1 })
   const [imgSrc, setImgSrc] = useState<string | null>(null)
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null)
   const [useFull, setUseFull] = useState(false)
-  const dragRef = useRef<{ startX: number; startY: number; lastX: number; lastY: number } | null>(null)
+
+  const transformRef = useRef(transform)
+  transformRef.current = transform
+
+  const dragRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    lastX: number
+    lastY: number
+  } | null>(null)
+
+  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map())
+  const pinchDistRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!assetId) {
@@ -70,30 +84,99 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded }
     fitToContainer()
   }, [fitToContainer])
 
-  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return
-    e.currentTarget.setPointerCapture(e.pointerId)
-    dragRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      lastX: transform.x,
-      lastY: transform.y,
-    }
-  }, [transform.x, transform.y])
+  function getPinchDistance(): number {
+    const pts = [...activePointersRef.current.values()]
+    if (pts.length < 2) return 0
+    const dx = pts[0].x - pts[1].x
+    const dy = pts[0].y - pts[1].y
+    return Math.sqrt(dx * dx + dy * dy)
+  }
 
-  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current) return
-    const dx = e.clientX - dragRef.current.startX
-    const dy = e.clientY - dragRef.current.startY
-    setTransform(prev => ({
-      ...prev,
-      x: dragRef.current!.lastX + dx,
-      y: dragRef.current!.lastY + dy,
-    }))
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    if (activePointersRef.current.size >= 2) {
+      pinchDistRef.current = getPinchDistance()
+      dragRef.current = null
+    } else if (e.button === 0) {
+      pinchDistRef.current = null
+      dragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        lastX: transformRef.current.x,
+        lastY: transformRef.current.y,
+      }
+    }
   }, [])
 
-  const onPointerUp = useCallback(() => {
-    dragRef.current = null
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    if (activePointersRef.current.size >= 2 && pinchDistRef.current !== null) {
+      const newDist = getPinchDistance()
+      const ratio = newDist / pinchDistRef.current
+      pinchDistRef.current = newDist
+
+      const pts = [...activePointersRef.current.values()]
+      const container = containerRef.current
+      if (!container) return
+      const rect = container.getBoundingClientRect()
+      const cx = (pts[0].x + pts[1].x) / 2 - rect.left
+      const cy = (pts[0].y + pts[1].y) / 2 - rect.top
+
+      setTransform(prev => {
+        const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev.scale * ratio))
+        const r = newScale / prev.scale
+        return {
+          scale: newScale,
+          x: cx - (cx - prev.x) * r,
+          y: cy - (cy - prev.y) * r,
+        }
+      })
+      return
+    }
+
+    if (!dragRef.current || activePointersRef.current.size > 1) return
+
+    const screenDx = e.clientX - dragRef.current.startX
+    const screenDy = e.clientY - dragRef.current.startY
+
+    if (e.shiftKey && onGridDrag) {
+      const scale = transformRef.current.scale
+      onGridDrag(screenDx / scale, screenDy / scale)
+      dragRef.current.startX = e.clientX
+      dragRef.current.startY = e.clientY
+      dragRef.current.lastX = transformRef.current.x
+      dragRef.current.lastY = transformRef.current.y
+    } else {
+      setTransform(prev => ({
+        ...prev,
+        x: dragRef.current!.lastX + screenDx,
+        y: dragRef.current!.lastY + screenDy,
+      }))
+    }
+  }, [onGridDrag])
+
+  const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current.delete(e.pointerId)
+    if (dragRef.current?.pointerId === e.pointerId) {
+      dragRef.current = null
+    }
+    if (activePointersRef.current.size < 2) {
+      pinchDistRef.current = null
+    }
+    if (activePointersRef.current.size === 1) {
+      const [[id, pos]] = [...activePointersRef.current.entries()]
+      dragRef.current = {
+        pointerId: id,
+        startX: pos.x,
+        startY: pos.y,
+        lastX: transformRef.current.x,
+        lastY: transformRef.current.y,
+      }
+    }
   }, [])
 
   const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
@@ -126,7 +209,11 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded }
   return (
     <div
       ref={containerRef}
-      className={cn('relative overflow-hidden bg-neutral-950 cursor-grab active:cursor-grabbing select-none', className)}
+      className={cn(
+        'relative overflow-hidden bg-neutral-950 select-none',
+        onGridDrag ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing',
+        className,
+      )}
       style={{ touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -169,6 +256,7 @@ export default function MapViewer({ assetId, className, children, onSizeLoaded }
 
       <div className="absolute bottom-2 right-2 text-xs text-white/40 pointer-events-none select-none">
         {Math.round(transform.scale * 100)}%
+        {onGridDrag && <span className="ml-2 text-white/30">Shift+drag = offset grid</span>}
       </div>
     </div>
   )

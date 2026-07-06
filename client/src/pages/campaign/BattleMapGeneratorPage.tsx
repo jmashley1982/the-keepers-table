@@ -161,18 +161,21 @@ export default function BattleMapGeneratorPage() {
 
   const handleAttach = useCallback(async () => {
     if (!mapAsset) return
-    const body: Record<string, string | null> = {}
-    if (linkedType === 'encounter' && linkedId) body.linkedEncounterId = linkedId
-    else if (linkedType === 'location' && linkedId) body.linkedLocationId = linkedId
+    const mapBody: Record<string, string | null> = {}
+    if (linkedType === 'encounter' && linkedId) mapBody.linkedEncounterId = linkedId
+    else if (linkedType === 'location' && linkedId) mapBody.linkedLocationId = linkedId
     else { setAttachMessage('Select an encounter or location to attach.'); return }
     try {
-      await api.patch(`/api/campaigns/${campaignId}/maps/${mapAsset.id}`, body)
+      await api.patch(`/api/campaigns/${campaignId}/maps/${mapAsset.id}`, mapBody)
+      const entityPath = linkedType === 'encounter' ? 'encounters' : 'locations'
+      await api.patch(`/api/entities/${campaignId}/${entityPath}/${linkedId}`, { mapAssetId: mapAsset.id })
+      qc.invalidateQueries({ queryKey: ['entities', campaignId, linkedType] })
       setAttachMessage('Attached!')
       setTimeout(() => setAttachMessage(''), 3000)
     } catch (e) {
       setAttachMessage(apiError(e))
     }
-  }, [mapAsset, campaignId, linkedType, linkedId])
+  }, [mapAsset, campaignId, linkedType, linkedId, qc])
 
   const isGenerating = createMap.isPending || generateImage.isPending ||
     jobStatus.status === 'queued' || jobStatus.status === 'running'
@@ -353,6 +356,11 @@ export default function BattleMapGeneratorPage() {
             assetId={displayAssetId}
             className="w-full h-full"
             onSizeLoaded={(w, h) => setImageSize({ w, h })}
+            onGridDrag={grid.visible ? (dx, dy) => setGrid(prev => ({
+              ...prev,
+              offsetX: Math.round((prev.offsetX + dx) % prev.cellSize),
+              offsetY: Math.round((prev.offsetY + dy) % prev.cellSize),
+            })) : undefined}
           >
             <GridOverlay
               settings={grid}
