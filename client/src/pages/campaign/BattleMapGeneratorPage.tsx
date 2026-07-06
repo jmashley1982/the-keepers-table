@@ -45,6 +45,7 @@ export default function BattleMapGeneratorPage() {
     estimate: number
     softCap: number
   } | null>(null)
+  const [confirmPending, setConfirmPending] = useState(false)
 
   const [mapAsset, setMapAsset] = useState<MapAsset | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
@@ -103,7 +104,8 @@ export default function BattleMapGeneratorPage() {
   })
 
   const handleConfirmedGenerate = useCallback(async () => {
-    if (!softCapConfirm) return
+    if (!softCapConfirm || confirmPending) return
+    setConfirmPending(true)
     try {
       const res = await api.post('/api/generate/image', { ...softCapConfirm.body, confirmed: true })
       setJobId(res.data.jobId as string)
@@ -111,8 +113,10 @@ export default function BattleMapGeneratorPage() {
     } catch (e) {
       alert(apiError(e))
       setSoftCapConfirm(null)
+    } finally {
+      setConfirmPending(false)
     }
-  }, [softCapConfirm])
+  }, [softCapConfirm, confirmPending])
 
   const handleGenerate = useCallback(async () => {
     if (!description.trim() && !customPrompt.trim()) return
@@ -355,10 +359,18 @@ export default function BattleMapGeneratorPage() {
                 exceed your soft cap of <span className="text-ink font-medium">${softCapConfirm.softCap.toFixed(2)}</span>.
               </p>
               <div className="flex gap-2">
-                <button className="btn-primary flex-1 text-xs justify-center" onClick={handleConfirmedGenerate}>
-                  Proceed anyway
+                <button
+                  className="btn-primary flex-1 text-xs justify-center"
+                  onClick={handleConfirmedGenerate}
+                  disabled={confirmPending}
+                >
+                  {confirmPending ? <><Loader size={12} className="animate-spin" /> Queuing…</> : 'Proceed anyway'}
                 </button>
-                <button className="btn-ghost flex-1 text-xs justify-center" onClick={() => setSoftCapConfirm(null)}>
+                <button
+                  className="btn-ghost flex-1 text-xs justify-center"
+                  onClick={() => setSoftCapConfirm(null)}
+                  disabled={confirmPending}
+                >
                   Cancel
                 </button>
               </div>
