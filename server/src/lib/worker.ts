@@ -194,8 +194,12 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
       if (!response.ok) throw new Error(`Failed to download image: ${response.statusText}`)
       imageBuffer = Buffer.from(await response.arrayBuffer())
     } else {
-      const existing = await StorageService.get(StorageService.assetKey(campaignId, assetId, 'original'))
-      if (!existing) throw new Error('No source URL and no existing original in storage')
+      // For uploads: read the key stored on the Asset row (avoids guessing extension)
+      const assetRow = await prisma.asset.findUnique({ where: { id: assetId }, select: { storageKeyOriginal: true } })
+      const existingKey = assetRow?.storageKeyOriginal
+      if (!existingKey) throw new Error(`Asset ${assetId} has no storageKeyOriginal and no sourceUrl`)
+      const existing = await StorageService.get(existingKey)
+      if (!existing) throw new Error(`No data at storage key "${existingKey}" for asset ${assetId}`)
       imageBuffer = existing
     }
 
@@ -266,7 +270,7 @@ async function attachAssetToEntity(assetId: string, entityType: string, entityId
   } else if (entityType === 'item' || kind === 'item_art') {
     await prisma.item.update({ where: { id: entityId }, data: { imageAssetId: assetId } }).catch(() => {})
   } else if (kind.startsWith('map_') && entityId) {
-    await prisma.mapAsset.update({ where: { id: entityId }, data: { storageAssetId: assetId } }).catch(() => {})
+    await prisma.mapAsset.update({ where: { id: entityId }, data: { imageAssetId: assetId } }).catch(() => {})
   }
 }
 

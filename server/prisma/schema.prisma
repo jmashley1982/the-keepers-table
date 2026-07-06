@@ -406,7 +406,7 @@ model MapAsset {
   title             String
   imageUrl          String?
   thumbnailUrl      String?
-  storageAssetId    String?
+  imageAssetId      String?
   previewStorageKey String?
   altText           String?
   width             Int?
@@ -422,7 +422,7 @@ model MapAsset {
   deletedAt         DateTime?
 
   campaign    Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  storageAsset Asset?     @relation("MapAssetImage", fields: [storageAssetId], references: [id])
+  imageAsset   Asset?     @relation("MapAssetImage", fields: [imageAssetId], references: [id])
   locations   Location[]
   pins        MapPin[]
 }

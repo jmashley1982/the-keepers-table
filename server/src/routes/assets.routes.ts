@@ -82,11 +82,11 @@ assetsRouter.get('/:assetId', async (req, res) => {
 export const campaignAssetsRouter = Router({ mergeParams: true })
 campaignAssetsRouter.use(requireAuth)
 
-campaignAssetsRouter.post('/assets/upload', upload.single('file'), async (req, res) => {
+campaignAssetsRouter.post('/:campaignId/assets/upload', upload.single('file'), async (req, res) => {
   const userId = res.locals.user.id
-  const { campaignId } = req.params
+  const { campaignId } = req.params as { campaignId: string }
 
-  const cId = campaignId as string
+  const cId = campaignId
   const campaign = await prisma.campaign.findFirst({
     where: { id: cId, ownerUserId: userId },
   })
