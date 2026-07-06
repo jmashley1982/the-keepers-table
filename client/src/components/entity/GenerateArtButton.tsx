@@ -98,7 +98,7 @@ export default function GenerateArtButton({
     if (jobStatus.status === 'failed') {
       setPhase({ name: 'failed', error: jobStatus.rawError ?? jobStatus.errorMessage ?? 'Generation failed' })
     }
-  }, [jobStatus.status, jobStatus.assetId, jobStatus.errorMessage, phase.name, currentAssetId, campaignId, entityType, qc, onGenerated])
+  }, [jobStatus.status, jobStatus.assetId, jobStatus.errorMessage, jobStatus.rawError, phase.name, currentAssetId, campaignId, entityType, qc, onGenerated])
 
   const generateMutation = useMutation({
     mutationFn: (opts?: GenerateOpts & { confirmed?: boolean }) =>
