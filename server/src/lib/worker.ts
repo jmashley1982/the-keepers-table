@@ -460,8 +460,9 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
       await StorageService.put(previewKey, previewBuffer)
     }
 
-    // ── Alt-text (optional — Claude Haiku vision, skipped if no key) ─────────
-    let altText: string | undefined
+    // ── Alt-text (Claude Haiku vision; fallback to kind label on failure) ──────
+    let altText: string = kind.replace(/_/g, ' ')
+    let altTextRawError: string | undefined
     try {
       const genJob2 = await prisma.generationJob.findUnique({ where: { id: jobId }, select: { userId: true } })
       const userId2 = genJob2?.userId
@@ -488,8 +489,9 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
           if (raw2) altText = raw2
         }
       }
-    } catch {
-      // Alt-text is best-effort; don't fail the whole postprocess
+    } catch (altErr) {
+      altTextRawError = altErr instanceof Error ? altErr.message : String(altErr)
+      console.warn(`[alt-text] Failed for asset ${assetId}, using fallback: ${altTextRawError}`)
     }
 
     await prisma.asset.update({
@@ -500,7 +502,7 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
         storageKeyPreview: previewKey,
         width,
         height,
-        ...(altText ? { altText } : {}),
+        altText,
       },
     })
 

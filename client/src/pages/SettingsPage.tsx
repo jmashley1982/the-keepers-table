@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../lib/api'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CheckCircle, XCircle, Loader, Eye, EyeOff, Save, Plus, Trash2, Lock, TrendingUp } from 'lucide-react'
 
 type Provider = 'anthropic' | 'evolink'
@@ -229,6 +229,12 @@ export default function SettingsPage() {
   const [textModel, setTextModel] = useState(meData?.user?.preference?.defaultTextModel ?? 'claude-opus-4-5')
   const [contentRating, setContentRating] = useState(meData?.user?.preference?.contentRating ?? 'standard')
   const [softCap, setSoftCap] = useState<number>(prefData?.preference?.softCapPerCall ?? 0.50)
+
+  useEffect(() => {
+    if (prefData?.preference?.softCapPerCall != null) {
+      setSoftCap(prefData.preference.softCapPerCall)
+    }
+  }, [prefData?.preference?.softCapPerCall])
 
   const storedImageModels: Record<string, string> = prefData?.preference?.imageModelByCategory ?? {}
   const [imageModelByCategory, setImageModelByCategory] = useState<Record<string, string>>(storedImageModels)

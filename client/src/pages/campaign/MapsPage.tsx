@@ -45,18 +45,25 @@ export default function MapsPage() {
   const [gridSaving, setGridSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadJobId, setUploadJobId] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [editPins, setEditPins] = useState(false)
 
   const uploadStatus = useJobStatus(uploadJobId)
 
   useEffect(() => {
-    if (uploadStatus.status === 'succeeded' || uploadStatus.status === 'failed') {
+    if (uploadStatus.status === 'succeeded') {
       qc.invalidateQueries({ queryKey: ['maps', campaignId] })
       setUploadJobId(null)
       setUploading(false)
+      setUploadError(null)
+    } else if (uploadStatus.status === 'failed') {
+      qc.invalidateQueries({ queryKey: ['maps', campaignId] })
+      setUploadJobId(null)
+      setUploading(false)
+      setUploadError(uploadStatus.rawError ?? uploadStatus.errorMessage ?? 'Upload processing failed')
     }
-  }, [uploadStatus.status, campaignId, qc])
+  }, [uploadStatus.status, uploadStatus.rawError, uploadStatus.errorMessage, campaignId, qc])
 
   const { data, isLoading } = useQuery({
     queryKey: ['maps', campaignId],
@@ -259,6 +266,23 @@ export default function MapsPage() {
           </button>
         </div>
       </div>
+
+      {/* Upload error banner */}
+      {uploadError && (
+        <div className="mb-4 rounded-lg border border-danger/40 bg-danger/10 p-3 flex items-start gap-3">
+          <p className="text-danger text-sm flex-1">{uploadError}</p>
+          <details className="text-xs">
+            <summary className="text-danger/60 cursor-pointer hover:text-danger/80 select-none">Details</summary>
+            <pre className="mt-1 text-[10px] text-danger/50 whitespace-pre-wrap break-all">{uploadError}</pre>
+          </details>
+          <button
+            className="text-danger/60 hover:text-danger text-xs ml-1 shrink-0"
+            onClick={() => setUploadError(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Filter chips */}
       <div className="flex gap-2 mb-6 flex-wrap">

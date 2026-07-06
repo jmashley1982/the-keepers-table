@@ -710,20 +710,25 @@ generateRouter.get('/usage', async (req, res) => {
     return t.output ?? t.units ?? 0
   }
 
-  // Daily buckets
+  // Daily buckets — one row per date+provider combination
   const bucketMap = new Map<string, { count: number; estimatedCost: number; actualCost: number; totalUnits: number }>()
   for (const j of jobs) {
     const date = j.createdAt.toISOString().slice(0, 10)
-    const existing = bucketMap.get(date) ?? { count: 0, estimatedCost: 0, actualCost: 0, totalUnits: 0 }
+    const prov = (j.provider as string | null) ?? 'unknown'
+    const key = `${date}::${prov}`
+    const existing = bucketMap.get(key) ?? { count: 0, estimatedCost: 0, actualCost: 0, totalUnits: 0 }
     existing.count += 1
     existing.estimatedCost += j.costEstimate ?? 0
     existing.actualCost += j.costActual ?? 0
     existing.totalUnits += jobUnits(j)
-    bucketMap.set(date, existing)
+    bucketMap.set(key, existing)
   }
   const dailyBuckets = Array.from(bucketMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, data]) => ({ date, ...data }))
+    .map(([key, data]) => {
+      const [date, provider] = key.split('::')
+      return { date, provider, ...data }
+    })
 
   // Per-provider totals
   const providerMap = new Map<string, { count: number; estimatedCost: number; actualCost: number; totalUnits: number }>()
