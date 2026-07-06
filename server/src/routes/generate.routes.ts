@@ -704,19 +704,39 @@ generateRouter.get('/usage', async (req, res) => {
     take: 500,
   })
 
+  function jobUnits(j: { tokensOrUnits: unknown }): number {
+    const t = j.tokensOrUnits as Record<string, number> | null
+    if (!t) return 0
+    return t.output ?? t.units ?? 0
+  }
+
   // Daily buckets
-  const bucketMap = new Map<string, { count: number; estimatedCost: number; actualCost: number }>()
+  const bucketMap = new Map<string, { count: number; estimatedCost: number; actualCost: number; totalUnits: number }>()
   for (const j of jobs) {
     const date = j.createdAt.toISOString().slice(0, 10)
-    const existing = bucketMap.get(date) ?? { count: 0, estimatedCost: 0, actualCost: 0 }
+    const existing = bucketMap.get(date) ?? { count: 0, estimatedCost: 0, actualCost: 0, totalUnits: 0 }
     existing.count += 1
     existing.estimatedCost += j.costEstimate ?? 0
     existing.actualCost += j.costActual ?? 0
+    existing.totalUnits += jobUnits(j)
     bucketMap.set(date, existing)
   }
   const dailyBuckets = Array.from(bucketMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, data]) => ({ date, ...data }))
+
+  // Per-provider totals
+  const providerMap = new Map<string, { count: number; estimatedCost: number; actualCost: number; totalUnits: number }>()
+  for (const j of jobs) {
+    const prov = (j.provider as string | null) ?? 'unknown'
+    const existing = providerMap.get(prov) ?? { count: 0, estimatedCost: 0, actualCost: 0, totalUnits: 0 }
+    existing.count += 1
+    existing.estimatedCost += j.costEstimate ?? 0
+    existing.actualCost += j.costActual ?? 0
+    existing.totalUnits += jobUnits(j)
+    providerMap.set(prov, existing)
+  }
+  const providerTotals = Array.from(providerMap.entries()).map(([provider, data]) => ({ provider, ...data }))
 
   // Per-campaign totals
   const campaignMap = new Map<string, { count: number; estimatedCost: number }>()
@@ -742,6 +762,7 @@ generateRouter.get('/usage', async (req, res) => {
   }))
 
   const totalEstimatedCost = jobs.reduce((s, j) => s + (j.costEstimate ?? 0), 0)
+  const totalActualCost = jobs.reduce((s, j) => s + (j.costActual ?? 0), 0)
 
-  res.json({ jobs, dailyBuckets, campaignTotals, totalEstimatedCost })
+  res.json({ jobs, dailyBuckets, providerTotals, campaignTotals, totalEstimatedCost, totalActualCost })
 })

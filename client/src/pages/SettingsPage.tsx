@@ -251,9 +251,11 @@ export default function SettingsPage() {
   })
 
   const jobs = usageData?.jobs ?? []
-  const dailyBuckets: { date: string; estimatedCost: number; count: number }[] = usageData?.dailyBuckets ?? []
+  const dailyBuckets: { date: string; estimatedCost: number; actualCost: number; totalUnits: number; count: number }[] = usageData?.dailyBuckets ?? []
   const campaignTotals: { campaignId: string; campaignName: string; estimatedCost: number; count: number }[] = usageData?.campaignTotals ?? []
+  const providerTotals: { provider: string; count: number; estimatedCost: number; actualCost: number; totalUnits: number }[] = usageData?.providerTotals ?? []
   const totalEstimatedCost: number = usageData?.totalEstimatedCost ?? 0
+  const totalActualCost: number = usageData?.totalActualCost ?? 0
   const totalTokens = jobs.reduce((sum: number, j: { tokensOrUnits: { output?: number } }) => sum + (j.tokensOrUnits?.output ?? 0), 0)
 
   function handleImageModelChange(category: string, model: string) {
@@ -387,6 +389,9 @@ export default function SettingsPage() {
           <div>
             <p className="text-ink-muted text-xs label">Estimated spend</p>
             <p className="font-bold text-ink display-font text-xl">${totalEstimatedCost.toFixed(2)}</p>
+            {totalActualCost > 0 && (
+              <p className="text-[10px] text-ink-muted">${totalActualCost.toFixed(2)} actual</p>
+            )}
           </div>
           <div>
             <p className="text-ink-muted text-xs label">Total generations</p>
@@ -397,6 +402,25 @@ export default function SettingsPage() {
             <p className="font-bold text-ink display-font text-xl">{totalTokens.toLocaleString()}</p>
           </div>
         </div>
+
+        {/* Per-provider breakdown */}
+        {providerTotals.length > 0 && (
+          <div>
+            <p className="text-xs text-ink-muted label mb-1">By provider</p>
+            <div className="flex flex-wrap gap-2">
+              {providerTotals.map(pt => (
+                <div key={pt.provider} className="flex flex-col gap-0.5 bg-surface-2 border border-border rounded-card px-3 py-2 min-w-[120px]">
+                  <p className="text-[10px] text-ink-muted capitalize font-medium tracking-wide uppercase">{pt.provider}</p>
+                  <p className="text-sm font-semibold text-ink">${pt.estimatedCost.toFixed(3)}</p>
+                  <p className="text-[10px] text-ink-muted">{pt.count} gen{pt.count !== 1 ? 's' : ''} · {pt.totalUnits.toLocaleString()} units</p>
+                  {pt.actualCost > 0 && (
+                    <p className="text-[10px] text-green-500">${pt.actualCost.toFixed(3)} actual</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Daily bar chart */}
         {dailyBuckets.length > 0 && (() => {

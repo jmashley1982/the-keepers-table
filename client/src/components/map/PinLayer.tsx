@@ -31,6 +31,7 @@ interface PinLayerProps {
   availableLocations?: AvailableLocation[]
   pendingLocationId?: string | null
   onPendingLocationConsumed?: () => void
+  onPinClick?: (pin: MapPin) => void
 }
 
 export default function PinLayer({
@@ -45,6 +46,7 @@ export default function PinLayer({
   availableLocations = [],
   pendingLocationId,
   onPendingLocationConsumed,
+  onPinClick,
 }: PinLayerProps) {
   const [dragging, setDragging] = useState<{ id: string; x: number; y: number } | null>(null)
   const [activePopover, setActivePopover] = useState<string | null>(null)
@@ -132,9 +134,13 @@ export default function PinLayer({
     (e: React.MouseEvent<HTMLDivElement>, pinId: string) => {
       e.stopPropagation()
       if (dragging) return
+      if (!editMode && onPinClick) {
+        const pin = pins.find(p => p.id === pinId)
+        if (pin) { onPinClick(pin); return }
+      }
       setActivePopover(prev => (prev === pinId ? null : pinId))
     },
-    [dragging],
+    [dragging, editMode, onPinClick, pins],
   )
 
   const handleDeletePin = useCallback(

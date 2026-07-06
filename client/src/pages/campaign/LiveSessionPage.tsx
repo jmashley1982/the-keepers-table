@@ -89,11 +89,18 @@ export default function LiveSessionPage() {
     (m: MapAssetListItem) => m.kind === 'world' || m.kind === 'region'
   )
 
-  const { data: mapPinsData } = useQuery({
+  const { data: mapPinsData, refetch: refetchPins } = useQuery({
     queryKey: ['map-pins', selectedMapId],
     queryFn: () => api.get(`/api/campaigns/${campaignId}/maps/${selectedMapId}/pins`).then(r => r.data),
     enabled: !!selectedMapId && !!campaignId,
   })
+
+  // Auto-select most recently updated map when switching into Maps section
+  useEffect(() => {
+    if (activeSection !== 'maps' || campaignMaps.length === 0 || selectedMapId) return
+    const sorted = [...campaignMaps].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    setSelectedMapId(sorted[0].id)
+  }, [activeSection, campaignMaps.length, selectedMapId])
 
   useEffect(() => {
     if (sessionData?.session?.dmRawNotes) setNotes(sessionData.session.dmRawNotes)
@@ -256,13 +263,13 @@ export default function LiveSessionPage() {
             </div>
           </div>
 
-          {/* Entity list / Map list */}
-          <div className="flex-1 overflow-y-auto">
-            {activeSection === 'maps' ? (
-              campaignMaps.length === 0 ? (
-                <div className="p-4 text-center">
-                  <MapIcon size={24} className="mx-auto text-ink-muted/30 mb-2" />
-                  <p className="text-xs text-ink-muted mb-2">No world or region maps yet.</p>
+          {/* Maps compact selector (shown instead of entity list when in maps section) */}
+          {activeSection === 'maps' && (
+            <div className="p-3 border-b border-border">
+              {campaignMaps.length === 0 ? (
+                <div className="text-center py-4">
+                  <MapIcon size={20} className="mx-auto text-ink-muted/30 mb-2" />
+                  <p className="text-xs text-ink-muted mb-2">No maps yet.</p>
                   <button
                     className="btn-ghost text-xs text-accent"
                     onClick={() => navigate(`/campaign/${campaignId}/generate/world-map`)}
@@ -271,26 +278,30 @@ export default function LiveSessionPage() {
                   </button>
                 </div>
               ) : (
-                campaignMaps.map(m => (
-                  <button
-                    key={m.id}
-                    onClick={() => setSelectedMapId(prev => prev === m.id ? null : m.id)}
-                    className={cn(
-                      'w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-surface-2 transition-colors flex items-center justify-between gap-2',
-                      selectedMapId === m.id && 'bg-accent/5 border-l-2 border-l-accent'
-                    )}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] text-ink-muted uppercase tracking-wide font-medium">Map</label>
+                  <select
+                    className="input text-xs py-1.5 h-auto"
+                    value={selectedMapId ?? ''}
+                    onChange={e => setSelectedMapId(e.target.value || null)}
                   >
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-ink truncate">{m.title}</p>
-                      <p className="text-[10px] text-ink-muted capitalize">
-                        {m.kind} map{m._count?.pins ? ` · ${m._count.pins} pin${m._count.pins !== 1 ? 's' : ''}` : ''}
-                      </p>
-                    </div>
-                    <ChevronRight size={10} className="text-ink-muted shrink-0" />
-                  </button>
-                ))
-              )
-            ) : filteredItems.length === 0 ? (
+                    {campaignMaps.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.title} ({m.kind}{m._count?.pins ? ` · ${m._count.pins} pins` : ''})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedMapId && (
+                    <p className="text-[10px] text-ink-muted">Click a pin to peek its linked location.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Entity list */}
+          <div className="flex-1 overflow-y-auto">
+            {activeSection === 'maps' ? null : filteredItems.length === 0 ? (
               <div className="p-4 text-center">
                 <p className="text-xs text-ink-muted">No {SECTION_LABELS[activeSection].toLowerCase()} yet.</p>
                 <button
@@ -330,15 +341,23 @@ export default function LiveSessionPage() {
           {/* Map viewer (shown when maps section is active and a map is selected) */}
           {activeSection === 'maps' && selectedMapId && !peekedEntity && (
             <div className="absolute inset-0 z-5 bg-neutral-950 flex flex-col overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-surface shrink-0">
-                <MapIcon size={13} className="text-accent" />
-                <p className="text-xs font-medium text-ink truncate flex-1">
-                  {campaignMaps.find(m => m.id === selectedMapId)?.title ?? 'Map'}
-                </p>
-                <span className="text-[10px] text-ink-muted">Click a pin to peek its location</span>
-                <button className="btn-ghost p-1" onClick={() => setSelectedMapId(null)} title="Close map">
-                  <X size={13} />
-                </button>
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-surface shrink-0">
+                <MapIcon size={13} className="text-accent shrink-0" />
+                {campaignMaps.length > 1 ? (
+                  <select
+                    className="input text-xs py-0.5 h-auto flex-1"
+                    value={selectedMapId}
+                    onChange={e => setSelectedMapId(e.target.value)}
+                  >
+                    {campaignMaps.map(m => (
+                      <option key={m.id} value={m.id}>{m.title}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs font-medium text-ink truncate flex-1">
+                    {campaignMaps.find(m => m.id === selectedMapId)?.title ?? 'Map'}
+                  </p>
+                )}
               </div>
               <div className="flex-1 relative overflow-hidden">
                 <MapViewer
@@ -355,8 +374,18 @@ export default function LiveSessionPage() {
                     imageHeight={mapImageSize.h}
                     scale={mapScale}
                     editMode={false}
-                    onPinsChange={() => {}}
+                    onPinsChange={() => refetchPins()}
                     availableLocations={[]}
+                    onPinClick={(pin) => {
+                      if (pin.locationId) {
+                        api.get(`/api/entities/${campaignId}/locations`).then(r => {
+                          const loc = (r.data?.items ?? []).find((l: Entity) => l.id === pin.locationId)
+                          if (loc) setPeekedEntity({ entity: loc, type: 'location' })
+                        }).catch(() => {})
+                      } else if (pin.label) {
+                        setPeekedEntity({ entity: { id: pin.id, name: pin.label } as Entity, type: 'location' })
+                      }
+                    }}
                   />
                 </MapViewer>
               </div>

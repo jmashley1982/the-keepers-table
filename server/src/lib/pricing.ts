@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs'
+import { readFileSync, statSync } from 'fs'
 import { resolve } from 'path'
 
 interface PricingConfig {
@@ -6,15 +6,17 @@ interface PricingConfig {
   defaultCostPerImage: number
 }
 
-let cached: PricingConfig | null = null
+const PRICING_PATH = resolve(process.cwd(), 'config/pricing.json')
+let cache: { config: PricingConfig; mtime: number } | null = null
 
 function loadPricing(): PricingConfig {
-  if (cached) return cached
   try {
-    const filePath = resolve(process.cwd(), 'config/pricing.json')
-    const raw = readFileSync(filePath, 'utf-8')
-    cached = JSON.parse(raw) as PricingConfig
-    return cached
+    const mtime = statSync(PRICING_PATH).mtimeMs
+    if (cache && cache.mtime === mtime) return cache.config
+    const raw = readFileSync(PRICING_PATH, 'utf-8')
+    const config = JSON.parse(raw) as PricingConfig
+    cache = { config, mtime }
+    return config
   } catch {
     return { models: {}, defaultCostPerImage: 0.05 }
   }
