@@ -529,7 +529,7 @@ generateRouter.post('/image', async (req, res) => {
     prompt: z.string().optional(),
     stylePreset: z.string().optional(),
     model: z.string().optional(),
-    aspectRatio: z.enum(['portrait', 'square', 'landscape']).optional(),
+    aspectRatio: z.enum(['portrait', 'square', 'landscape', 'widescreen']).optional(),
   })
 
   const parsed = schema.safeParse(req.body)
