@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../lib/api'
 import { useState } from 'react'
-import { CheckCircle, XCircle, Loader, Eye, EyeOff, Save, Plus, Trash2, Lock } from 'lucide-react'
+import { CheckCircle, XCircle, Loader, Eye, EyeOff, Save, Plus, Trash2, Lock, TrendingUp } from 'lucide-react'
 
 type Provider = 'anthropic' | 'evolink'
 
@@ -228,12 +228,13 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState(meData?.user?.displayName ?? '')
   const [textModel, setTextModel] = useState(meData?.user?.preference?.defaultTextModel ?? 'claude-opus-4-5')
   const [contentRating, setContentRating] = useState(meData?.user?.preference?.contentRating ?? 'standard')
+  const [softCap, setSoftCap] = useState<number>(prefData?.preference?.softCapPerCall ?? 0.50)
 
   const storedImageModels: Record<string, string> = prefData?.preference?.imageModelByCategory ?? {}
   const [imageModelByCategory, setImageModelByCategory] = useState<Record<string, string>>(storedImageModels)
 
   const updatePref = useMutation({
-    mutationFn: () => api.patch('/api/preferences', { defaultTextModel: textModel, contentRating }),
+    mutationFn: () => api.patch('/api/preferences', { defaultTextModel: textModel, contentRating, softCapPerCall: softCap }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
   })
 
@@ -242,12 +243,17 @@ export default function SettingsPage() {
     onSuccess: () => refetchPref(),
   })
 
+  const [usageRange, setUsageRange] = useState<'7d' | '30d' | 'all'>('30d')
+
   const { data: usageData } = useQuery({
-    queryKey: ['usage'],
-    queryFn: () => api.get('/api/generate/usage').then(r => r.data),
+    queryKey: ['usage', usageRange],
+    queryFn: () => api.get(`/api/generate/usage?range=${usageRange}`).then(r => r.data),
   })
 
   const jobs = usageData?.jobs ?? []
+  const dailyBuckets: { date: string; estimatedCost: number; count: number }[] = usageData?.dailyBuckets ?? []
+  const campaignTotals: { campaignId: string; campaignName: string; estimatedCost: number; count: number }[] = usageData?.campaignTotals ?? []
+  const totalEstimatedCost: number = usageData?.totalEstimatedCost ?? 0
   const totalTokens = jobs.reduce((sum: number, j: { tokensOrUnits: { output?: number } }) => sum + (j.tokensOrUnits?.output ?? 0), 0)
 
   function handleImageModelChange(category: string, model: string) {
@@ -299,6 +305,24 @@ export default function SettingsPage() {
           </select>
         </div>
 
+        <div>
+          <label className="label">Per-call cost soft cap: <span className="text-accent font-bold">${softCap.toFixed(2)}</span></label>
+          <p className="text-xs text-ink-muted mb-1">If a generation is estimated above this amount, you'll be asked to confirm before it runs.</p>
+          <input
+            type="range"
+            min="0.10"
+            max="5.00"
+            step="0.10"
+            value={softCap}
+            onChange={e => setSoftCap(parseFloat(e.target.value))}
+            className="w-full accent-accent"
+          />
+          <div className="flex justify-between text-[10px] text-ink-muted mt-0.5">
+            <span>$0.10</span>
+            <span>$5.00</span>
+          </div>
+        </div>
+
         <button className="btn-primary" onClick={() => updatePref.mutate()} disabled={updatePref.isPending}>
           {updatePref.isPending ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
           Save preferences
@@ -338,10 +362,32 @@ export default function SettingsPage() {
         {updateImageModels.isSuccess && <p className="text-xs text-green-500">✓ Image preferences saved</p>}
       </div>
 
-      {/* Usage */}
-      <div className="card space-y-3">
-        <h2 className="font-semibold text-ink">Usage</h2>
-        <div className="flex gap-4 text-sm">
+      {/* Cost & Usage */}
+      <div className="card space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={16} className="text-accent" />
+            <h2 className="font-semibold text-ink">Cost &amp; Usage</h2>
+          </div>
+          <div className="flex gap-1">
+            {(['7d', '30d', 'all'] as const).map(r => (
+              <button
+                key={r}
+                onClick={() => setUsageRange(r)}
+                className={`text-xs px-2 py-0.5 rounded border transition-colors ${usageRange === r ? 'bg-accent text-white border-accent' : 'bg-surface border-border text-ink-muted hover:border-accent/40'}`}
+              >
+                {r === 'all' ? 'All time' : r}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Summary row */}
+        <div className="flex gap-6 text-sm">
+          <div>
+            <p className="text-ink-muted text-xs label">Estimated spend</p>
+            <p className="font-bold text-ink display-font text-xl">${totalEstimatedCost.toFixed(2)}</p>
+          </div>
           <div>
             <p className="text-ink-muted text-xs label">Total generations</p>
             <p className="font-bold text-ink display-font text-xl">{jobs.length}</p>
@@ -351,16 +397,61 @@ export default function SettingsPage() {
             <p className="font-bold text-ink display-font text-xl">{totalTokens.toLocaleString()}</p>
           </div>
         </div>
-        {jobs.length > 0 && (
-          <div className="space-y-1 max-h-48 overflow-y-auto">
-            {jobs.slice(0, 20).map((j: { provider: string; kind: string; tokensOrUnits: { input?: number; output?: number }; createdAt: string }, i: number) => (
-              <div key={i} className="flex items-center justify-between text-xs text-ink-muted py-1 border-b border-border/50">
-                <span className="capitalize">{j.kind}</span>
-                <span>{j.tokensOrUnits?.input ?? 0} in / {j.tokensOrUnits?.output ?? 0} out</span>
-                <span>{new Date(j.createdAt).toLocaleDateString()}</span>
+
+        {/* Daily bar chart */}
+        {dailyBuckets.length > 0 && (() => {
+          const maxCost = Math.max(...dailyBuckets.map(b => b.estimatedCost), 0.01)
+          const barW = Math.max(6, Math.min(20, Math.floor(360 / dailyBuckets.length) - 2))
+          const totalW = dailyBuckets.length * (barW + 2)
+          return (
+            <div className="overflow-x-auto">
+              <svg width={Math.max(totalW, 360)} height={80} className="block">
+                {dailyBuckets.map((b, i) => {
+                  const barH = Math.max(2, (b.estimatedCost / maxCost) * 60)
+                  const x = i * (barW + 2)
+                  return (
+                    <g key={b.date}>
+                      <rect
+                        x={x} y={64 - barH}
+                        width={barW} height={barH}
+                        rx={2}
+                        className="fill-accent/60 hover:fill-accent transition-colors"
+                      >
+                        <title>{b.date}: ${b.estimatedCost.toFixed(3)} ({b.count} gen{b.count !== 1 ? 's' : ''})</title>
+                      </rect>
+                    </g>
+                  )
+                })}
+                <line x1={0} y1={64} x2={Math.max(totalW, 360)} y2={64} stroke="currentColor" strokeOpacity={0.1} />
+              </svg>
+              <div className="flex justify-between text-[10px] text-ink-muted mt-0.5">
+                <span>{dailyBuckets[0]?.date}</span>
+                <span>{dailyBuckets[dailyBuckets.length - 1]?.date}</span>
               </div>
-            ))}
+            </div>
+          )
+        })()}
+
+        {/* Per-campaign totals */}
+        {campaignTotals.length > 0 && (
+          <div>
+            <p className="text-xs text-ink-muted label mb-1">By campaign</p>
+            <div className="space-y-1">
+              {campaignTotals.sort((a, b) => b.estimatedCost - a.estimatedCost).map(ct => (
+                <div key={ct.campaignId} className="flex items-center justify-between text-xs py-1 border-b border-border/40 last:border-0">
+                  <span className="text-ink truncate max-w-[60%]">{ct.campaignName}</span>
+                  <div className="flex items-center gap-3 text-ink-muted shrink-0">
+                    <span>{ct.count} gen{ct.count !== 1 ? 's' : ''}</span>
+                    <span className="font-medium text-ink">${ct.estimatedCost.toFixed(3)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+        )}
+
+        {jobs.length === 0 && (
+          <p className="text-sm text-ink-muted text-center py-4">No generation jobs in this period.</p>
         )}
       </div>
     </div>

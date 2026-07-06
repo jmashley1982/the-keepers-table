@@ -4,10 +4,12 @@ import { api, apiError } from '../../lib/api'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { cn } from '../../lib/cn'
 import EntityCard from '../../components/entity/EntityCard'
+import MapViewer from '../../components/map/MapViewer'
+import PinLayer from '../../components/map/PinLayer'
 import {
   Save, Loader, Clock, X, CheckCircle, Play, StopCircle,
   Search, Users, Swords, MapPin, ChevronRight, Plus,
-  BookOpen, Scroll, AlertTriangle
+  BookOpen, Scroll, AlertTriangle, Map as MapIcon,
 } from 'lucide-react'
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -24,15 +26,20 @@ interface Entity { id: string; name: string; role?: string; status?: string; typ
 const SECTION_ICONS: Record<string, React.ReactNode> = {
   npcs: <Users size={14} />, encounters: <Swords size={14} />,
   locations: <MapPin size={14} />, items: <BookOpen size={14} />,
-  factions: <Scroll size={14} />,
+  factions: <Scroll size={14} />, maps: <MapIcon size={14} />,
 }
 const SECTION_LABELS: Record<string, string> = {
   npcs: 'NPCs', encounters: 'Encounters', locations: 'Locations',
-  items: 'Items', factions: 'Factions',
+  items: 'Items', factions: 'Factions', maps: 'Maps',
 }
 const ENTITY_TYPES: Record<string, string> = {
   npcs: 'npc', encounters: 'encounter', locations: 'location',
   items: 'item', factions: 'faction',
+}
+
+interface MapAssetListItem {
+  id: string; title: string; kind: string; imageAssetId?: string | null;
+  updatedAt: string; _count?: { pins: number }
 }
 
 export default function LiveSessionPage() {
@@ -54,6 +61,9 @@ export default function LiveSessionPage() {
   const [activeSection, setActiveSection] = useState<string>('npcs')
   const [searchQuery, setSearchQuery] = useState('')
   const [peekedEntity, setPeekedEntity] = useState<{ entity: Entity; type: string } | null>(null)
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(null)
+  const [mapImageSize, setMapImageSize] = useState({ w: 1280, h: 720 })
+  const [mapScale, setMapScale] = useState(1)
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -67,7 +77,22 @@ export default function LiveSessionPage() {
   const { data: sectionData } = useQuery({
     queryKey: ['entities', campaignId, activeSection],
     queryFn: () => api.get(`/api/entities/${campaignId}/${activeSection}`).then(r => r.data),
-    enabled: !!campaignId,
+    enabled: !!campaignId && activeSection !== 'maps',
+  })
+
+  const { data: mapsData } = useQuery({
+    queryKey: ['maps', campaignId],
+    queryFn: () => api.get(`/api/campaigns/${campaignId}/maps`).then(r => r.data),
+    enabled: !!campaignId && activeSection === 'maps',
+  })
+  const campaignMaps: MapAssetListItem[] = (mapsData?.maps ?? []).filter(
+    (m: MapAssetListItem) => m.kind === 'world' || m.kind === 'region'
+  )
+
+  const { data: mapPinsData } = useQuery({
+    queryKey: ['map-pins', selectedMapId],
+    queryFn: () => api.get(`/api/campaigns/${campaignId}/maps/${selectedMapId}/pins`).then(r => r.data),
+    enabled: !!selectedMapId && !!campaignId,
   })
 
   useEffect(() => {
@@ -231,9 +256,41 @@ export default function LiveSessionPage() {
             </div>
           </div>
 
-          {/* Entity list */}
+          {/* Entity list / Map list */}
           <div className="flex-1 overflow-y-auto">
-            {filteredItems.length === 0 ? (
+            {activeSection === 'maps' ? (
+              campaignMaps.length === 0 ? (
+                <div className="p-4 text-center">
+                  <MapIcon size={24} className="mx-auto text-ink-muted/30 mb-2" />
+                  <p className="text-xs text-ink-muted mb-2">No world or region maps yet.</p>
+                  <button
+                    className="btn-ghost text-xs text-accent"
+                    onClick={() => navigate(`/campaign/${campaignId}/generate/world-map`)}
+                  >
+                    <Plus size={10} /> Generate a map
+                  </button>
+                </div>
+              ) : (
+                campaignMaps.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedMapId(prev => prev === m.id ? null : m.id)}
+                    className={cn(
+                      'w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-surface-2 transition-colors flex items-center justify-between gap-2',
+                      selectedMapId === m.id && 'bg-accent/5 border-l-2 border-l-accent'
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-ink truncate">{m.title}</p>
+                      <p className="text-[10px] text-ink-muted capitalize">
+                        {m.kind} map{m._count?.pins ? ` · ${m._count.pins} pin${m._count.pins !== 1 ? 's' : ''}` : ''}
+                      </p>
+                    </div>
+                    <ChevronRight size={10} className="text-ink-muted shrink-0" />
+                  </button>
+                ))
+              )
+            ) : filteredItems.length === 0 ? (
               <div className="p-4 text-center">
                 <p className="text-xs text-ink-muted">No {SECTION_LABELS[activeSection].toLowerCase()} yet.</p>
                 <button
@@ -268,8 +325,44 @@ export default function LiveSessionPage() {
           </div>
         </div>
 
-        {/* ── CENTER: Notes (+ entity peek overlay) ────────────── */}
+        {/* ── CENTER: Notes (+ entity peek overlay) / Map viewer ── */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Map viewer (shown when maps section is active and a map is selected) */}
+          {activeSection === 'maps' && selectedMapId && !peekedEntity && (
+            <div className="absolute inset-0 z-5 bg-neutral-950 flex flex-col overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-surface shrink-0">
+                <MapIcon size={13} className="text-accent" />
+                <p className="text-xs font-medium text-ink truncate flex-1">
+                  {campaignMaps.find(m => m.id === selectedMapId)?.title ?? 'Map'}
+                </p>
+                <span className="text-[10px] text-ink-muted">Click a pin to peek its location</span>
+                <button className="btn-ghost p-1" onClick={() => setSelectedMapId(null)} title="Close map">
+                  <X size={13} />
+                </button>
+              </div>
+              <div className="flex-1 relative overflow-hidden">
+                <MapViewer
+                  assetId={campaignMaps.find(m => m.id === selectedMapId)?.imageAssetId ?? null}
+                  className="w-full h-full"
+                  onSizeLoaded={(w, h) => setMapImageSize({ w, h })}
+                  onScaleChange={setMapScale}
+                >
+                  <PinLayer
+                    mapId={selectedMapId}
+                    campaignId={campaignId!}
+                    pins={mapPinsData?.pins ?? []}
+                    imageWidth={mapImageSize.w}
+                    imageHeight={mapImageSize.h}
+                    scale={mapScale}
+                    editMode={false}
+                    onPinsChange={() => {}}
+                    availableLocations={[]}
+                  />
+                </MapViewer>
+              </div>
+            </div>
+          )}
+
           {/* Peeked entity panel */}
           {peekedEntity && (
             <div className="absolute inset-0 z-10 bg-bg/95 backdrop-blur-sm flex flex-col overflow-hidden animate-fade-in">

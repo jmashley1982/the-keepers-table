@@ -12,8 +12,11 @@ const ENTITY_EMOJI: Record<string, string> = {
   npc: '🧙', item: '⚔️', location: '🗺️',
 }
 
+type GenerateOpts = { prompt?: string; stylePreset?: string; model?: string; aspectRatio?: AspectRatio }
+
 type Phase =
   | { name: 'idle' }
+  | { name: 'confirm'; estimate: number; softCap: number; pendingOpts: GenerateOpts }
   | { name: 'generating'; jobId: string }
   | { name: 'await_replace'; newAssetId: string; prevAssetId: string }
   | { name: 'failed'; error: string }
@@ -98,7 +101,7 @@ export default function GenerateArtButton({
   }, [jobStatus.status, jobStatus.assetId, jobStatus.errorMessage, phase.name, currentAssetId, campaignId, entityType, qc, onGenerated])
 
   const generateMutation = useMutation({
-    mutationFn: (opts?: { prompt?: string; stylePreset?: string; model?: string; aspectRatio?: AspectRatio }) =>
+    mutationFn: (opts?: GenerateOpts & { confirmed?: boolean }) =>
       api.post<{ jobId: string }>('/api/generate/image', {
         kind,
         entityId,
@@ -107,13 +110,30 @@ export default function GenerateArtButton({
         stylePreset: opts?.stylePreset || undefined,
         model: opts?.model || undefined,
         aspectRatio: opts?.aspectRatio,
+        confirmed: opts?.confirmed,
       }),
     onSuccess: (res) => {
       setPhase({ name: 'generating', jobId: res.data.jobId })
       setShowAdvanced(false)
       setCustomPrompt('')
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { status: number; data: { requiresConfirm?: boolean; estimate?: number; softCap?: number } } }
+      if (axiosErr.response?.status === 402 && axiosErr.response.data.requiresConfirm) {
+        const pendingOpts: GenerateOpts = {
+          prompt: customPrompt.trim() || undefined,
+          stylePreset: selectedPreset ?? undefined,
+          model: selectedModel || undefined,
+          aspectRatio,
+        }
+        setPhase({
+          name: 'confirm',
+          estimate: axiosErr.response.data.estimate ?? 0,
+          softCap: axiosErr.response.data.softCap ?? 0.50,
+          pendingOpts,
+        })
+        return
+      }
       setPhase({ name: 'failed', error: apiError(err) })
     },
   })
@@ -242,6 +262,30 @@ export default function GenerateArtButton({
               {p.name}
             </button>
           ))}
+        </div>
+      )}
+
+      {phase.name === 'confirm' && (
+        <div className="flex flex-col gap-0.5">
+          <p className="text-[9px] text-amber-400 leading-tight">
+            ~${phase.estimate.toFixed(2)} &gt; ${phase.softCap.toFixed(2)} cap
+          </p>
+          <div className="flex gap-0.5">
+            <button
+              onClick={() => generateMutation.mutate({ ...phase.pendingOpts, confirmed: true })}
+              disabled={generateMutation.isPending}
+              className="flex items-center gap-0.5 text-[10px] text-accent bg-accent/10 hover:bg-accent/20 border border-accent/30 rounded px-1 py-0.5 transition-colors"
+            >
+              {generateMutation.isPending ? <Loader size={9} className="animate-spin" /> : <Sparkles size={9} />}
+              Proceed
+            </button>
+            <button
+              onClick={() => setPhase({ name: 'idle' })}
+              className="text-[10px] text-ink-muted bg-surface-2 hover:bg-surface border border-border rounded px-1 py-0.5 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 

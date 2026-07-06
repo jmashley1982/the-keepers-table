@@ -5,6 +5,7 @@ import { decrypt } from '../lib/crypto.js'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { getBoss } from '../lib/worker.js'
+import { getImageCostEstimate } from '../lib/pricing.js'
 
 export const generateRouter = Router()
 generateRouter.use(requireAuth)
@@ -530,6 +531,7 @@ generateRouter.post('/image', async (req, res) => {
     stylePreset: z.string().optional(),
     model: z.string().optional(),
     aspectRatio: z.enum(['portrait', 'square', 'landscape', 'widescreen']).optional(),
+    confirmed: z.boolean().optional(),
   })
 
   const parsed = schema.safeParse(req.body)
@@ -538,7 +540,7 @@ generateRouter.post('/image', async (req, res) => {
     return
   }
 
-  const { kind, entityId, campaignId, prompt, stylePreset, model, aspectRatio } = parsed.data
+  const { kind, entityId, campaignId, prompt, stylePreset, model, aspectRatio, confirmed } = parsed.data
 
   const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId } })
   if (!campaign) {
@@ -566,6 +568,19 @@ generateRouter.post('/image', async (req, res) => {
     if (!ent) { res.status(404).json({ error: 'Map not found in this campaign' }); return }
   }
 
+  // ── Cost estimate + soft-cap confirm ──────────────────────────────────────
+  const userPref = await prisma.userPreference.findUnique({ where: { userId } })
+  const imageModelByCategory = (userPref?.imageModelByCategory ?? {}) as Record<string, string>
+  const categoryKey = entityType === 'npc' ? 'portrait' : entityType
+  const resolvedModel = model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'seedream-5'
+  const costEstimate = getImageCostEstimate(resolvedModel)
+  const softCap = userPref?.softCapPerCall ?? 0.50
+
+  if (!confirmed && costEstimate > softCap) {
+    res.status(402).json({ requiresConfirm: true, estimate: costEstimate, softCap })
+    return
+  }
+
   const job = await prisma.generationJob.create({
     data: {
       userId,
@@ -573,6 +588,7 @@ generateRouter.post('/image', async (req, res) => {
       provider: 'evolink',
       kind,
       status: 'queued',
+      costEstimate,
       input: { kind, entityId, entityType, prompt: prompt ?? null, stylePreset: stylePreset ?? null, model: model ?? null, aspectRatio: aspectRatio ?? null },
     },
   })
@@ -662,11 +678,70 @@ Return ONLY valid JSON — no prose, no markdown:
 
 generateRouter.get('/usage', async (req, res) => {
   const userId = res.locals.user.id
+  const range = (req.query.range as string) ?? '30d'
+  const campaignId = req.query.campaignId as string | undefined
+
+  const since = range === '7d'
+    ? new Date(Date.now() - 7 * 86400_000)
+    : range === '30d'
+    ? new Date(Date.now() - 30 * 86400_000)
+    : undefined
+
+  const where = {
+    userId,
+    ...(campaignId ? { campaignId } : {}),
+    ...(since ? { createdAt: { gte: since } } : {}),
+  }
+
   const jobs = await prisma.generationJob.findMany({
-    where: { userId, status: 'succeeded' },
-    select: { provider: true, kind: true, tokensOrUnits: true, createdAt: true, campaignId: true },
+    where,
+    select: {
+      id: true, provider: true, kind: true, status: true,
+      tokensOrUnits: true, costEstimate: true, costActual: true,
+      createdAt: true, campaignId: true, error: true,
+    },
     orderBy: { createdAt: 'desc' },
     take: 500,
   })
-  res.json({ jobs })
+
+  // Daily buckets
+  const bucketMap = new Map<string, { count: number; estimatedCost: number; actualCost: number }>()
+  for (const j of jobs) {
+    const date = j.createdAt.toISOString().slice(0, 10)
+    const existing = bucketMap.get(date) ?? { count: 0, estimatedCost: 0, actualCost: 0 }
+    existing.count += 1
+    existing.estimatedCost += j.costEstimate ?? 0
+    existing.actualCost += j.costActual ?? 0
+    bucketMap.set(date, existing)
+  }
+  const dailyBuckets = Array.from(bucketMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, data]) => ({ date, ...data }))
+
+  // Per-campaign totals
+  const campaignMap = new Map<string, { count: number; estimatedCost: number }>()
+  for (const j of jobs) {
+    if (!j.campaignId) continue
+    const existing = campaignMap.get(j.campaignId) ?? { count: 0, estimatedCost: 0 }
+    existing.count += 1
+    existing.estimatedCost += j.costEstimate ?? 0
+    campaignMap.set(j.campaignId, existing)
+  }
+  const campaignIds = Array.from(campaignMap.keys())
+  const campaigns = campaignIds.length > 0
+    ? await prisma.campaign.findMany({
+        where: { id: { in: campaignIds } },
+        select: { id: true, name: true },
+      })
+    : []
+  const campaignNameMap = new Map(campaigns.map(c => [c.id, c.name]))
+  const campaignTotals = Array.from(campaignMap.entries()).map(([id, data]) => ({
+    campaignId: id,
+    campaignName: campaignNameMap.get(id) ?? 'Unknown',
+    ...data,
+  }))
+
+  const totalEstimatedCost = jobs.reduce((s, j) => s + (j.costEstimate ?? 0), 0)
+
+  res.json({ jobs, dailyBuckets, campaignTotals, totalEstimatedCost })
 })

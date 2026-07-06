@@ -1,0 +1,14 @@
+{
+  "models": {
+    "seedream-5":                     0.05,
+    "seedream-4.5":                   0.04,
+    "gpt-image-2":                    0.12,
+    "nano-banana-2-lite":             0.03,
+    "z-image-turbo":                  0.01,
+    "flux-1.1-pro":                   0.08,
+    "flux-dev":                       0.03,
+    "stable-diffusion-3.5-large":     0.04
+  },
+  "_comment": "Estimated cost per image in USD. Edit this file to update pricing without a redeploy.",
+  "defaultCostPerImage": 0.05
+}

@@ -457,6 +457,38 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
       await StorageService.put(previewKey, previewBuffer)
     }
 
+    // ── Alt-text (optional — Claude Haiku vision, skipped if no key) ─────────
+    let altText: string | undefined
+    try {
+      const genJob2 = await prisma.generationJob.findUnique({ where: { id: jobId }, select: { userId: true } })
+      const userId2 = genJob2?.userId
+      if (userId2) {
+        const anthCred = await prisma.apiCredential.findUnique({
+          where: { userId_provider: { userId: userId2, provider: 'anthropic' } },
+        })
+        if (anthCred?.encryptedKey) {
+          const anthKey = decrypt(anthCred.encryptedKey)
+          const anthClient = new Anthropic({ apiKey: anthKey })
+          const base64Thumb = thumbBuffer.toString('base64')
+          const altMsg = await anthClient.messages.create({
+            model: 'claude-haiku-4-5',
+            max_tokens: 80,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: 'image/webp', data: base64Thumb } },
+                { type: 'text', text: 'Describe this image in exactly one sentence for use as HTML alt text. Be concise and factual.' },
+              ],
+            }],
+          })
+          const raw2 = altMsg.content[0].type === 'text' ? altMsg.content[0].text.trim() : ''
+          if (raw2) altText = raw2
+        }
+      }
+    } catch {
+      // Alt-text is best-effort; don't fail the whole postprocess
+    }
+
     await prisma.asset.update({
       where: { id: assetId },
       data: {
@@ -465,6 +497,7 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
         storageKeyPreview: previewKey,
         width,
         height,
+        ...(altText ? { altText } : {}),
       },
     })
 
