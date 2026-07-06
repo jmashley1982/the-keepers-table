@@ -10,5 +10,6 @@
     "stable-diffusion-3.5-large":     0.04
   },
   "_comment": "Estimated cost per image in USD. Edit this file to update pricing without a redeploy.",
-  "defaultCostPerImage": 0.05
+  "defaultCostPerImage": 0.05,
+  "minimumConfirmThreshold": 0.05
 }

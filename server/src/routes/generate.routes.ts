@@ -5,7 +5,7 @@ import { decrypt } from '../lib/crypto.js'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { getBoss } from '../lib/worker.js'
-import { getImageCostEstimate } from '../lib/pricing.js'
+import { getImageCostEstimate, getMinimumConfirmThreshold, getPricingMeta } from '../lib/pricing.js'
 
 export const generateRouter = Router()
 generateRouter.use(requireAuth)
@@ -574,9 +574,11 @@ generateRouter.post('/image', async (req, res) => {
   const categoryKey = entityType === 'npc' ? 'portrait' : entityType
   const resolvedModel = model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'seedream-5'
   const costEstimate = getImageCostEstimate(resolvedModel)
-  const softCap = userPref?.softCapPerCall ?? 0.50
+  const minimumThreshold = getMinimumConfirmThreshold()
+  const pricingMeta = getPricingMeta()
+  const softCap = userPref?.softCapPerCall ?? pricingMeta.defaultCostPerImage
 
-  if (!confirmed && costEstimate > softCap) {
+  if (!confirmed && costEstimate > minimumThreshold && costEstimate > softCap) {
     res.status(402).json({ requiresConfirm: true, estimate: costEstimate, softCap })
     return
   }
@@ -596,6 +598,12 @@ generateRouter.post('/image', async (req, res) => {
   await getBoss().send('image.generate', { jobId: job.id })
 
   res.json({ jobId: job.id })
+})
+
+// ── Pricing metadata ──────────────────────────────────────────────────────────
+
+generateRouter.get('/pricing', (_req, res) => {
+  res.json(getPricingMeta())
 })
 
 // ── Art Director prompt preview (pre-submit) ──────────────────────────────────

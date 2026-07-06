@@ -215,6 +215,17 @@ export default function SettingsPage() {
     queryFn: () => api.get('/api/preferences').then(r => r.data),
   })
 
+  const { data: pricingData } = useQuery({
+    queryKey: ['pricing'],
+    queryFn: () => api.get('/api/generate/pricing').then(r => r.data),
+    staleTime: Infinity,
+  })
+
+  const pricingMinCost: number = pricingData?.minModelCost ?? 0.01
+  const pricingMaxCost: number = pricingData?.maxModelCost ?? 0.12
+  const pricingDefault: number = pricingData?.defaultCostPerImage ?? 0.05
+  const minimumThreshold: number = pricingData?.minimumConfirmThreshold ?? 0.05
+
   const { data: credsData } = useQuery({
     queryKey: ['credentials'],
     queryFn: () => api.get('/api/credentials').then(r => r.data),
@@ -228,13 +239,15 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState(meData?.user?.displayName ?? '')
   const [textModel, setTextModel] = useState(meData?.user?.preference?.defaultTextModel ?? 'claude-opus-4-5')
   const [contentRating, setContentRating] = useState(meData?.user?.preference?.contentRating ?? 'standard')
-  const [softCap, setSoftCap] = useState<number>(prefData?.preference?.softCapPerCall ?? 0.50)
+  const [softCap, setSoftCap] = useState<number>(prefData?.preference?.softCapPerCall ?? pricingDefault)
 
   useEffect(() => {
     if (prefData?.preference?.softCapPerCall != null) {
       setSoftCap(prefData.preference.softCapPerCall)
+    } else if (pricingData) {
+      setSoftCap(pricingDefault)
     }
-  }, [prefData?.preference?.softCapPerCall])
+  }, [prefData?.preference?.softCapPerCall, pricingDefault, pricingData])
 
   const storedImageModels: Record<string, string> = prefData?.preference?.imageModelByCategory ?? {}
   const [imageModelByCategory, setImageModelByCategory] = useState<Record<string, string>>(storedImageModels)
@@ -315,19 +328,24 @@ export default function SettingsPage() {
 
         <div>
           <label className="label">Per-call cost soft cap: <span className="text-accent font-bold">${softCap.toFixed(2)}</span></label>
-          <p className="text-xs text-ink-muted mb-1">If a generation is estimated above this amount, you'll be asked to confirm before it runs.</p>
+          <p className="text-xs text-ink-muted mb-1">
+            If a generation is estimated above this amount, you'll be asked to confirm before it runs.
+            {minimumThreshold > 0 && (
+              <span className="ml-1">Generations under ${minimumThreshold.toFixed(2)} are never blocked.</span>
+            )}
+          </p>
           <input
             type="range"
-            min="0.10"
-            max="5.00"
-            step="0.10"
-            value={softCap}
+            min={pricingMinCost.toFixed(2)}
+            max={pricingMaxCost.toFixed(2)}
+            step="0.01"
+            value={Math.min(Math.max(softCap, pricingMinCost), pricingMaxCost)}
             onChange={e => setSoftCap(parseFloat(e.target.value))}
             className="w-full accent-accent"
           />
           <div className="flex justify-between text-[10px] text-ink-muted mt-0.5">
-            <span>$0.10</span>
-            <span>$5.00</span>
+            <span>${pricingMinCost.toFixed(2)} (cheapest model)</span>
+            <span>${pricingMaxCost.toFixed(2)} (most expensive)</span>
           </div>
         </div>
 

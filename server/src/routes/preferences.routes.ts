@@ -16,7 +16,7 @@ preferencesRouter.patch('/', async (req, res) => {
     measurementUnits: z.enum(['imperial', 'metric']).optional(),
     themePreference: z.string().optional(),
     imageModelByCategory: z.record(z.string()).optional(),
-    softCapPerCall: z.number().min(0.10).max(50).optional(),
+    softCapPerCall: z.number().min(0.01).max(50).optional(),
   })
   const parsed = schema.safeParse(req.body)
   if (!parsed.success) {
