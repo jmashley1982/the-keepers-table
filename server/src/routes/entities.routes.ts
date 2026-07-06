@@ -112,6 +112,7 @@ const npcCreate = z.object({
   dmOnlyNotes: z.string().optional(),
   imageUrl: z.string().optional(),
   portraitUrl: z.string().optional(),
+  portraitAssetId: z.string().nullable().optional(),
 })
 entitiesRouter.use('/:campaignId/npcs', entityRoutes('nPC', prisma.nPC, npcCreate, npcCreate.partial()))
 
@@ -125,6 +126,7 @@ const locationCreate = z.object({
   tags: z.array(z.string()).optional(),
   dmOnlyNotes: z.string().optional(),
   imageUrl: z.string().optional(),
+  imageAssetId: z.string().nullable().optional(),
   ambience: z.record(z.unknown()).optional(),
 })
 entitiesRouter.use('/:campaignId/locations', entityRoutes('location', prisma.location, locationCreate, locationCreate.partial()))
@@ -142,6 +144,7 @@ const itemCreate = z.object({
   tags: z.array(z.string()).optional(),
   dmOnlyNotes: z.string().optional(),
   imageUrl: z.string().optional(),
+  imageAssetId: z.string().nullable().optional(),
 })
 entitiesRouter.use('/:campaignId/items', entityRoutes('item', prisma.item, itemCreate, itemCreate.partial()))
 
