@@ -47,7 +47,11 @@ credentialsRouter.post('/:provider/validate', async (req, res) => {
     const key = decrypt(cred.encryptedKey)
     if (provider === 'anthropic') {
       const client = new Anthropic({ apiKey: key })
-      await client.models.list()
+      await client.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'hi' }],
+      })
       valid = true
     } else if (provider === 'evolink') {
       // Basic ping — just check it's non-empty for now

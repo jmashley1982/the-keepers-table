@@ -28,7 +28,7 @@ function entityRoutes(
 
   router.get('/', async (req, res) => {
     const userId = res.locals.user.id
-    const { campaignId } = req.params
+    const { campaignId } = req.params as { campaignId: string }
     const campaign = await verifyCampaign(campaignId, userId)
     if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
     const q = (req.query.q as string) ?? ''
@@ -46,7 +46,7 @@ function entityRoutes(
 
   router.post('/', async (req, res) => {
     const userId = res.locals.user.id
-    const { campaignId } = req.params
+    const { campaignId } = req.params as { campaignId: string }
     const campaign = await verifyCampaign(campaignId, userId)
     if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
     const parsed = createSchema.safeParse(req.body)
@@ -59,7 +59,7 @@ function entityRoutes(
 
   router.get('/:entityId', async (req, res) => {
     const userId = res.locals.user.id
-    const { campaignId, entityId } = req.params
+    const { campaignId, entityId } = req.params as { campaignId: string; entityId: string }
     const campaign = await verifyCampaign(campaignId, userId)
     if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
     const item = await model.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
@@ -69,7 +69,7 @@ function entityRoutes(
 
   router.patch('/:entityId', async (req, res) => {
     const userId = res.locals.user.id
-    const { campaignId, entityId } = req.params
+    const { campaignId, entityId } = req.params as { campaignId: string; entityId: string }
     const campaign = await verifyCampaign(campaignId, userId)
     if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
     const parsed = updateSchema.safeParse(req.body)
@@ -82,7 +82,7 @@ function entityRoutes(
 
   router.delete('/:entityId', async (req, res) => {
     const userId = res.locals.user.id
-    const { campaignId, entityId } = req.params
+    const { campaignId, entityId } = req.params as { campaignId: string; entityId: string }
     const campaign = await verifyCampaign(campaignId, userId)
     if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
     await model.update({ where: { id: entityId }, data: { deletedAt: new Date() } })

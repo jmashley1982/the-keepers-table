@@ -255,7 +255,7 @@ REQUEST: ${prompt}`
         }
       }
 
-      const finalMsg = await streamResp.getFinalMessage()
+      const finalMsg = await streamResp.finalMessage()
       await prisma.generationJob.update({
         where: { id: job.id },
         data: {
@@ -296,7 +296,7 @@ REQUEST: ${prompt}`
         data: {
           status: 'succeeded',
           tokensOrUnits: { input: message.usage.input_tokens, output: message.usage.output_tokens },
-          outputRef: { result: parsed },
+          outputRef: JSON.parse(JSON.stringify({ result: parsed })),
         },
       })
 
@@ -375,7 +375,7 @@ ${SESSION_WRAP_SCHEMA}`
 
     await prisma.generationJob.update({
       where: { id: job.id },
-      data: { status: 'succeeded', tokensOrUnits: { input: message.usage.input_tokens, output: message.usage.output_tokens }, outputRef: { result } },
+      data: { status: 'succeeded', tokensOrUnits: { input: message.usage.input_tokens, output: message.usage.output_tokens }, outputRef: JSON.parse(JSON.stringify({ result })) },
     })
 
     res.json({ result, jobId: job.id })

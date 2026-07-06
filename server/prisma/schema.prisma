@@ -25,6 +25,7 @@ model User {
   generationJobs   GenerationJob[]
   customGenerators CustomGenerator[]
   systemTemplates  SystemTemplate[]  @relation("UserTemplates")
+  artStylePresets  ArtStylePreset[]
 }
 
 // ─── API credentials ────────────────────────────────────────────────────────
@@ -50,15 +51,17 @@ model ApiCredential {
 // ─── User preferences ───────────────────────────────────────────────────────
 
 model UserPreference {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  defaultTextModel   String   @default("claude-sonnet-4-5")
-  defaultImageModel  String   @default("seedream-5")
-  imageStylePreset   String   @default("Classic fantasy oil")
-  contentRating      String   @default("standard") // "family" | "standard" | "grim"
-  measurementUnits   String   @default("imperial")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  defaultTextModel     String   @default("claude-sonnet-4-5")
+  defaultImageModel    String   @default("seedream-5")
+  imageStylePreset     String   @default("Classic fantasy oil")
+  imageModelByCategory Json     @default("{}")
+  contentRating        String   @default("standard") // "family" | "standard" | "grim"
+  measurementUnits     String   @default("imperial")
+  softCapPerCall       Float    @default(0.50)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -111,6 +114,7 @@ model Campaign {
   relationships  EntityRelationship[]
   mapAssets      MapAsset[]
   generationJobs GenerationJob[]
+  assets         Asset[]
 }
 
 // ─── Parties ────────────────────────────────────────────────────────────────
@@ -175,6 +179,7 @@ model NPC {
   description        String    @default("")
   imageUrl           String?
   portraitUrl        String?
+  portraitAssetId    String?
   tags               String[]  @default([])
   customFields       Json      @default("{}")
   pinned             Boolean   @default(false)
@@ -196,9 +201,10 @@ model NPC {
   updatedAt          DateTime  @updatedAt
   deletedAt          DateTime?
 
-  campaign    Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  location    Location?  @relation(fields: [locationId], references: [id])
-  faction     Faction?   @relation(fields: [factionId], references: [id])
+  campaign       Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  location       Location?  @relation(fields: [locationId], references: [id])
+  faction        Faction?   @relation(fields: [factionId], references: [id])
+  portraitAsset  Asset?     @relation("NpcPortrait", fields: [portraitAssetId], references: [id])
 }
 
 // ─── Locations ───────────────────────────────────────────────────────────────
@@ -209,6 +215,7 @@ model Location {
   name             String
   description      String    @default("")
   imageUrl         String?
+  imageAssetId     String?
   tags             String[]  @default([])
   customFields     Json      @default("{}")
   pinned           Boolean   @default(false)
@@ -227,6 +234,8 @@ model Location {
   npcs             NPC[]
   encounters       Encounter[]
   mapAsset         MapAsset?   @relation(fields: [mapAssetId], references: [id])
+  imageAsset       Asset?      @relation("LocationImage", fields: [imageAssetId], references: [id])
+  mapPins          MapPin[]
 }
 
 // ─── Items ───────────────────────────────────────────────────────────────────
@@ -237,6 +246,7 @@ model Item {
   name             String
   description      String    @default("")
   imageUrl         String?
+  imageAssetId     String?
   tags             String[]  @default([])
   customFields     Json      @default("{}")
   pinned           Boolean   @default(false)
@@ -252,6 +262,7 @@ model Item {
   deletedAt        DateTime?
 
   campaign    Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  imageAsset  Asset?     @relation("ItemImage", fields: [imageAssetId], references: [id])
 }
 
 // ─── Factions ────────────────────────────────────────────────────────────────
@@ -345,6 +356,47 @@ model EntityRelationship {
   campaign  Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 }
 
+// ─── Assets (generic) ────────────────────────────────────────────────────────
+
+model Asset {
+  id                   String    @id @default(cuid())
+  campaignId           String
+  kind                 String    // "portrait_npc" | "item_art" | "location_art" | "map_battle" | "map_region" | "map_world" | "upload"
+  storageKeyOriginal   String
+  storageKeyThumb      String?
+  storageKeyPreview    String?
+  altText              String?
+  width                Int?
+  height               Int?
+  source               String    @default("generated") // "generated" | "uploaded"
+  generationJobId      String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  campaign        Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  npcPortraits    NPC[]           @relation("NpcPortrait")
+  locationImages  Location[]      @relation("LocationImage")
+  itemImages      Item[]          @relation("ItemImage")
+  mapAssets       MapAsset[]      @relation("MapAssetImage")
+  artStylePreview ArtStylePreset? @relation("PresetPreview")
+}
+
+// ─── Art Style Presets ────────────────────────────────────────────────────────
+
+model ArtStylePreset {
+  id             String    @id @default(cuid())
+  ownerUserId    String?
+  name           String
+  promptFragment String
+  previewAssetId String?   @unique
+  isBuiltin      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  owner        User?  @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  previewAsset Asset? @relation("PresetPreview", fields: [previewAssetId], references: [id])
+}
+
 // ─── Map Assets ──────────────────────────────────────────────────────────────
 
 model MapAsset {
@@ -354,33 +406,63 @@ model MapAsset {
   title             String
   imageUrl          String?
   thumbnailUrl      String?
+  storageAssetId    String?
+  previewStorageKey String?
+  altText           String?
+  width             Int?
+  height            Int?
   source            String    @default("generated") // "generated" | "uploaded"
   generationPrompt  String?
   grid              Json?
   linkedLocationId  String?
+  linkedEncounterId String?
+  generationJobId   String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
   campaign    Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  storageAsset Asset?     @relation("MapAssetImage", fields: [storageAssetId], references: [id])
   locations   Location[]
+  pins        MapPin[]
+}
+
+// ─── Map Pins ─────────────────────────────────────────────────────────────────
+
+model MapPin {
+  id          String    @id @default(cuid())
+  mapAssetId  String
+  x           Float     // 0–1 normalised
+  y           Float     // 0–1 normalised
+  locationId  String?
+  label       String    @default("")
+  icon        String    @default("📍")
+  revealed    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  mapAsset    MapAsset  @relation(fields: [mapAssetId], references: [id], onDelete: Cascade)
+  location    Location? @relation(fields: [locationId], references: [id])
 }
 
 // ─── Generation jobs ─────────────────────────────────────────────────────────
 
 model GenerationJob {
-  id          String    @id @default(cuid())
-  userId      String
-  campaignId  String?
-  provider    String    // "anthropic" | "evolink"
-  kind        String
-  status      String    @default("queued")
-  input       Json      @default("{}")
-  outputRef   Json      @default("{}")
-  tokensOrUnits Json    @default("{}")
-  error       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  userId          String
+  campaignId      String?
+  provider        String    // "anthropic" | "evolink"
+  kind            String
+  status          String    @default("queued")
+  input           Json      @default("{}")
+  outputRef       Json      @default("{}")
+  tokensOrUnits   Json      @default("{}")
+  providerTaskId  String?
+  costEstimate    Float?
+  costActual      Float?
+  error           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   campaign  Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)

@@ -6,6 +6,9 @@ import { z } from 'zod'
 export const templatesRouter = Router()
 templatesRouter.use(requireAuth)
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const toJson = (v: unknown): any => JSON.parse(JSON.stringify(v ?? null))
+
 templatesRouter.get('/', async (req, res) => {
   const userId = res.locals.user.id
   const templates = await prisma.systemTemplate.findMany({
@@ -28,8 +31,17 @@ templatesRouter.post('/', async (req, res) => {
   })
   const parsed = schema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
+  const { statBlockSchema, difficultyModel, currencyAndRarity, customEntityFields, ...rest } = parsed.data
   const template = await prisma.systemTemplate.create({
-    data: { ...parsed.data, ownerUserId: userId, isBuiltin: false },
+    data: {
+      ...rest,
+      ownerUserId: userId,
+      isBuiltin: false,
+      statBlockSchema: toJson(statBlockSchema),
+      difficultyModel: toJson(difficultyModel),
+      currencyAndRarity: toJson(currencyAndRarity),
+      customEntityFields: toJson(customEntityFields),
+    },
   })
   res.json({ template })
 })
@@ -45,10 +57,10 @@ templatesRouter.post('/:id/clone', async (req, res) => {
       name: `${source.name} (copy)`,
       description: source.description,
       promptAddendum: source.promptAddendum,
-      statBlockSchema: source.statBlockSchema,
-      difficultyModel: source.difficultyModel,
-      currencyAndRarity: source.currencyAndRarity,
-      customEntityFields: source.customEntityFields,
+      statBlockSchema: toJson(source.statBlockSchema),
+      difficultyModel: toJson(source.difficultyModel),
+      currencyAndRarity: toJson(source.currencyAndRarity),
+      customEntityFields: toJson(source.customEntityFields),
     },
   })
   res.json({ template: clone })
