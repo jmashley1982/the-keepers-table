@@ -509,6 +509,82 @@ generateRouter.post('/image', async (req, res) => {
   res.json({ jobId: job.id })
 })
 
+// ── Art Director prompt preview (pre-submit) ──────────────────────────────────
+
+generateRouter.post('/preview-prompt', async (req, res) => {
+  const userId = res.locals.user.id
+  const schema = z.object({
+    kind: z.string().min(1),
+    entityId: z.string().min(1),
+    campaignId: z.string().min(1),
+    stylePreset: z.string().optional(),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+  const { kind, entityId, campaignId, stylePreset } = parsed.data
+
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId } })
+  if (!campaign) { res.status(403).json({ error: 'Campaign not found or forbidden' }); return }
+
+  const client = await getAnthropicClient(userId)
+  if (!client) { res.status(402).json({ error: 'No Anthropic API key configured' }); return }
+
+  const entityType = kind === 'portrait_npc' ? 'npc'
+    : kind === 'location_art' ? 'location'
+    : kind === 'item_art' ? 'item'
+    : null
+
+  let entityData: Record<string, string> = {}
+  if (entityType === 'npc') {
+    const npc = await prisma.nPC.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
+    if (npc) entityData = { name: npc.name, role: npc.role, appearance: npc.appearance, description: npc.description }
+  } else if (entityType === 'location') {
+    const loc = await prisma.location.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
+    if (loc) entityData = { name: loc.name, type: loc.type, description: loc.description }
+  } else if (entityType === 'item') {
+    const item = await prisma.item.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
+    if (item) entityData = { name: item.name, category: item.category, rarity: item.rarity, description: item.description }
+  }
+
+  const userPref = await prisma.userPreference.findUnique({ where: { userId } })
+  const presetName = stylePreset ?? userPref?.imageStylePreset ?? 'Classic fantasy oil'
+  const preset = await prisma.artStylePreset.findFirst({
+    where: { name: presetName, OR: [{ isBuiltin: true }, { ownerUserId: userId }] },
+  })
+  const styleFragment = preset?.promptFragment ?? 'fantasy art, detailed, high quality'
+
+  try {
+    const artMsg = await client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: `You are an art director for a tabletop RPG. Given this entity, write a vivid image generation prompt.
+
+Entity JSON: ${JSON.stringify(entityData)}
+Art style: ${styleFragment}
+Image kind: ${kind}
+
+Return ONLY valid JSON — no prose, no markdown:
+{"prompt":"<concise, comma-separated visual description, 30–60 words>","negative_prompt":"<things to avoid>"}`,
+      }],
+    })
+    const raw = artMsg.content[0].type === 'text' ? artMsg.content[0].text : ''
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (match) {
+      const r = JSON.parse(match[0]) as { prompt?: string }
+      res.json({ prompt: r.prompt ?? `${entityData.name ?? 'entity'}, ${styleFragment}` })
+    } else {
+      res.json({ prompt: `${entityData.name ?? 'entity'}, ${styleFragment}` })
+    }
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Preview failed' })
+  }
+})
+
 // ── Usage ────────────────────────────────────────────────────────────────────
 
 generateRouter.get('/usage', async (req, res) => {

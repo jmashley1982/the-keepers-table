@@ -76,6 +76,34 @@ assetsRouter.get('/:assetId', async (req, res) => {
   }
 })
 
+// ── DELETE /api/assets/:assetId ───────────────────────────────────────────────
+
+assetsRouter.delete('/:assetId', async (req, res) => {
+  const userId = res.locals.user.id
+  const { assetId } = req.params
+
+  const asset = await prisma.asset.findUnique({
+    where: { id: assetId },
+    include: { campaign: { select: { ownerUserId: true } } },
+  })
+
+  if (!asset || asset.campaign.ownerUserId !== userId) {
+    res.status(404).json({ error: 'Asset not found or forbidden' })
+    return
+  }
+
+  const keysToDelete = [
+    asset.storageKeyOriginal,
+    asset.storageKeyThumb,
+    asset.storageKeyPreview,
+  ].filter(Boolean) as string[]
+
+  await Promise.allSettled(keysToDelete.map(k => StorageService.delete(k)))
+  await prisma.asset.delete({ where: { id: assetId } })
+
+  res.json({ ok: true })
+})
+
 // ── POST /api/campaigns/:campaignId/assets/upload ─────────────────────────────
 // Mounted via app.use('/api/campaigns', campaignAssetsRouter)
 

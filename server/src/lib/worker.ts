@@ -119,7 +119,9 @@ async function processImageGenerate(jobId: string): Promise<void> {
     // ── 2. Load style preset ──────────────────────────────────────────────
     const userPref = await prisma.userPreference.findUnique({ where: { userId: genJob.userId } })
     const presetName = input.stylePreset ?? userPref?.imageStylePreset ?? 'Classic fantasy oil'
-    const preset = await prisma.artStylePreset.findFirst({ where: { name: presetName } })
+    const preset = await prisma.artStylePreset.findFirst({
+      where: { name: presetName, OR: [{ isBuiltin: true }, { ownerUserId: genJob.userId }] },
+    })
     const styleFragment = preset?.promptFragment ?? 'fantasy art, detailed, high quality'
 
     // ── 3. Art Director: Claude Haiku crafts image prompt ─────────────────

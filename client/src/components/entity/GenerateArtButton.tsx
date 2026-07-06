@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useJobStatus } from '../../lib/useJobStatus'
 import {
   Sparkles, RotateCcw, AlertCircle, ChevronDown, ChevronUp,
-  Check, X, Loader,
+  Check, X, Loader, Wand2,
 } from 'lucide-react'
 
 const ENTITY_EMOJI: Record<string, string> = {
@@ -54,6 +54,7 @@ export default function GenerateArtButton({
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(
     kind === 'portrait_npc' ? 'portrait' : 'square'
   )
+  const [isPreviewing, setIsPreviewing] = useState(false)
 
   const { data: credsData } = useQuery({
     queryKey: ['credentials'],
@@ -78,12 +79,7 @@ export default function GenerateArtButton({
   const assetField = entityType === 'npc' ? 'portraitAssetId' : 'imageAssetId'
 
   const jobId = phase.name === 'generating' ? phase.jobId : null
-
-  const retryGenerate = useCallback(() => {
-    setPhase({ name: 'idle' })
-  }, [])
-
-  const jobStatus = useJobStatus(jobId, retryGenerate)
+  const jobStatus = useJobStatus(jobId, () => setPhase({ name: 'idle' }))
 
   useEffect(() => {
     if (phase.name !== 'generating') return
@@ -114,17 +110,23 @@ export default function GenerateArtButton({
       }),
     onSuccess: (res) => {
       setPhase({ name: 'generating', jobId: res.data.jobId })
+      setShowAdvanced(false)
+      setCustomPrompt('')
     },
     onError: (err) => {
       setPhase({ name: 'failed', error: apiError(err) })
     },
   })
 
+  const deleteAssetMutation = useMutation({
+    mutationFn: (assetId: string) => api.delete(`/api/assets/${assetId}`),
+  })
+
   const revertMutation = useMutation({
-    mutationFn: (prevAssetId: string) =>
+    mutationFn: ({ prevAssetId, newAssetId }: { prevAssetId: string; newAssetId: string }) =>
       api.patch(`/api/entities/${campaignId}/${entityPath}/${entityId}`, {
         [assetField]: prevAssetId,
-      }),
+      }).then(() => deleteAssetMutation.mutateAsync(newAssetId)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
       setPhase({ name: 'idle' })
@@ -132,8 +134,10 @@ export default function GenerateArtButton({
   })
 
   function handleQuickGenerate() {
-    setShowAdvanced(false)
-    generateMutation.mutate({ aspectRatio })
+    generateMutation.mutate({
+      stylePreset: selectedPreset ?? undefined,
+      aspectRatio,
+    })
   }
 
   function handleAdvancedGenerate() {
@@ -143,10 +147,30 @@ export default function GenerateArtButton({
       model: selectedModel || undefined,
       aspectRatio,
     })
-    setShowAdvanced(false)
+  }
+
+  async function handlePreviewPrompt() {
+    setIsPreviewing(true)
+    try {
+      const res = await api.post<{ prompt: string }>('/api/generate/preview-prompt', {
+        kind,
+        entityId,
+        campaignId,
+        stylePreset: selectedPreset ?? undefined,
+      })
+      setCustomPrompt(res.data.prompt)
+    } catch {
+      // silently ignore preview errors — user can still type manually
+    } finally {
+      setIsPreviewing(false)
+    }
   }
 
   function handleUseNew() {
+    if (phase.name !== 'await_replace') return
+    const { prevAssetId } = phase
+    // Delete the superseded (old) asset from storage
+    deleteAssetMutation.mutate(prevAssetId)
     qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
     setPhase({ name: 'idle' })
     onGenerated?.()
@@ -154,7 +178,15 @@ export default function GenerateArtButton({
 
   function handleKeepOld() {
     if (phase.name !== 'await_replace') return
-    revertMutation.mutate(phase.prevAssetId)
+    revertMutation.mutate({ prevAssetId: phase.prevAssetId, newAssetId: phase.newAssetId })
+  }
+
+  function handleRetry() {
+    setPhase({ name: 'idle' })
+    generateMutation.mutate({
+      stylePreset: selectedPreset ?? undefined,
+      aspectRatio,
+    })
   }
 
   const isSubmitting = generateMutation.isPending
@@ -162,9 +194,8 @@ export default function GenerateArtButton({
   if (!hasEvoLink) return null
 
   return (
-    <div className="flex flex-col gap-1">
-      {/* ── State chip ─────────────────────────────────────────────────────── */}
-
+    <div className="flex flex-col gap-0.5">
+      {/* ── Generate / state chip row ──────────────────────────────────────── */}
       {phase.name === 'idle' && (
         <div className="flex items-center gap-0.5">
           <button
@@ -182,11 +213,35 @@ export default function GenerateArtButton({
           </button>
           <button
             onClick={() => setShowAdvanced(v => !v)}
-            className="text-ink-muted hover:text-ink bg-surface-2 hover:bg-surface border border-border rounded px-0.5 py-0.5 transition-colors"
+            className={cn(
+              'text-ink-muted hover:text-ink bg-surface-2 hover:bg-surface border border-border rounded px-0.5 py-0.5 transition-colors',
+              showAdvanced && 'bg-surface border-accent/40 text-accent'
+            )}
             title="Advanced options"
           >
             {showAdvanced ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
           </button>
+        </div>
+      )}
+
+      {/* ── Always-visible preset chip row (idle only) ─────────────────────── */}
+      {phase.name === 'idle' && presets.length > 0 && (
+        <div className="flex flex-wrap gap-0.5 mt-0.5">
+          {presets.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setSelectedPreset(prev => prev === p.name ? null : p.name)}
+              className={cn(
+                'text-[9px] px-1 py-0.5 rounded border transition-colors leading-none',
+                selectedPreset === p.name
+                  ? 'bg-accent text-white border-accent'
+                  : 'bg-surface border-border text-ink-muted hover:border-accent/40 hover:text-ink'
+              )}
+              title={p.promptFragment}
+            >
+              {p.name}
+            </button>
+          ))}
         </div>
       )}
 
@@ -227,11 +282,12 @@ export default function GenerateArtButton({
               <span className="truncate">Failed</span>
             </div>
             <button
-              onClick={() => { setPhase({ name: 'idle' }); setShowAdvanced(false) }}
+              onClick={handleRetry}
+              disabled={generateMutation.isPending}
               className="text-[10px] text-ink-muted hover:text-accent bg-surface-2 hover:bg-surface border border-border rounded px-1 py-0.5 transition-colors flex items-center gap-0.5"
-              title="Retry"
+              title="Retry generation"
             >
-              <RotateCcw size={9} />
+              {generateMutation.isPending ? <Loader size={9} className="animate-spin" /> : <RotateCcw size={9} />}
             </button>
             <button
               onClick={() => setShowRawError(v => !v)}
@@ -251,40 +307,27 @@ export default function GenerateArtButton({
 
       {/* ── Advanced panel ─────────────────────────────────────────────────── */}
       {showAdvanced && phase.name === 'idle' && (
-        <div className="mt-1 p-2 bg-surface-2 border border-border rounded-card space-y-2 w-48 text-[11px]">
-          {/* Style presets */}
-          {presets.length > 0 && (
-            <div>
-              <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Style</p>
-              <div className="flex flex-wrap gap-0.5">
-                {presets.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedPreset(prev => prev === p.name ? null : p.name)}
-                    className={cn(
-                      'text-[9px] px-1.5 py-0.5 rounded border transition-colors leading-none',
-                      selectedPreset === p.name
-                        ? 'bg-accent text-white border-accent'
-                        : 'bg-surface border-border text-ink-muted hover:border-accent/40 hover:text-ink'
-                    )}
-                    title={p.promptFragment}
-                  >
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Custom prompt */}
+        <div className="mt-1 p-2 bg-surface-2 border border-border rounded-card space-y-2 w-52 text-[11px]">
+          {/* Art Director prompt preview */}
           <div>
-            <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Custom prompt</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-ink-muted font-medium uppercase text-[9px] tracking-wide">Prompt</p>
+              <button
+                onClick={handlePreviewPrompt}
+                disabled={isPreviewing}
+                className="flex items-center gap-0.5 text-[9px] text-accent hover:text-accent/80 transition-colors"
+                title="Let Art Director suggest a prompt"
+              >
+                {isPreviewing ? <Loader size={8} className="animate-spin" /> : <Wand2 size={8} />}
+                <span>AI preview</span>
+              </button>
+            </div>
             <textarea
               className="w-full text-[10px] bg-surface border border-border rounded p-1.5 text-ink placeholder-ink-muted resize-none focus:outline-none focus:border-accent/60"
-              rows={2}
+              rows={3}
               value={customPrompt}
               onChange={e => setCustomPrompt(e.target.value)}
-              placeholder="Override Art Director prompt…"
+              placeholder="Leave empty for Art Director, or click AI preview to load suggestion…"
             />
           </div>
 
