@@ -259,7 +259,7 @@ Return ONLY valid JSON — no prose, no markdown:
     const height = aspectRatio === 'widescreen' ? 720 : aspectRatio === 'landscape' ? 768 : 1024
 
     // ── 6. Submit to EvoLink ───────────────────────────────────────────────
-    console.log(`[image.generate] Submitting job ${jobId}: model=${model} size=${width}x${height} entityType=${entityType}`)
+    console.log(`[image.generate] Submitting job ${jobId}: model=${model} size=${width}x${height} entityType=${entityType} keyPrefix=${evolinkKey.slice(0, 8)}…`)
     const submitRes = await fetch('https://api.eachlabs.ai/v1/prediction', {
       method: 'POST',
       headers: { 'X-API-Key': evolinkKey, 'Content-Type': 'application/json' },

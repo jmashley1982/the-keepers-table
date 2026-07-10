@@ -251,7 +251,7 @@ export default function EntityCard({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <div className={cn('flex items-center gap-1 transition-opacity shrink-0', scratchMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}>
           {onRegenerate && (
             <button className="btn-ghost p-1" onClick={onRegenerate} title="Regenerate">
               <RefreshCw size={13} />

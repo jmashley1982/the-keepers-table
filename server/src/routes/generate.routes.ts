@@ -274,14 +274,26 @@ REQUEST: ${prompt}`
       }
 
       const finalMsg = await streamResp.finalMessage()
+
+      // Parse the accumulated text the same way the non-streaming path does,
+      // so the client receives a structured result rather than raw prose.
+      let streamResult: unknown = null
+      try {
+        const jsonMatch = fullText.match(/```json\n?([\s\S]*?)\n?```/) ?? fullText.match(/(\{[\s\S]*\}|\[[\s\S]*\])/)
+        streamResult = JSON.parse(jsonMatch ? (jsonMatch[1] ?? jsonMatch[0]) : fullText)
+      } catch {
+        streamResult = { text: fullText }
+      }
+
       await prisma.generationJob.update({
         where: { id: job.id },
         data: {
           status: 'succeeded',
           tokensOrUnits: { input: finalMsg.usage.input_tokens, output: finalMsg.usage.output_tokens },
-          outputRef: { text: fullText },
+          outputRef: JSON.parse(JSON.stringify({ result: streamResult })),
         },
       })
+      res.write(`data: ${JSON.stringify({ result: streamResult, jobId: job.id })}\n\n`)
       res.write(`data: ${JSON.stringify({ done: true, jobId: job.id })}\n\n`)
       res.end()
     } catch (err) {
