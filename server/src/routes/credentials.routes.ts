@@ -27,6 +27,7 @@ credentialsRouter.put('/:provider', async (req, res) => {
     update: { encryptedKey: encrypted, status: 'unchecked' },
     create: { userId, provider, encryptedKey: encrypted, status: 'unchecked' },
   })
+  console.log(`[credentials] Saved ${provider} key for user ${userId} (prefix: ${parsed.data.key.slice(0, 8)}…)`)
   res.json({ ok: true })
 })
 
@@ -54,14 +55,19 @@ credentialsRouter.post('/:provider/validate', async (req, res) => {
       })
       valid = true
     } else if (provider === 'evolink') {
-      const evolinkRes = await fetch('https://api.eachlabs.ai/v1/models', {
-        headers: { 'X-API-Key': key },
+      // /v1/models is a public endpoint (returns 200 for any key).
+      // Test auth by making a real prediction request with a dummy model —
+      // a valid key gets 400/422 (bad model), an invalid key gets 401.
+      const evolinkRes = await fetch('https://api.eachlabs.ai/v1/prediction', {
+        method: 'POST',
+        headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: '__key_validation_test__', input: {} }),
       })
-      if (evolinkRes.ok) {
+      if (evolinkRes.status !== 401) {
         valid = true
       } else {
         const body = await evolinkRes.json().catch(() => ({} as Record<string, unknown>)) as Record<string, unknown>
-        errorMsg = (body.message as string | undefined) ?? `EvoLink returned ${evolinkRes.status}`
+        errorMsg = (body.message as string | undefined) ?? 'Invalid EvoLink API key (401)'
       }
     }
   } catch (e: unknown) {

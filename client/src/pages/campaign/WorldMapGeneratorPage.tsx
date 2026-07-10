@@ -439,15 +439,20 @@ export default function WorldMapGeneratorPage() {
             {/* Aspect ratio — 16:9 default */}
             <div>
               <label className="label">Aspect ratio</label>
-              <div className="flex gap-1.5">
+              <div className="flex gap-1 bg-surface-2 rounded-card p-1">
                 {ASPECT_OPTIONS.map(({ value, label, hint }) => (
                   <button
                     key={value}
                     onClick={() => setAspect(value)}
-                    className={cn('btn-ghost text-xs flex-1 flex-col gap-0.5', aspect === value && 'bg-accent/10 text-accent border-accent/30')}
+                    className={cn(
+                      'flex-1 rounded py-1.5 text-xs font-medium transition-all',
+                      aspect === value
+                        ? 'bg-surface text-ink shadow-sm'
+                        : 'text-ink-muted hover:text-ink',
+                    )}
                     title={hint}
                   >
-                    <span>{label}</span>
+                    {label}
                   </button>
                 ))}
               </div>

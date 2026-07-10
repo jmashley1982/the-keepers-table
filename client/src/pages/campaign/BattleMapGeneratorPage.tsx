@@ -284,12 +284,17 @@ export default function BattleMapGeneratorPage() {
           {/* Aspect ratio */}
           <div>
             <label className="label">Aspect ratio</label>
-            <div className="flex gap-2">
+            <div className="flex gap-1 bg-surface-2 rounded-card p-1">
               {([['square', '1:1'], ['landscape', '4:3']] as const).map(([v, label]) => (
                 <button
                   key={v}
                   onClick={() => setAspect(v)}
-                  className={cn('btn-ghost text-xs flex-1', aspect === v && 'bg-accent/10 text-accent border-accent/30')}
+                  className={cn(
+                    'flex-1 rounded py-1.5 text-xs font-medium transition-all',
+                    aspect === v
+                      ? 'bg-surface text-ink shadow-sm'
+                      : 'text-ink-muted hover:text-ink',
+                  )}
                 >
                   {label}
                 </button>
