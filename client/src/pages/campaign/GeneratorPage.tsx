@@ -5,7 +5,7 @@ import { api, apiError } from '../../lib/api'
 import EntityCard from '../../components/entity/EntityCard'
 import { Zap, Loader, Save, RefreshCw } from 'lucide-react'
 
-type GeneratorKind = 'npc' | 'encounter' | 'treasure' | 'dialogue' | 'location'
+type GeneratorKind = 'npc' | 'encounter' | 'treasure' | 'dialogue' | 'location' | 'item' | 'faction' | 'plot_thread'
 
 const GENERATOR_CONFIG: Record<GeneratorKind, {
   title: string; emoji: string; apiKind: string; entityEndpoint: string; entityType: string;
@@ -48,6 +48,29 @@ const GENERATOR_CONFIG: Record<GeneratorKind, {
       { key: 'prompt', label: 'Describe this location', placeholder: 'An ancient ruined temple in the forest…' },
       { key: 'type', label: 'Type', placeholder: 'Settlement, dungeon, wilderness, building…' },
       { key: 'tone', label: 'Atmosphere / tone', placeholder: 'Eerie, bustling, dangerous, peaceful…' },
+    ],
+  },
+  item: {
+    title: 'Item Generator', emoji: '⚔️', apiKind: 'treasure', entityEndpoint: 'items', entityType: 'item',
+    fields: [
+      { key: 'prompt', label: 'Describe the item(s)', placeholder: 'A cursed blade found in the tomb, an enchanted ring dropped by the cultist…' },
+      { key: 'rarity', label: 'Rarity level', placeholder: 'Common, uncommon, rare, legendary…' },
+      { key: 'quantity', label: 'Number of items', placeholder: '1', type: 'number' },
+    ],
+  },
+  faction: {
+    title: 'Faction Generator', emoji: '⚜️', apiKind: 'faction', entityEndpoint: 'factions', entityType: 'faction',
+    fields: [
+      { key: 'prompt', label: 'Describe this faction', placeholder: 'A shadowy thieves guild operating beneath the capital city…' },
+      { key: 'role', label: 'Role in the world', placeholder: 'Political power, criminal network, religious order, mercenaries…' },
+      { key: 'tone', label: 'Tone / alignment', placeholder: 'Lawful but corrupt, chaotic neutral, secretly benevolent…' },
+    ],
+  },
+  plot_thread: {
+    title: 'Plot Thread Generator', emoji: '📜', apiKind: 'plot_thread', entityEndpoint: 'plot-threads', entityType: 'plot_thread',
+    fields: [
+      { key: 'prompt', label: 'Describe this plot thread', placeholder: 'The missing merchant who knew too much, a prophecy the party accidentally fulfilled…' },
+      { key: 'tone', label: 'Tone / stakes', placeholder: 'High stakes, slow burn, comedic, tragic…' },
     ],
   },
 }

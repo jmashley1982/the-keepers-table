@@ -150,6 +150,25 @@ const DIALOGUE_SCHEMA = `[
   { "tone": "string", "text": "string" }
 ]`
 
+// ── Faction Generator ─────────────────────────────────────────────────────────
+
+const FACTION_SCHEMA = `{
+  "name": "string — faction name",
+  "description": "string — 1-2 sentences describing who they are and what they do",
+  "goals": "string — what they want and why, their driving agenda",
+  "dispositionToParty": "hostile|wary|neutral|friendly|complicated",
+  "dmOnlyNotes": "string — secrets, hidden agendas, vulnerabilities the players don't know",
+  "tags": ["string"]
+}`
+
+// ── Plot Thread Generator ─────────────────────────────────────────────────────
+
+const PLOT_THREAD_SCHEMA = `{
+  "title": "string — short evocative name for this plot thread",
+  "description": "string — 2-3 sentences describing what this thread involves, who's behind it, and what's at stake",
+  "status": "active|dormant|resolved|unknown"
+}`
+
 // ── Session Wrap ──────────────────────────────────────────────────────────────
 
 const SESSION_WRAP_SCHEMA = `{
@@ -169,6 +188,8 @@ const KIND_SCHEMAS: Record<string, string> = {
   encounter: ENCOUNTER_SCHEMA,
   treasure: TREASURE_SCHEMA,
   dialogue: DIALOGUE_SCHEMA,
+  faction: FACTION_SCHEMA,
+  plot_thread: PLOT_THREAD_SCHEMA,
   session_wrap: SESSION_WRAP_SCHEMA,
 }
 
@@ -177,7 +198,7 @@ const KIND_SCHEMAS: Record<string, string> = {
 generateRouter.post('/text', async (req, res) => {
   const userId = res.locals.user.id
   const schema = z.object({
-    kind: z.enum(['npc', 'encounter', 'treasure', 'dialogue', 'session_wrap', 'quick', 'prep_suggestions']),
+    kind: z.enum(['npc', 'encounter', 'treasure', 'dialogue', 'faction', 'plot_thread', 'session_wrap', 'quick', 'prep_suggestions']),
     campaignId: z.string().optional(),
     prompt: z.string(),
     sessionId: z.string().optional(),

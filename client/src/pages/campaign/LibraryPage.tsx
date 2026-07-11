@@ -43,7 +43,7 @@ export default function LibraryPage() {
           <h1 className="display-font text-3xl font-bold text-ink">Library</h1>
           <button
             className="btn-primary"
-            onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'npc' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
+            onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'plot_thread' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
           >
             <Plus size={16} /> Generate {currentTabDef.label.slice(0, -1)}
           </button>
@@ -97,7 +97,7 @@ export default function LibraryPage() {
             {!search && (
               <button
                 className="btn-primary"
-                onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'npc' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
+                onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'plot_thread' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
               >
                 <Plus size={16} /> Generate
               </button>
