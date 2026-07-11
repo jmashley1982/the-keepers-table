@@ -257,7 +257,10 @@ Return ONLY valid JSON — no prose, no markdown:
       where: { userId_provider: { userId: genJob.userId, provider: 'evolink' } },
     })
     if (!evolinkCred?.encryptedKey) throw new Error('No EvoLink API key configured')
-    const evolinkKey = decrypt(evolinkCred.encryptedKey)
+    const evolinkKey = decrypt(evolinkCred.encryptedKey).trim()
+    if (!/^[\x21-\x7E]+$/.test(evolinkKey)) {
+      throw new Error('Saved EvoLink key contains invalid characters — please re-copy it from the EvoLink dashboard and save it again in Settings')
+    }
 
     // ── 5. Resolve model for entity category ──────────────────────────────
     const imageModelByCategory = (userPref?.imageModelByCategory ?? {}) as Record<string, string>

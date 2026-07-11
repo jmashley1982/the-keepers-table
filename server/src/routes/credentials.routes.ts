@@ -20,7 +20,15 @@ credentialsRouter.put('/:provider', async (req, res) => {
     res.status(400).json({ error: 'key is required' })
     return
   }
-  const encrypted = encrypt(parsed.data.key)
+  // Clean up common paste artifacts: whitespace/newlines and surrounding quotes
+  const cleanKey = parsed.data.key.trim().replace(/^["'\u2018\u2019\u201C\u201D]+|["'\u2018\u2019\u201C\u201D]+$/g, '')
+  if (!/^[\x21-\x7E]+$/.test(cleanKey)) {
+    res.status(400).json({
+      error: 'The key contains invalid characters (e.g. curly quotes, spaces, or line breaks). Please copy it directly from your provider dashboard and paste it again.',
+    })
+    return
+  }
+  const encrypted = encrypt(cleanKey)
   const userId = res.locals.user.id
   await prisma.apiCredential.upsert({
     where: { userId_provider: { userId, provider } },
@@ -45,7 +53,10 @@ credentialsRouter.post('/:provider/validate', async (req, res) => {
   let valid = false
   let errorMsg: string | null = null
   try {
-    const key = decrypt(cred.encryptedKey)
+    const key = decrypt(cred.encryptedKey).trim()
+    if (!/^[\x21-\x7E]+$/.test(key)) {
+      throw new Error('The saved key contains invalid characters (e.g. curly quotes or line breaks). Please re-copy it from your provider dashboard and save it again.')
+    }
     if (provider === 'anthropic') {
       const client = new Anthropic({ apiKey: key })
       await client.messages.create({
