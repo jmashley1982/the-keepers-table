@@ -8,6 +8,17 @@ import Anthropic from '@anthropic-ai/sdk'
 
 let boss: PgBoss | null = null
 
+// Friendly model names (stored in prefs/UI) → actual EvoLink model IDs
+const EVOLINK_MODEL_MAP: Record<string, string> = {
+  'nano-banana-2-lite': 'gemini-3.1-flash-lite-image',
+  'nano-banana-2': 'gemini-3.1-flash-image-preview',
+  'nano-banana-pro': 'gemini-3-pro-image-preview',
+  'seedream-4.5': 'doubao-seedream-4.5',
+  'seedream-4': 'doubao-seedream-4.0',
+  'seedream-5': 'doubao-seedream-5.0-lite',
+  'z-image-turbo': 'z-image-turbo',
+}
+
 export async function startWorker(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL
   if (!databaseUrl) {
@@ -253,17 +264,26 @@ Return ONLY valid JSON — no prose, no markdown:
     // Category key must match what the Settings UI stores (npc, location, item, encounter)
     const categoryKey = entityType === 'map' ? 'encounter' : entityType
     const model = input.model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'nano-banana-2-lite'
+    // Strict allow-list: friendly names map to EvoLink IDs; already-valid EvoLink IDs
+    // pass through; anything else (legacy flux/SD values, typos) falls back to default.
+    const evolinkModel = EVOLINK_MODEL_MAP[model]
+      ?? (Object.values(EVOLINK_MODEL_MAP).includes(model) ? model : EVOLINK_MODEL_MAP['nano-banana-2-lite'])
 
     const aspectRatio = input.aspectRatio ?? (kind === 'portrait_npc' ? 'portrait' : 'square')
-    const width = aspectRatio === 'widescreen' ? 1280 : aspectRatio === 'landscape' ? 1024 : aspectRatio === 'square' ? 1024 : 768
-    const height = aspectRatio === 'widescreen' ? 720 : aspectRatio === 'landscape' ? 768 : 1024
+    const size = aspectRatio === 'widescreen' ? '16:9' : aspectRatio === 'landscape' ? '4:3' : aspectRatio === 'square' ? '1:1' : '3:4'
+
+    // EvoLink prompt limit is 2000 chars; fold the negative prompt in as guidance
+    let promptWithNegative = negativePrompt
+      ? `${finalPrompt}\n\nAvoid: ${negativePrompt}`
+      : finalPrompt
+    if (promptWithNegative.length > 2000) promptWithNegative = promptWithNegative.slice(0, 2000)
 
     // ── 6. Submit to EvoLink ───────────────────────────────────────────────
-    console.log(`[image.generate] Submitting job ${jobId}: model=${model} size=${width}x${height} entityType=${entityType} keyPrefix=${evolinkKey.slice(0, 8)}…`)
-    const submitRes = await fetch('https://api.eachlabs.ai/v1/prediction', {
+    console.log(`[image.generate] Submitting job ${jobId}: model=${evolinkModel} size=${size} entityType=${entityType}`)
+    const submitRes = await fetch('https://api.evolink.ai/v1/images/generations', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${evolinkKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, input: { prompt: finalPrompt, negative_prompt: negativePrompt, width, height } }),
+      body: JSON.stringify({ model: evolinkModel, prompt: promptWithNegative, size }),
     })
 
     if (!submitRes.ok) {
@@ -274,27 +294,20 @@ Return ONLY valid JSON — no prose, no markdown:
     const submitData = await submitRes.json() as {
       id: string
       status: string
-      output?: string | string[]
-      error?: string
-      cost?: number
-      credits?: number
-      credits_used?: number
-      metrics?: { predict_time?: number; cost?: number }
+      results?: string[]
+      error?: { message?: string } | null
+      usage?: { credits_reserved?: number }
     }
 
     await prisma.generationJob.update({ where: { id: jobId }, data: { providerTaskId: submitData.id } })
 
     // ── 7. Sync result or enqueue poll ────────────────────────────────────
-    const syncDone = submitData.status === 'succeeded' || submitData.status === 'completed'
+    const syncDone = submitData.status === 'completed'
     if (syncDone) {
-      const outputUrl = Array.isArray(submitData.output) ? submitData.output[0] : submitData.output
+      const outputUrl = submitData.results?.[0]
       if (!outputUrl) throw new Error('EvoLink sync succeeded but returned no output URL')
 
-      const syncCostActual = submitData.cost
-        ?? submitData.metrics?.cost
-        ?? submitData.credits_used
-        ?? submitData.credits
-        ?? null
+      const syncCostActual = submitData.usage?.credits_reserved ?? null
 
       if (syncCostActual !== null) {
         await prisma.generationJob.update({ where: { id: jobId }, data: { costActual: syncCostActual } })
@@ -369,7 +382,7 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
   }
 
   try {
-    const response = await fetch(`https://api.eachlabs.ai/v1/prediction/${providerTaskId}`, {
+    const response = await fetch(`https://api.evolink.ai/v1/tasks/${providerTaskId}`, {
       headers: { 'Authorization': `Bearer ${evolinkKey}` },
     })
 
@@ -380,16 +393,13 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
 
     const responseData = await response.json() as {
       status: string
-      output?: string | string[]
-      error?: string
-      cost?: number
-      credits?: number
-      credits_used?: number
-      metrics?: { predict_time?: number; cost?: number }
+      results?: string[]
+      error?: { message?: string } | null
+      usage?: { credits_reserved?: number; credits_used?: number }
     }
 
-    if (responseData.status === 'succeeded' || responseData.status === 'completed') {
-      const outputUrl = Array.isArray(responseData.output) ? responseData.output[0] : responseData.output
+    if (responseData.status === 'completed') {
+      const outputUrl = responseData.results?.[0]
       if (!outputUrl) {
         const noUrlMsg = 'No output URL from provider'
         await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: noUrlMsg, outputRef: { rawError: noUrlMsg } } })
@@ -397,10 +407,8 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
         return
       }
 
-      const costActual = responseData.cost
-        ?? responseData.metrics?.cost
-        ?? responseData.credits_used
-        ?? responseData.credits
+      const costActual = responseData.usage?.credits_used
+        ?? responseData.usage?.credits_reserved
         ?? null
 
       if (costActual !== null) {
@@ -429,8 +437,8 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
         kind: genJob.kind,
       } satisfies ImagePostprocessData)
 
-    } else if (responseData.status === 'failed' || responseData.status === 'error') {
-      const errMsg = responseData.error ?? 'Provider reported failure'
+    } else if (responseData.status === 'failed' || responseData.status === 'error' || responseData.status === 'cancelled') {
+      const errMsg = responseData.error?.message ?? 'Provider reported failure'
       await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: errMsg, outputRef: { rawError: errMsg, providerStatus: responseData.status } } })
       await notifyJobUpdate(jobId, 'failed')
 

@@ -4,3 +4,4 @@
 - [CSS variable opacity](css-vars-opacity.md) — Tailwind v3 @apply can't use /opacity modifiers on CSS-var colors; use color-mix() in plain CSS instead
 - [SSE streaming format](sse-streaming.md) — server sends `{ text: string }` chunks then `{ done: true, jobId }`; client accumulates fullText then parses as JSON after done
 - [Generator routing bugs fixed](generator-routing.md) — QuickGenerate had location→'npc'; LibraryPage used slice(-1) for encounters; both corrected to literal 'location'/'encounter'
+- [EvoLink image API](evolink-api.md) — api.evolink.ai (not EachLabs); model IDs are vendor names (gemini-*/doubao-*); validate keys via GET /v1/credits; no negative_prompt param.

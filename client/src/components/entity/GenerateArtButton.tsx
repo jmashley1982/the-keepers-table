@@ -405,10 +405,10 @@ export default function GenerateArtButton({
               onChange={e => setSelectedModel(e.target.value)}
             >
               <option value="">Default</option>
-              <option value="seedream-5">SeedDream 5</option>
-              <option value="flux-1.1-pro">Flux 1.1 Pro</option>
-              <option value="flux-dev">Flux Dev</option>
-              <option value="stable-diffusion-3.5-large">SD 3.5 Large</option>
+              <option value="nano-banana-pro">Nano Banana Pro (best)</option>
+              <option value="nano-banana-2-lite">Nano Banana 2 Lite</option>
+              <option value="seedream-4.5">Seedream 4.5</option>
+              <option value="z-image-turbo">Z Image Turbo (fastest)</option>
             </select>
           </div>
 
