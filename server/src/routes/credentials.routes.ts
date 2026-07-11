@@ -60,7 +60,7 @@ credentialsRouter.post('/:provider/validate', async (req, res) => {
       // a valid key gets 400/422 (bad model), an invalid key gets 401.
       const evolinkRes = await fetch('https://api.eachlabs.ai/v1/prediction', {
         method: 'POST',
-        headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: '__key_validation_test__', input: {} }),
       })
       if (evolinkRes.status !== 401) {

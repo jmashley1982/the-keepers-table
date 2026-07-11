@@ -262,7 +262,7 @@ Return ONLY valid JSON — no prose, no markdown:
     console.log(`[image.generate] Submitting job ${jobId}: model=${model} size=${width}x${height} entityType=${entityType} keyPrefix=${evolinkKey.slice(0, 8)}…`)
     const submitRes = await fetch('https://api.eachlabs.ai/v1/prediction', {
       method: 'POST',
-      headers: { 'X-API-Key': evolinkKey, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${evolinkKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, input: { prompt: finalPrompt, negative_prompt: negativePrompt, width, height } }),
     })
 
@@ -370,7 +370,7 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
 
   try {
     const response = await fetch(`https://api.eachlabs.ai/v1/prediction/${providerTaskId}`, {
-      headers: { 'X-API-Key': evolinkKey },
+      headers: { 'Authorization': `Bearer ${evolinkKey}` },
     })
 
     if (!response.ok) {
