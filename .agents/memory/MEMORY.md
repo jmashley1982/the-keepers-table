@@ -6,3 +6,4 @@
 - [Generator routing bugs fixed](generator-routing.md) — QuickGenerate had location→'npc'; LibraryPage used slice(-1) for encounters; both corrected to literal 'location'/'encounter'
 - [EvoLink image API](evolink-api.md) — api.evolink.ai (not EachLabs); model IDs are vendor names (gemini-*/doubao-*); validate keys via GET /v1/credits; no negative_prompt param.
 - [Object storage bucket](object-storage-bucket.md) — @replit/object-storage Client needs explicit bucketId (DEFAULT_OBJECT_STORAGE_BUCKET_ID); missing bucket surfaced as "fetch failed" in worker jobs.
+- [Prisma client generation](prisma-client-generation.md) — must run `prisma generate` after any schema change or new models crash at runtime; post-merge.sh had `--skip-generate` which caused this.
