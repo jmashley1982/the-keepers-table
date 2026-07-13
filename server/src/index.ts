@@ -21,6 +21,7 @@ import { mapsRouter } from './routes/maps.routes.js'
 import { playerCharactersRouter } from './routes/player-characters.routes.js'
 import { startWorker, stopWorker } from './lib/worker.js'
 import { seedBuiltinPresets } from './lib/seed-presets.js'
+import { seedSystemTemplates } from './lib/seed-templates.js'
 import './lib/auth.js'
 
 const app = express()
@@ -102,6 +103,7 @@ const server = app.listen(PORT, async () => {
   console.log(`🧙 Keeper's Table server running on port ${PORT}`)
   await startWorker()
   await seedBuiltinPresets()
+  await seedSystemTemplates()
 })
 
 // Graceful shutdown
