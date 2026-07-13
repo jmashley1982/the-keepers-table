@@ -137,6 +137,17 @@ async function processImageGenerate(jobId: string): Promise<void> {
           description: npc.description,
         }
       }
+    } else if (entityType === 'pc' || kind === 'portrait_pc') {
+      const pc = await prisma.playerCharacter.findUnique({ where: { id: entityId } })
+      if (pc) {
+        entityData = {
+          name: pc.name,
+          race: pc.race,
+          playbook: pc.playbook,
+          appearance: pc.appearance,
+          description: pc.backstory,
+        }
+      }
     } else if (entityType === 'location' || kind === 'location_art') {
       const loc = await prisma.location.findUnique({ where: { id: entityId } })
       if (loc) entityData = { name: loc.name, type: loc.type, description: loc.description }
@@ -611,6 +622,8 @@ async function attachAssetToEntity(assetId: string, entityType: string, entityId
   try {
     if (entityType === 'npc' || kind === 'portrait_npc') {
       await prisma.nPC.update({ where: { id: entityId }, data: { portraitAssetId: assetId } })
+    } else if (entityType === 'pc' || kind === 'portrait_pc') {
+      await prisma.playerCharacter.update({ where: { id: entityId }, data: { portraitAssetId: assetId } })
     } else if (entityType === 'location' || kind === 'location_art') {
       await prisma.location.update({ where: { id: entityId }, data: { imageAssetId: assetId } })
     } else if (entityType === 'item' || kind === 'item_art') {

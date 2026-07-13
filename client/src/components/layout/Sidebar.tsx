@@ -99,6 +99,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
             </div>
             {navLink(`/campaign/${campaignId}`, <LayoutDashboard size={16} />, 'Dashboard')}
             {navLink(`/campaign/${campaignId}/library`, <BookOpen size={16} />, 'Library')}
+            {navLink(`/campaign/${campaignId}/players`, <Users size={16} />, 'Players')}
             {navLink(`/campaign/${campaignId}/maps`, <Map size={16} />, 'Maps')}
             {navLink(`/campaign/${campaignId}/log`, <Scroll size={16} />, 'Session Log')}
             {navLink(`/campaign/${campaignId}/settings`, <Settings size={16} />, 'Campaign')}

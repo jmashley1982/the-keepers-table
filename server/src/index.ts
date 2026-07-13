@@ -18,6 +18,7 @@ import { assetsRouter, campaignAssetsRouter } from './routes/assets.routes.js'
 import { jobsRouter } from './routes/jobs.routes.js'
 import { stylePresetsRouter } from './routes/style-presets.routes.js'
 import { mapsRouter } from './routes/maps.routes.js'
+import { playerCharactersRouter } from './routes/player-characters.routes.js'
 import { startWorker, stopWorker } from './lib/worker.js'
 import { seedBuiltinPresets } from './lib/seed-presets.js'
 import './lib/auth.js'
@@ -73,6 +74,7 @@ app.use('/api/assets', assetsRouter)
 app.use('/api/jobs', jobsRouter)
 app.use('/api/style-presets', stylePresetsRouter)
 app.use('/api/campaigns/:campaignId/maps', mapsRouter)
+app.use('/api/campaigns/:campaignId/player-characters', playerCharactersRouter)
 
 // Health (no session required)
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))

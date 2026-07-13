@@ -135,6 +135,33 @@ const BUILTIN_TEMPLATES = [
     ],
   },
   {
+    name: 'Dungeon World',
+    description: 'Dungeon World by Sage LaTorra & Adam Koebel (Powered by the Apocalypse)',
+    isBuiltin: true,
+    statBlockSchema: [
+      { key: 'hp', label: 'HP', type: 'number', default: 6 },
+      { key: 'armor', label: 'Armor', type: 'number', default: 0 },
+      { key: 'damage', label: 'Damage', type: 'text', default: 'd6' },
+      { key: 'instinct', label: 'Instinct', type: 'text', default: '' },
+      { key: 'moves', label: 'Moves', type: 'text', default: '' },
+      { key: 'tags', label: 'Tags', type: 'text', default: '' },
+    ],
+    difficultyModel: {
+      type: 'threat_tags',
+      tiers: ['minion', 'henchman', 'monster', 'boss', 'terrifying', 'divine'],
+    },
+    currencyAndRarity: {
+      currencies: ['Coin'],
+      rarities: ['mundane', 'precious', 'arcane'],
+    },
+    promptAddendum: 'Use Dungeon World (Powered by the Apocalypse) mechanics and terminology. Moves roll 2d6 + modifier: 10+ is a full success, 7-9 is a partial success with a cost, 6- is a miss (GM makes a move). Stats are modifiers from -3 to +3. NPCs and monsters have HP, Armor, and Damage (dice notation like d6 or 2d8). Monsters have an Instinct (what they do without thinking) and 2-5 Moves (GM-triggered fictional actions). Use monster Tags (Magical, Stealthy, Terrifying, Amorphous, etc.). No CR or challenge rating — describe danger narratively. Players have Bonds with each other. XP comes from end-of-session questions. Debilities: Shaken (WIS), Sick (CON), Weak (STR), Dazed (INT), Scared (WIS), Stunned (DEX). Keep fiction first — mechanics emerge from the fiction.',
+    customEntityFields: [
+      { entity: 'npc', key: 'instinct', label: 'Instinct', type: 'text' },
+      { entity: 'npc', key: 'monsterMoves', label: 'Monster Moves', type: 'text' },
+      { entity: 'npc', key: 'monsterTags', label: 'Tags', type: 'text' },
+    ],
+  },
+  {
     name: 'Generic / Homebrew',
     description: 'System-agnostic template for any game',
     isBuiltin: true,

@@ -582,6 +582,7 @@ generateRouter.post('/image', async (req, res) => {
   }
 
   const entityType = kind === 'portrait_npc' ? 'npc'
+    : kind === 'portrait_pc' ? 'pc'
     : kind === 'location_art' ? 'location'
     : kind === 'item_art' ? 'item'
     : kind.startsWith('map_') ? 'map'
@@ -590,6 +591,9 @@ generateRouter.post('/image', async (req, res) => {
   if (entityType === 'npc') {
     const ent = await prisma.nPC.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'NPC not found in this campaign' }); return }
+  } else if (entityType === 'pc') {
+    const ent = await prisma.playerCharacter.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
+    if (!ent) { res.status(404).json({ error: 'Player character not found in this campaign' }); return }
   } else if (entityType === 'location') {
     const ent = await prisma.location.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'Location not found in this campaign' }); return }

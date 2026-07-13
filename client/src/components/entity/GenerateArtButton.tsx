@@ -31,10 +31,10 @@ interface StylePreset {
 }
 
 export interface GenerateArtButtonProps {
-  kind: 'portrait_npc' | 'item_art' | 'location_art'
+  kind: 'portrait_npc' | 'portrait_pc' | 'item_art' | 'location_art'
   entityId: string
   campaignId: string
-  entityType: 'npc' | 'item' | 'location'
+  entityType: 'npc' | 'pc' | 'item' | 'location'
   currentAssetId?: string | null
   onGenerated?: () => void
 }
