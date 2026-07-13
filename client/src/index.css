@@ -83,17 +83,17 @@
   --texture-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
 }
 
-/* ── Icarus theme (Sci-fi HUD — gunmetal, copper-orange) ── */
+/* ── Icarus theme (Sci-fi HUD — dark blue, copper-orange) ── */
 [data-theme="icarus"] {
-  --color-bg:        #120f0a;
-  --color-surface:   #1c1710;
-  --color-surface-2: #251e15;
-  --color-ink:       #e8ddd0;
-  --color-ink-muted: #8a7d6e;
+  --color-bg:        #0c1018;
+  --color-surface:   #141a24;
+  --color-surface-2: #1c2332;
+  --color-ink:       #d8e4f0;
+  --color-ink-muted: #6a7d96;
   --color-accent:    #e07a2f;
   --color-danger:    #ef4444;
   --color-gm-secret: #5b9bd5;
-  --color-border:    #352b1e;
+  --color-border:    #243044;
   --radius-card:     0.125rem;
   --font-display:    'Rajdhani', Inter, sans-serif;
   --texture-bg:      none;
@@ -300,16 +300,16 @@ body {
   text-transform: uppercase;
 }
 [data-theme="icarus"] .btn-primary {
-  color: #120f0a;
+  color: #0c1018;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 [data-theme="icarus"] .btn-secondary {
-  border-color: #4a3b28;
+  border-color: #2e3f58;
 }
 [data-theme="icarus"] .card {
-  border-color: #352b1e;
+  border-color: #243044;
   box-shadow: 0 0 0 1px rgba(224, 122, 47, 0.07), 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 [data-theme="icarus"] .input:focus {
