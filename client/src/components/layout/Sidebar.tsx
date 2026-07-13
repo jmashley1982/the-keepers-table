@@ -77,7 +77,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
         <img
           src={themeLogo(theme)}
           alt="The Keeper's Table"
-          className="h-[58px] w-auto logo-theme"
+          className="w-full h-auto logo-theme"
         />
         {user && (
           <p className="text-xs text-ink-muted mt-1.5 truncate">{user.displayName}</p>
