@@ -8,7 +8,7 @@ interface ScratchItem {
   saved: boolean
 }
 
-interface UIState {
+export interface UIState {
   theme: 'parchment' | 'candlelight' | 'slate' | 'high-contrast' | 'eldritch' | 'icarus' | 'neon' | 'frosthold'
   setTheme: (t: UIState['theme']) => void
 

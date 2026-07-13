@@ -9,6 +9,7 @@ import {
   Contrast, Flame, Skull, Rocket, Terminal, Wand2, Crosshair,
 } from 'lucide-react'
 import { useState } from 'react'
+import { themeLogo } from '../../lib/themeLogo'
 
 const THEME_OPTIONS = [
   { id: 'candlelight',  label: 'Candlelight',   icon: Flame },
@@ -74,7 +75,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
       {/* Logo */}
       <div className="px-4 py-4 border-b border-border">
         <img
-          src="/logo.png"
+          src={themeLogo(theme)}
           alt="The Keeper's Table"
           className="h-[58px] w-auto logo-theme"
         />
@@ -133,7 +134,10 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
           onClick={() => setThemeOpen(v => !v)}
           className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors"
         >
-          <Flame size={11} />
+          {(() => {
+            const CurrentIcon = THEME_OPTIONS.find(o => o.id === theme)?.icon ?? Flame
+            return <CurrentIcon size={11} />
+          })()}
           <span className="capitalize">{theme}</span>
           <ChevronDown size={11} className={cn('ml-auto transition-transform', themeOpen && 'rotate-180')} />
         </button>

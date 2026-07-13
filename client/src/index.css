@@ -42,7 +42,7 @@
   --color-surface-2: #232636;
   --color-ink:       #e8eaf0;
   --color-ink-muted: #8b90a0;
-  --color-accent:    #6366f1;
+  --color-accent:    #4a9edd;
   --color-danger:    #ef4444;
   --color-gm-secret: #a78bfa;
   --color-border:    #2e3145;
@@ -74,9 +74,9 @@
   --color-surface-2: #1d2326;
   --color-ink:       #e6efea;
   --color-ink-muted: #7fa49a;
-  --color-accent:    #4b8f85;
+  --color-accent:    #53c273;
   --color-danger:    #922020;
-  --color-gm-secret: #6b4080;
+  --color-gm-secret: #9d5bd2;
   --color-border:    #2c3a3a;
   --radius-card:     0.25rem;
   --font-display:    'Cormorant Garamond', Georgia, serif;
@@ -90,7 +90,7 @@
   --color-surface-2: #242428;
   --color-ink:       #d4d4d8;
   --color-ink-muted: #71717a;
-  --color-accent:    #f59e0b;
+  --color-accent:    #38a8f0;
   --color-danger:    #ef4444;
   --color-gm-secret: #818cf8;
   --color-border:    #323238;
@@ -106,9 +106,9 @@
   --color-surface-2: #0f1630;
   --color-ink:       #e0e8ff;
   --color-ink-muted: #6875a8;
-  --color-accent:    #d946ef;
+  --color-accent:    #22d3ee;
   --color-danger:    #ef4444;
-  --color-gm-secret: #06b6d4;
+  --color-gm-secret: #e879f9;
   --color-border:    #1e2a4a;
   --radius-card:     0.125rem;
   --font-display:    'Rajdhani', Inter, sans-serif;
@@ -122,7 +122,7 @@
   --color-surface-2: #122240;
   --color-ink:       #e8f4ff;
   --color-ink-muted: #6b8faf;
-  --color-accent:    #60a5fa;
+  --color-accent:    #8fa8f5;
   --color-danger:    #ef4444;
   --color-gm-secret: #a855f7;
   --color-border:    #1a304a;
@@ -230,7 +230,7 @@ body {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 [data-theme="candlelight"] .logo-theme {
-  filter: invert(1) sepia(0.5) saturate(1.4) hue-rotate(5deg) brightness(0.82);
+  filter: none;
 }
 
 /* ── Parchment ── */
@@ -252,10 +252,11 @@ body {
   color: var(--color-ink);
 }
 [data-theme="slate"] .btn-primary {
-  color: #fff;
+  color: #0f1117;
+  font-weight: 600;
 }
 [data-theme="slate"] .logo-theme {
-  filter: invert(1) sepia(0.1) brightness(0.9);
+  filter: none;
 }
 
 /* ── High Contrast ── */
@@ -266,7 +267,7 @@ body {
   color: #000;
 }
 [data-theme="high-contrast"] .logo-theme {
-  filter: invert(1);
+  filter: none;
 }
 
 /* ── Eldritch ── */
@@ -276,18 +277,19 @@ body {
   letter-spacing: 0.01em;
 }
 [data-theme="eldritch"] .btn-primary {
-  color: #fff;
+  color: #0b0f10;
+  font-weight: 600;
   border: 1px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
 [data-theme="eldritch"] .card {
-  box-shadow: inset 0 1px 0 rgba(75, 143, 133, 0.06), 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 rgba(83, 194, 115, 0.06), 0 2px 8px rgba(0, 0, 0, 0.5);
   border-color: #2c3a3a;
 }
 [data-theme="eldritch"] .input:focus {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 [data-theme="eldritch"] .logo-theme {
-  filter: invert(1) sepia(0.5) saturate(1.2) hue-rotate(140deg) brightness(0.75);
+  filter: none;
 }
 
 /* ── Icarus ── */
@@ -308,7 +310,7 @@ body {
 }
 [data-theme="icarus"] .card {
   border-color: #323238;
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.04), 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 1px rgba(56, 168, 240, 0.05), 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 [data-theme="icarus"] .input:focus {
   box-shadow: 0 0 0 1px var(--color-accent), 0 0 8px color-mix(in srgb, var(--color-accent) 20%, transparent);
@@ -318,7 +320,7 @@ body {
   letter-spacing: 0.12em;
 }
 [data-theme="icarus"] .logo-theme {
-  filter: invert(1) sepia(0.7) saturate(2.5) hue-rotate(10deg) brightness(0.85);
+  filter: none;
 }
 
 /* ── Neon ── */
@@ -329,7 +331,8 @@ body {
   text-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 60%, transparent);
 }
 [data-theme="neon"] .btn-primary {
-  color: #fff;
+  color: #050814;
+  font-weight: 600;
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 40%, transparent);
 }
 [data-theme="neon"] .btn-primary:hover {
@@ -337,13 +340,13 @@ body {
 }
 [data-theme="neon"] .card {
   border-color: #1e2a4a;
-  box-shadow: inset 0 1px 0 rgba(217, 70, 239, 0.06), 0 2px 12px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 1px 0 rgba(34, 211, 238, 0.06), 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 [data-theme="neon"] .input:focus {
   box-shadow: 0 0 0 1px var(--color-accent), 0 0 12px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 [data-theme="neon"] .logo-theme {
-  filter: invert(1) sepia(0.6) saturate(3) hue-rotate(260deg) brightness(0.9);
+  filter: none;
 }
 
 /* ── Frosthold ── */
@@ -365,7 +368,7 @@ body {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
 [data-theme="frosthold"] .logo-theme {
-  filter: invert(1) sepia(0.5) saturate(2) hue-rotate(195deg) brightness(0.95);
+  filter: none;
 }
 
 /* ── Animations ── */

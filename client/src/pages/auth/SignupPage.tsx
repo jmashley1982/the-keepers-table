@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
+import { useUIStore } from '../../store/useUIStore'
+import { themeLogo } from '../../lib/themeLogo'
 
 export default function SignupPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const theme = useUIStore(s => s.theme)
   const [form, setForm] = useState({ email: '', password: '', displayName: '' })
   const [error, setError] = useState('')
 
@@ -26,7 +29,7 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <img
-            src="/logo.png"
+            src={themeLogo(theme)}
             alt="The Keeper's Table"
             className="h-[154px] w-auto mx-auto mb-2 logo-theme"
           />

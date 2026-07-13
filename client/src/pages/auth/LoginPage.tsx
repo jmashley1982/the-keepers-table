@@ -3,10 +3,13 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { FlaskConical } from 'lucide-react'
+import { useUIStore } from '../../store/useUIStore'
+import { themeLogo } from '../../lib/themeLogo'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const theme = useUIStore(s => s.theme)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -51,7 +54,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-8">
           <img
-            src="/logo.png"
+            src={themeLogo(theme)}
             alt="The Keeper's Table"
             className="h-[154px] w-auto mx-auto mb-3 logo-theme"
             style={{ filter: 'drop-shadow(0 0 24px color-mix(in srgb, var(--color-accent) 30%, transparent))' }}
