@@ -6,18 +6,18 @@ import { cn } from '../../lib/cn'
 import {
   LayoutDashboard, BookOpen, Map, Scroll,
   Settings, LogOut, ChevronDown, Zap, Users,
-  Sun, Moon, Contrast, Flame, Eye, Cpu, Wifi, Snowflake,
+  Contrast, Flame, Skull, Rocket, Terminal, Wand2, Crosshair,
 } from 'lucide-react'
 import { useState } from 'react'
 
 const THEME_OPTIONS = [
-  { id: 'candlelight', label: 'Candlelight', icon: Flame },
-  { id: 'eldritch',   label: 'Eldritch',    icon: Eye },
-  { id: 'icarus',     label: 'Icarus',       icon: Cpu },
-  { id: 'neon',       label: 'Neon',         icon: Wifi },
-  { id: 'frosthold',  label: 'Frosthold',    icon: Snowflake },
-  { id: 'parchment',  label: 'Parchment',    icon: Sun },
-  { id: 'slate',      label: 'Slate',        icon: Moon },
+  { id: 'candlelight',  label: 'Candlelight',   icon: Flame },
+  { id: 'eldritch',    label: 'Eldritch',       icon: Skull },
+  { id: 'icarus',      label: 'Icarus',         icon: Rocket },
+  { id: 'neon',        label: 'Neon',           icon: Terminal },
+  { id: 'frosthold',   label: 'Frosthold',      icon: Wand2 },
+  { id: 'parchment',   label: 'Parchment',      icon: Scroll },
+  { id: 'slate',       label: 'Slate',          icon: Crosshair },
   { id: 'high-contrast', label: 'High Contrast', icon: Contrast },
 ] as const
 
