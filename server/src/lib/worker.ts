@@ -142,10 +142,11 @@ async function processImageGenerate(jobId: string): Promise<void> {
       if (pc) {
         entityData = {
           name: pc.name,
+          class: pc.class,
           race: pc.race,
-          playbook: pc.playbook,
+          subclass: pc.subclass,
           appearance: pc.appearance,
-          description: pc.backstory,
+          level: String(pc.level),
         }
       }
     } else if (entityType === 'location' || kind === 'location_art') {
@@ -314,7 +315,7 @@ Return ONLY valid JSON — no prose, no markdown:
     const evolinkModel = EVOLINK_MODEL_MAP[model]
       ?? (Object.values(EVOLINK_MODEL_MAP).includes(model) ? model : EVOLINK_MODEL_MAP['gpt-image-2'])
 
-    const aspectRatio = input.aspectRatio ?? (kind === 'portrait_npc' ? 'portrait' : 'square')
+    const aspectRatio = input.aspectRatio ?? (kind === 'portrait_npc' || kind === 'portrait_pc' ? 'portrait' : 'square')
     const size = ASPECT_SIZE_MAP[aspectRatio] ?? '1:1'
 
     // EvoLink prompt limit is 2000 chars; fold the negative prompt in as guidance.

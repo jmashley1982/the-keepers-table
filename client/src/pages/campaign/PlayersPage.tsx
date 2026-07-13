@@ -1,21 +1,40 @@
-import { useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, apiError } from '../../lib/api'
+import { api } from '../../lib/api'
+import { useState, useRef } from 'react'
 import { cn } from '../../lib/cn'
-import GenerateArtButton from '../../components/entity/GenerateArtButton'
 import {
-  Plus, Trash2, Upload, ChevronDown, ChevronUp,
-  User, Shield, Sword, BookOpen, Star, X, Check, AlertCircle, Loader2,
+  Plus, Trash2, Edit2, Save, X, Upload, Check,
+  ChevronDown, ChevronUp, Loader, Users,
 } from 'lucide-react'
+import { EntityAvatarWithArt } from '../../components/entity/GenerateArtButton'
+import GenerateArtButton from '../../components/entity/GenerateArtButton'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface AbilityScores { str?: number; dex?: number; con?: number; int?: number; wis?: number; cha?: number }
+interface AbilityScores {
+  str?: number; dex?: number; con?: number
+  int?: number; wis?: number; cha?: number
+}
+
 interface CombatStats {
   hp?: number; maxHp?: number; tempHp?: number
-  ac?: number; armor?: number; initiative?: number
-  speed?: string; proficiencyBonus?: number; damage?: string
+  ac?: number; initiative?: number; speed?: number
+  proficiencyBonus?: number; inspiration?: boolean
+}
+
+interface Skills {
+  acrobatics?: number; animalHandling?: number; arcana?: number
+  athletics?: number; deception?: number; history?: number
+  insight?: number; intimidation?: number; investigation?: number
+  medicine?: number; nature?: number; perception?: number
+  performance?: number; persuasion?: number; religion?: number
+  sleightOfHand?: number; stealth?: number; survival?: number
+}
+
+interface SavingThrows {
+  str?: number; dex?: number; con?: number
+  int?: number; wis?: number; cha?: number
 }
 
 interface PlayerCharacter {
@@ -24,7 +43,7 @@ interface PlayerCharacter {
   name: string
   playerName: string
   race: string
-  playbook: string
+  class: string
   subclass: string
   level: number
   background: string
@@ -32,738 +51,555 @@ interface PlayerCharacter {
   appearance: string
   backstory: string
   notes: string
-  bonds: string
-  moves: string
+  features: string
   abilityScores: AbilityScores
   combatStats: CombatStats
-  skills: Record<string, boolean>
-  savingThrows: Record<string, boolean>
+  skills: Skills
+  savingThrows: SavingThrows
   equipment: string[]
-  xp: number
-  portraitAssetId?: string | null
-  sheetAssetId?: string | null
-  portraitAsset?: { id: string; altText?: string; storageKeyThumb?: string } | null
+  portraitAssetId: string | null
+  sheetAssetId: string | null
+  portraitAsset?: { id: string; altText?: string | null } | null
   createdAt: string
   updatedAt: string
 }
 
+type PCDraft = Omit<PlayerCharacter, 'id' | 'campaignId' | 'createdAt' | 'updatedAt' | 'portraitAsset'>
+
+const EMPTY_DRAFT: PCDraft = {
+  name: '', playerName: '', race: '', class: '', subclass: '',
+  level: 1, background: '', alignment: '', appearance: '',
+  backstory: '', notes: '', features: '',
+  abilityScores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+  combatStats: { hp: 0, maxHp: 0, tempHp: 0, ac: 10, initiative: 0, speed: 30, proficiencyBonus: 2, inspiration: false },
+  skills: {}, savingThrows: {},
+  equipment: [], portraitAssetId: null, sheetAssetId: null,
+}
+
+const ABILITY_LABELS: [keyof AbilityScores, string][] = [
+  ['str', 'STR'], ['dex', 'DEX'], ['con', 'CON'],
+  ['int', 'INT'], ['wis', 'WIS'], ['cha', 'CHA'],
+]
+
+const SKILL_LABELS: [keyof Skills, string][] = [
+  ['acrobatics', 'Acrobatics'], ['animalHandling', 'Animal Handling'], ['arcana', 'Arcana'],
+  ['athletics', 'Athletics'], ['deception', 'Deception'], ['history', 'History'],
+  ['insight', 'Insight'], ['intimidation', 'Intimidation'], ['investigation', 'Investigation'],
+  ['medicine', 'Medicine'], ['nature', 'Nature'], ['perception', 'Perception'],
+  ['performance', 'Performance'], ['persuasion', 'Persuasion'], ['religion', 'Religion'],
+  ['sleightOfHand', 'Sleight of Hand'], ['stealth', 'Stealth'], ['survival', 'Survival'],
+]
+
+const ALIGNMENTS = [
+  'Lawful Good', 'Neutral Good', 'Chaotic Good',
+  'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
+  'Lawful Evil', 'Neutral Evil', 'Chaotic Evil',
+]
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function abilityMod(score: number | undefined): string {
-  if (score == null) return '—'
+function abilityMod(score: number): string {
   const mod = Math.floor((score - 10) / 2)
-  return mod >= 0 ? `+${mod}` : `${mod}`
+  return mod >= 0 ? `+${mod}` : String(mod)
 }
 
-function statLabel(key: string) {
-  return { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' }[key] ?? key.toUpperCase()
-}
-
-const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
-
-// ── Portrait display ──────────────────────────────────────────────────────────
-
-function PortraitDisplay({ pc, size = 'md' }: { pc: PlayerCharacter; size?: 'sm' | 'md' | 'lg' }) {
-  const sizeClass = size === 'sm' ? 'w-12 h-12' : size === 'lg' ? 'w-32 h-32' : 'w-20 h-20'
-  const textSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-4xl' : 'text-2xl'
-
-  if (pc.portraitAsset?.storageKeyThumb) {
-    return (
-      <img
-        src={`/api/assets/${pc.portraitAsset.id}/thumb`}
-        alt={pc.portraitAsset.altText ?? pc.name}
-        className={cn(sizeClass, 'rounded-full object-cover flex-shrink-0 border-2 border-border')}
-      />
-    )
-  }
+function NumInput({ label, value, onChange, min, max }: {
+  label: string; value: number | undefined; onChange: (n: number) => void
+  min?: number; max?: number
+}) {
   return (
-    <div className={cn(sizeClass, 'rounded-full bg-surface-2 border-2 border-border flex items-center justify-center flex-shrink-0')}>
-      <span className={textSize}>
-        {pc.name.charAt(0).toUpperCase()}
-      </span>
-    </div>
-  )
-}
-
-// ── PC Card (compact list item) ───────────────────────────────────────────────
-
-function PCCard({ pc, isSelected, onClick }: { pc: PlayerCharacter; isSelected: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'w-full text-left p-3 rounded-card border transition-colors flex items-center gap-3',
-        isSelected
-          ? 'border-accent bg-accent/10'
-          : 'border-border hover:border-accent/40 hover:bg-surface-2',
-      )}
-    >
-      <PortraitDisplay pc={pc} size="sm" />
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-ink text-sm truncate">{pc.name}</p>
-        <p className="text-xs text-ink-muted truncate">
-          {[pc.race, pc.playbook].filter(Boolean).join(' · ') || 'No class set'}
-        </p>
-        <p className="text-xs text-ink-muted/60 truncate">
-          {pc.playerName ? `Player: ${pc.playerName}` : ''}
-          {pc.level > 1 ? ` · Lv ${pc.level}` : ''}
-        </p>
-      </div>
-    </button>
-  )
-}
-
-// ── Ability score box ─────────────────────────────────────────────────────────
-
-function AbilityBox({
-  label, value, onChange,
-}: { label: string; value: number | undefined; onChange: (v: number | undefined) => void }) {
-  const mod = value != null ? Math.floor((value - 10) / 2) : null
-  return (
-    <div className="flex flex-col items-center gap-1 w-14">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">{label}</span>
+    <div className="flex flex-col items-center">
+      <span className="text-[9px] font-bold text-ink-muted uppercase tracking-wide mb-0.5">{label}</span>
       <input
         type="number"
-        min={1} max={30}
+        min={min ?? 1}
+        max={max ?? 30}
         value={value ?? ''}
-        onChange={e => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-        className="w-full text-center py-1.5 rounded-md border border-border bg-surface-2 text-ink text-sm font-bold focus:outline-none focus:ring-1 focus:ring-accent"
+        onChange={e => onChange(parseInt(e.target.value, 10) || 0)}
+        className="w-12 text-center text-sm font-bold input py-1 px-0"
       />
-      <span className="text-xs text-ink-muted font-mono">
-        {mod != null ? (mod >= 0 ? `+${mod}` : `${mod}`) : '—'}
-      </span>
+      {max === undefined && (
+        <span className="text-[10px] text-accent mt-0.5">
+          {value !== undefined ? abilityMod(value) : '—'}
+        </span>
+      )}
     </div>
   )
 }
 
-// ── Sheet extraction overlay ──────────────────────────────────────────────────
+// ── Sheet upload + Vision preview ─────────────────────────────────────────────
 
-function SheetExtractOverlay({
-  extracted,
-  onApply,
-  onDismiss,
-}: {
-  extracted: Partial<PlayerCharacter>
-  onApply: (data: Partial<PlayerCharacter>) => void
-  onDismiss: () => void
+function SheetUploadButton({ campaignId, pcId, onExtracted }: {
+  campaignId: string; pcId: string; onExtracted: (data: Partial<PCDraft>) => void
 }) {
-  const fields: { key: keyof PlayerCharacter; label: string }[] = [
-    { key: 'name', label: 'Name' },
-    { key: 'playerName', label: 'Player' },
-    { key: 'race', label: 'Race / Ancestry' },
-    { key: 'playbook', label: 'Class / Playbook' },
-    { key: 'subclass', label: 'Subclass' },
-    { key: 'level', label: 'Level' },
-    { key: 'background', label: 'Background' },
-    { key: 'alignment', label: 'Alignment' },
-    { key: 'bonds', label: 'Bonds / Ideals' },
-    { key: 'moves', label: 'Moves / Features' },
-    { key: 'backstory', label: 'Backstory' },
-    { key: 'appearance', label: 'Appearance' },
-  ]
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle')
+  const [error, setError] = useState('')
+  const [previewData, setPreviewData] = useState<Partial<PCDraft> | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  const meaningful = fields.filter(f => {
-    const v = extracted[f.key]
-    return v != null && v !== '' && v !== 0
-  })
+  async function handleFile(file: File) {
+    setStatus('uploading')
+    setError('')
+    const form = new FormData()
+    form.append('sheet', file)
+    try {
+      const res = await api.post<{ assetId: string; extracted: Partial<PCDraft> }>(
+        `/api/campaigns/${campaignId}/player-characters/${pcId}/sheet-upload`,
+        form,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      )
+      setPreviewData({ ...res.data.extracted, sheetAssetId: res.data.assetId })
+      setStatus('done')
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string } } }
+      setError(e?.response?.data?.error ?? 'Upload failed')
+      setStatus('error')
+    }
+  }
 
-  const scores = extracted.abilityScores as AbilityScores | undefined
-  const combat = extracted.combatStats as CombatStats | undefined
-  const equip = extracted.equipment as string[] | undefined
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-surface border border-border rounded-card shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div>
-            <h3 className="font-semibold text-ink">Sheet extracted</h3>
-            <p className="text-xs text-ink-muted mt-0.5">Review the data below before applying it to this character.</p>
-          </div>
-          <button onClick={onDismiss} className="text-ink-muted hover:text-ink transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="p-5 space-y-2">
-          {meaningful.length === 0 && !scores && !combat && !equip?.length && (
-            <p className="text-ink-muted text-sm text-center py-4">No data could be extracted from this image.</p>
-          )}
-          {meaningful.map(({ key, label }) => (
-            <div key={key} className="flex gap-3 text-sm">
-              <span className="w-32 flex-shrink-0 text-ink-muted">{label}</span>
-              <span className="text-ink break-words">{String(extracted[key])}</span>
+  if (status === 'done' && previewData) {
+    return (
+      <div className="mt-3 p-3 bg-surface-2 border border-border rounded-card text-xs space-y-2">
+        <p className="font-semibold text-ink">Sheet scan complete — review extracted fields:</p>
+        <div className="max-h-40 overflow-y-auto space-y-1">
+          {Object.entries(previewData).filter(([, v]) => v !== null && v !== undefined && v !== '').map(([k, v]) => (
+            <div key={k} className="flex gap-2 items-start">
+              <span className="text-ink-muted capitalize min-w-[100px] shrink-0">{k.replace(/([A-Z])/g, ' $1').trim()}</span>
+              <span className="text-ink truncate">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
             </div>
           ))}
-          {scores && Object.values(scores).some(v => v != null) && (
-            <div className="flex gap-3 text-sm">
-              <span className="w-32 flex-shrink-0 text-ink-muted">Ability Scores</span>
-              <span className="text-ink font-mono text-xs">
-                {ABILITY_KEYS.map(k => scores[k] != null ? `${k.toUpperCase()}:${scores[k]}` : null).filter(Boolean).join('  ')}
-              </span>
-            </div>
-          )}
-          {combat && Object.values(combat).some(v => v != null) && (
-            <div className="flex gap-3 text-sm">
-              <span className="w-32 flex-shrink-0 text-ink-muted">Combat Stats</span>
-              <span className="text-ink font-mono text-xs">
-                {[
-                  combat.maxHp != null && `HP:${combat.maxHp}`,
-                  combat.ac != null && `AC:${combat.ac}`,
-                  combat.armor != null && `Armor:${combat.armor}`,
-                  combat.speed && `Spd:${combat.speed}`,
-                  combat.damage && `Dmg:${combat.damage}`,
-                ].filter(Boolean).join('  ')}
-              </span>
-            </div>
-          )}
-          {equip && equip.length > 0 && (
-            <div className="flex gap-3 text-sm">
-              <span className="w-32 flex-shrink-0 text-ink-muted">Equipment</span>
-              <span className="text-ink">{equip.join(', ')}</span>
-            </div>
-          )}
         </div>
-        <div className="flex gap-3 px-5 pb-5">
+        <div className="flex gap-2 pt-1">
           <button
-            onClick={() => onApply(extracted)}
-            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-card bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
+            className="btn-primary text-xs py-1 flex items-center gap-1"
+            onClick={() => { onExtracted(previewData); setStatus('idle'); setPreviewData(null) }}
           >
-            <Check size={14} />
-            Apply to Character
+            <Check size={12} /> Apply to sheet
           </button>
           <button
-            onClick={onDismiss}
-            className="px-4 py-2 rounded-card border border-border text-ink-muted text-sm hover:bg-surface-2 transition-colors"
+            className="btn-secondary text-xs py-1"
+            onClick={() => { setStatus('idle'); setPreviewData(null) }}
           >
-            Dismiss
+            Discard
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-// ── Equipment tag input ───────────────────────────────────────────────────────
-
-function EquipmentInput({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
-  const [draft, setDraft] = useState('')
-  const add = () => {
-    const trimmed = draft.trim()
-    if (trimmed && !value.includes(trimmed)) onChange([...value, trimmed])
-    setDraft('')
+    )
   }
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
-        {value.map(item => (
-          <span key={item} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-2 border border-border text-xs text-ink">
-            {item}
-            <button onClick={() => onChange(value.filter(i => i !== item))} className="text-ink-muted hover:text-danger transition-colors">
-              <X size={10} />
-            </button>
-          </span>
-        ))}
-        {value.length === 0 && <span className="text-xs text-ink-muted italic">No items added</span>}
-      </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          placeholder="Add item…"
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
-          className="flex-1 px-3 py-1.5 rounded-card border border-border bg-surface-2 text-ink text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-        />
-        <button onClick={add} className="px-3 py-1.5 rounded-card border border-border text-ink-muted hover:text-ink hover:bg-surface-2 text-sm transition-colors">
-          Add
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ── Main CharacterSheet editor ────────────────────────────────────────────────
-
-function CharacterSheet({
-  pc,
-  campaignId,
-  onUpdated,
-  onDelete,
-}: {
-  pc: PlayerCharacter
-  campaignId: string
-  onUpdated: () => void
-  onDelete: () => void
-}) {
-  const qc = useQueryClient()
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [activeTab, setActiveTab] = useState<'info' | 'stats' | 'moves' | 'story'>('info')
-  const [draft, setDraft] = useState<PlayerCharacter>(pc)
-  const [isDirty, setIsDirty] = useState(false)
-  const [uploadPhase, setUploadPhase] = useState<'idle' | 'uploading' | 'extracted' | 'error'>('idle')
-  const [uploadError, setUploadError] = useState('')
-  const [extracted, setExtracted] = useState<Partial<PlayerCharacter> | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState(false)
-
-  const set = <K extends keyof PlayerCharacter>(key: K, value: PlayerCharacter[K]) => {
-    setDraft(d => ({ ...d, [key]: value }))
-    setIsDirty(true)
-  }
-
-  const setScore = (key: keyof AbilityScores, value: number | undefined) => {
-    setDraft(d => ({ ...d, abilityScores: { ...d.abilityScores, [key]: value } }))
-    setIsDirty(true)
-  }
-
-  const setCombat = (key: keyof CombatStats, value: string | number | undefined) => {
-    setDraft(d => ({ ...d, combatStats: { ...d.combatStats, [key]: value } }))
-    setIsDirty(true)
-  }
-
-  const save = useMutation({
-    mutationFn: () => api.patch(`/api/campaigns/${campaignId}/player-characters/${pc.id}`, draft),
-    onSuccess: () => {
-      setIsDirty(false)
-      qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
-      onUpdated()
-    },
-  })
-
-  const deleteMut = useMutation({
-    mutationFn: () => api.delete(`/api/campaigns/${campaignId}/player-characters/${pc.id}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
-      onDelete()
-    },
-  })
-
-  const uploadMut = useMutation({
-    mutationFn: async (file: File) => {
-      setUploadPhase('uploading')
-      setUploadError('')
-      const arrayBuf = await file.arrayBuffer()
-      const uint8 = new Uint8Array(arrayBuf)
-      let binary = ''
-      for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i])
-      const imageData = btoa(binary)
-      const r = await api.post(`/api/campaigns/${campaignId}/player-characters/${pc.id}/sheet-upload`, {
-        imageData,
-        mimeType: file.type || 'image/png',
-      })
-      return r.data as { assetId: string; extracted: Partial<PlayerCharacter> | null; warning?: string }
-    },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
-      if (data.extracted && Object.keys(data.extracted).length > 0) {
-        setExtracted(data.extracted)
-        setUploadPhase('extracted')
-      } else {
-        setUploadPhase('idle')
-      }
-    },
-    onError: (err) => {
-      setUploadError(apiError(err))
-      setUploadPhase('error')
-    },
-  })
-
-  const applyExtracted = useMutation({
-    mutationFn: (data: Partial<PlayerCharacter>) => {
-      const clean: Partial<PlayerCharacter> = {}
-      for (const [k, v] of Object.entries(data)) {
-        if (v != null && v !== '' && (!Array.isArray(v) || v.length > 0)) {
-          (clean as Record<string, unknown>)[k] = v
-        }
-      }
-      return api.patch(`/api/campaigns/${campaignId}/player-characters/${pc.id}`, clean)
-    },
-    onSuccess: () => {
-      setExtracted(null)
-      setUploadPhase('idle')
-      qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
-      onUpdated()
-    },
-  })
-
-  const scores = draft.abilityScores as AbilityScores
-  const combat = draft.combatStats as CombatStats
-
-  const tabs = [
-    { id: 'info' as const, label: 'Character', icon: <User size={13} /> },
-    { id: 'stats' as const, label: 'Stats', icon: <Shield size={13} /> },
-    { id: 'moves' as const, label: 'Moves', icon: <Sword size={13} /> },
-    { id: 'story' as const, label: 'Story', icon: <BookOpen size={13} /> },
-  ]
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Sheet upload extraction overlay */}
-      {uploadPhase === 'extracted' && extracted && (
-        <SheetExtractOverlay
-          extracted={extracted}
-          onApply={data => applyExtracted.mutate(data)}
-          onDismiss={() => { setExtracted(null); setUploadPhase('idle') }}
-        />
+    <div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }}
+      />
+      <button
+        className="btn-secondary text-xs py-1.5 flex items-center gap-1.5"
+        disabled={status === 'uploading'}
+        onClick={() => fileRef.current?.click()}
+      >
+        {status === 'uploading' ? <Loader size={12} className="animate-spin" /> : <Upload size={12} />}
+        {status === 'uploading' ? 'Scanning…' : 'Upload Sheet'}
+      </button>
+      {status === 'error' && (
+        <p className="text-xs text-red-400 mt-1">{error}</p>
       )}
+    </div>
+  )
+}
 
-      {/* Header */}
-      <div className="flex items-start gap-4 px-5 pt-5 pb-4 border-b border-border flex-shrink-0">
-        {/* Portrait */}
-        <div className="flex flex-col items-center gap-2">
-          <PortraitDisplay pc={draft} size="lg" />
+// ── PC Card (compact) ─────────────────────────────────────────────────────────
+
+function PCCard({ pc, campaignId, onSelect, onDelete }: {
+  pc: PlayerCharacter; campaignId: string
+  onSelect: () => void; onDelete: () => void
+}) {
+  return (
+    <div
+      className="card cursor-pointer hover:border-accent/40 transition-colors group"
+      onClick={onSelect}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex flex-col gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+          <EntityAvatarWithArt
+            assetId={pc.portraitAssetId}
+            entityType="pc"
+            altText={pc.portraitAsset?.altText ?? pc.name}
+          />
           <GenerateArtButton
             kind="portrait_pc"
             entityId={pc.id}
             campaignId={campaignId}
             entityType="pc"
             currentAssetId={pc.portraitAssetId}
-            onGenerated={() => {
-              qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
-              onUpdated()
-            }}
+            onGenerated={() => {}}
           />
         </div>
-
-        {/* Name + meta */}
-        <div className="flex-1 min-w-0 space-y-2">
-          <input
-            className="w-full text-xl font-bold text-ink bg-transparent border-b border-border focus:outline-none focus:border-accent pb-1"
-            value={draft.name}
-            onChange={e => set('name', e.target.value)}
-            placeholder="Character name…"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              className="px-2 py-1 rounded border border-border bg-surface-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-              placeholder="Player name"
-              value={draft.playerName}
-              onChange={e => set('playerName', e.target.value)}
-            />
-            <input
-              type="number"
-              min={1} max={30}
-              className="px-2 py-1 rounded border border-border bg-surface-2 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-              placeholder="Level"
-              value={draft.level || ''}
-              onChange={e => set('level', Number(e.target.value) || 1)}
-            />
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Upload Sheet */}
-            <input ref={fileRef} type="file" accept="image/*" className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) uploadMut.mutate(f); e.target.value = '' }}
-            />
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={uploadPhase === 'uploading'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-card border border-border text-xs text-ink-muted hover:text-ink hover:bg-surface-2 disabled:opacity-50 transition-colors"
-            >
-              {uploadPhase === 'uploading'
-                ? <><Loader2 size={12} className="animate-spin" /> Extracting…</>
-                : <><Upload size={12} /> Upload Sheet</>
-              }
-            </button>
-            {uploadPhase === 'error' && (
-              <span className="text-xs text-danger flex items-center gap-1">
-                <AlertCircle size={12} /> {uploadError}
+        <div className="flex-1 min-w-0">
+          <h3 className="display-font font-semibold text-ink text-base leading-tight truncate">{pc.name}</h3>
+          {pc.playerName && <p className="text-xs text-ink-muted">Player: {pc.playerName}</p>}
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {pc.race && <span className="badge bg-surface-2 text-ink-muted text-[10px]">{pc.race}</span>}
+            {pc.class && (
+              <span className="badge bg-accent/10 text-accent text-[10px]">
+                {pc.subclass ? `${pc.subclass} ${pc.class}` : pc.class}
               </span>
             )}
-            {/* XP */}
-            <label className="flex items-center gap-1.5 text-xs text-ink-muted ml-auto">
-              <Star size={12} />
-              <span>XP</span>
-              <input
-                type="number" min={0}
-                value={draft.xp || 0}
-                onChange={e => set('xp', Number(e.target.value))}
-                className="w-16 px-2 py-0.5 rounded border border-border bg-surface-2 text-ink text-xs focus:outline-none focus:ring-1 focus:ring-accent"
-              />
-            </label>
+            <span className="badge bg-surface-2 text-ink-muted text-[10px]">Lv {pc.level}</span>
           </div>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-border px-4 flex-shrink-0">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px',
-              activeTab === t.id
-                ? 'border-accent text-accent'
-                : 'border-transparent text-ink-muted hover:text-ink',
-            )}
-          >
-            {t.icon}{t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
-
-        {/* ── CHARACTER tab ─────────────────────────────────────────────────── */}
-        {activeTab === 'info' && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { key: 'race' as const, label: 'Race / Ancestry' },
-                { key: 'playbook' as const, label: 'Class / Playbook' },
-                { key: 'subclass' as const, label: 'Subclass / Specialization' },
-                { key: 'background' as const, label: 'Background / Origin' },
-                { key: 'alignment' as const, label: 'Alignment' },
-              ].map(({ key, label }) => (
-                <div key={key} className={key === 'subclass' || key === 'background' ? 'col-span-2' : ''}>
-                  <label className="block text-xs text-ink-muted mb-1">{label}</label>
-                  <input
-                    className="w-full px-3 py-1.5 rounded-card border border-border bg-surface-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-                    value={draft[key] as string}
-                    onChange={e => set(key, e.target.value)}
-                    placeholder={label}
-                  />
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* ── STATS tab ─────────────────────────────────────────────────────── */}
-        {activeTab === 'stats' && (
-          <>
-            <div>
-              <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-3">Ability Scores</h4>
-              <div className="flex gap-2 flex-wrap">
-                {ABILITY_KEYS.map(k => (
-                  <AbilityBox
-                    key={k}
-                    label={statLabel(k)}
-                    value={scores[k]}
-                    onChange={v => setScore(k, v)}
-                  />
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-3">Combat</h4>
-              <div className="grid grid-cols-3 gap-3">
-                {([
-                  { key: 'maxHp', label: 'Max HP', type: 'number' },
-                  { key: 'hp', label: 'Current HP', type: 'number' },
-                  { key: 'tempHp', label: 'Temp HP', type: 'number' },
-                  { key: 'ac', label: 'AC / Armor', type: 'number' },
-                  { key: 'initiative', label: 'Initiative', type: 'number' },
-                  { key: 'proficiencyBonus', label: 'Prof. Bonus', type: 'number' },
-                  { key: 'speed', label: 'Speed', type: 'text' },
-                  { key: 'damage', label: 'Damage Dice', type: 'text' },
-                ] as { key: keyof CombatStats; label: string; type: string }[]).map(({ key, label, type }) => (
-                  <div key={key}>
-                    <label className="block text-xs text-ink-muted mb-1">{label}</label>
-                    <input
-                      type={type}
-                      className="w-full px-3 py-1.5 rounded-card border border-border bg-surface-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-                      value={(combat[key] as string | number | undefined) ?? ''}
-                      onChange={e => {
-                        const v = type === 'number'
-                          ? (e.target.value === '' ? undefined : Number(e.target.value))
-                          : e.target.value
-                        setCombat(key, v as string | number | undefined)
-                      }}
-                      placeholder="—"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ── MOVES tab ─────────────────────────────────────────────────────── */}
-        {activeTab === 'moves' && (
-          <>
-            <div>
-              <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider mb-2">
-                Class Features / Moves / Abilities
-              </label>
-              <textarea
-                rows={8}
-                className="w-full px-3 py-2 rounded-card border border-border bg-surface-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent resize-y"
-                placeholder="List class features, playbook moves, spells, special abilities…"
-                value={draft.moves}
-                onChange={e => set('moves', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider mb-2">Equipment</label>
-              <EquipmentInput
-                value={Array.isArray(draft.equipment) ? draft.equipment as string[] : []}
-                onChange={v => set('equipment', v)}
-              />
-            </div>
-          </>
-        )}
-
-        {/* ── STORY tab ─────────────────────────────────────────────────────── */}
-        {activeTab === 'story' && (
-          <>
-            {([
-              { key: 'appearance' as const, label: 'Appearance', placeholder: 'Physical description…' },
-              { key: 'bonds' as const, label: 'Bonds / Ideals / Flaws', placeholder: 'Relationships, drives, compulsions, ties to the world…' },
-              { key: 'backstory' as const, label: 'Backstory', placeholder: 'History and background…' },
-              { key: 'notes' as const, label: "GM / Player Notes", placeholder: 'Anything else worth tracking…' },
-            ]).map(({ key, label, placeholder }) => (
-              <div key={key}>
-                <label className="block text-xs font-semibold text-ink-muted uppercase tracking-wider mb-1">{label}</label>
-                <textarea
-                  rows={4}
-                  className="w-full px-3 py-2 rounded-card border border-border bg-surface-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent resize-y"
-                  placeholder={placeholder}
-                  value={draft[key] as string}
-                  onChange={e => set(key, e.target.value)}
-                />
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-
-      {/* Footer: Save + Delete */}
-      <div className="flex items-center gap-3 px-5 py-3 border-t border-border flex-shrink-0 bg-surface">
-        {confirmDelete ? (
-          <>
-            <span className="text-xs text-danger flex-1">Delete this character?</span>
-            <button onClick={() => deleteMut.mutate()} className="text-xs px-3 py-1.5 rounded-card bg-danger text-white hover:bg-danger/90 transition-colors">
-              Yes, delete
-            </button>
-            <button onClick={() => setConfirmDelete(false)} className="text-xs px-3 py-1.5 rounded-card border border-border text-ink-muted hover:bg-surface-2 transition-colors">
-              Cancel
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="text-xs flex items-center gap-1.5 text-ink-muted hover:text-danger transition-colors"
-            >
-              <Trash2 size={13} /> Delete
-            </button>
-            <div className="flex-1" />
-            {isDirty && (
-              <span className="text-xs text-ink-muted/60 italic">Unsaved changes</span>
-            )}
-            <button
-              onClick={() => save.mutate()}
-              disabled={!isDirty || save.isPending}
-              className="flex items-center gap-2 px-4 py-2 rounded-card bg-accent text-white text-sm font-medium hover:bg-accent/90 disabled:opacity-40 transition-colors"
-            >
-              {save.isPending ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-              Save
-            </button>
-          </>
-        )}
+        <button
+          className="btn-ghost p-1 text-danger opacity-0 group-hover:opacity-100 shrink-0"
+          onClick={e => { e.stopPropagation(); onDelete() }}
+          title="Delete character"
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
     </div>
   )
 }
 
-// ── New PC form ───────────────────────────────────────────────────────────────
+// ── PC Sheet Editor ───────────────────────────────────────────────────────────
 
-function NewPCModal({
-  campaignId,
-  onCreated,
-  onClose,
-}: { campaignId: string; onCreated: (pc: PlayerCharacter) => void; onClose: () => void }) {
+function PCSheetEditor({ pc, campaignId, onClose, onSaved }: {
+  pc: PlayerCharacter; campaignId: string; onClose: () => void; onSaved: () => void
+}) {
   const qc = useQueryClient()
-  const [name, setName] = useState('')
-  const [playerName, setPlayerName] = useState('')
-  const [race, setRace] = useState('')
-  const [playbook, setPlaybook] = useState('')
+  const [draft, setDraft] = useState<PCDraft>({
+    name: pc.name, playerName: pc.playerName, race: pc.race,
+    class: pc.class, subclass: pc.subclass, level: pc.level,
+    background: pc.background, alignment: pc.alignment, appearance: pc.appearance,
+    backstory: pc.backstory, notes: pc.notes, features: pc.features,
+    abilityScores: { ...pc.abilityScores },
+    combatStats: { ...pc.combatStats },
+    skills: { ...pc.skills },
+    savingThrows: { ...pc.savingThrows },
+    equipment: [...(pc.equipment ?? [])],
+    portraitAssetId: pc.portraitAssetId,
+    sheetAssetId: pc.sheetAssetId,
+  })
+  const [equipInput, setEquipInput] = useState('')
+  const [combatOpen, setCombatOpen] = useState(true)
+  const [skillsOpen, setSkillsOpen] = useState(false)
+  const [featuresOpen, setFeaturesOpen] = useState(true)
+  const [equipOpen, setEquipOpen] = useState(true)
+  const [backstoryOpen, setBackstoryOpen] = useState(false)
 
-  const create = useMutation({
-    mutationFn: () => api.post(`/api/campaigns/${campaignId}/player-characters`, {
-      name: name.trim(), playerName, race, playbook,
-    }),
-    onSuccess: (r) => {
+  const updateMutation = useMutation({
+    mutationFn: (data: Partial<PCDraft>) =>
+      api.patch(`/api/campaigns/${campaignId}/player-characters/${pc.id}`, data),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
-      onCreated(r.data.playerCharacter)
+      onSaved()
     },
   })
 
+  function applyExtracted(data: Partial<PCDraft>) {
+    setDraft(d => ({
+      ...d,
+      ...(data.name ? { name: data.name } : {}),
+      ...(data.playerName ? { playerName: data.playerName } : {}),
+      ...(data.race ? { race: data.race } : {}),
+      ...(data.class ? { class: data.class } : {}),
+      ...(data.subclass ? { subclass: data.subclass } : {}),
+      ...(data.level ? { level: data.level } : {}),
+      ...(data.background ? { background: data.background } : {}),
+      ...(data.alignment ? { alignment: data.alignment } : {}),
+      ...(data.appearance ? { appearance: data.appearance } : {}),
+      ...(data.backstory ? { backstory: data.backstory } : {}),
+      ...(data.notes ? { notes: data.notes } : {}),
+      ...(data.features ? { features: data.features } : {}),
+      ...(data.sheetAssetId ? { sheetAssetId: data.sheetAssetId } : {}),
+      abilityScores: data.abilityScores ? { ...d.abilityScores, ...data.abilityScores } : d.abilityScores,
+      combatStats: data.combatStats ? { ...d.combatStats, ...data.combatStats } : d.combatStats,
+      skills: data.skills ? { ...d.skills, ...data.skills } : d.skills,
+      savingThrows: data.savingThrows ? { ...d.savingThrows, ...data.savingThrows } : d.savingThrows,
+      equipment: data.equipment?.length ? data.equipment : d.equipment,
+    }))
+  }
+
+  function updateAbility(key: keyof AbilityScores, val: number) {
+    setDraft(d => ({ ...d, abilityScores: { ...d.abilityScores, [key]: val } }))
+  }
+  function updateCombat(key: keyof CombatStats, val: number | boolean) {
+    setDraft(d => ({ ...d, combatStats: { ...d.combatStats, [key]: val } }))
+  }
+  function addEquipment() {
+    const item = equipInput.trim()
+    if (!item) return
+    setDraft(d => ({ ...d, equipment: [...d.equipment, item] }))
+    setEquipInput('')
+  }
+  function removeEquipment(idx: number) {
+    setDraft(d => ({ ...d, equipment: d.equipment.filter((_, i) => i !== idx) }))
+  }
+
+  const section = (label: string, open: boolean, toggle: () => void, children: React.ReactNode) => (
+    <div className="border border-border rounded-card overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-4 py-2.5 bg-surface-2 text-sm font-semibold text-ink"
+        onClick={toggle}
+      >
+        {label}
+        {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+      </button>
+      {open && <div className="p-4">{children}</div>}
+    </div>
+  )
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-surface border border-border rounded-card shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h3 className="font-semibold text-ink">Add Player Character</h3>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="p-5 space-y-3">
-          <div>
-            <label className="block text-xs text-ink-muted mb-1">Character Name *</label>
-            <input
-              autoFocus
-              className="w-full px-3 py-2 rounded-card border border-border bg-surface-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-              placeholder="Aria Windmere"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && name.trim()) create.mutate() }}
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-ink-muted mb-1">Player's Name</label>
-            <input
-              className="w-full px-3 py-2 rounded-card border border-border bg-surface-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-              placeholder="Jordan"
-              value={playerName}
-              onChange={e => setPlayerName(e.target.value)}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-ink-muted mb-1">Race / Ancestry</label>
-              <input
-                className="w-full px-3 py-2 rounded-card border border-border bg-surface-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="Elf"
-                value={race}
-                onChange={e => setRace(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-ink-muted mb-1">Class / Playbook</label>
-              <input
-                className="w-full px-3 py-2 rounded-card border border-border bg-surface-2 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-                placeholder="Ranger"
-                value={playbook}
-                onChange={e => setPlaybook(e.target.value)}
-              />
-            </div>
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-surface rounded-card border border-border w-full max-w-3xl my-4 shadow-xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="display-font text-xl font-bold text-ink">
+            {pc.name || 'Character Sheet'}
+          </h2>
+          <div className="flex items-center gap-2">
+            <SheetUploadButton campaignId={campaignId} pcId={pc.id} onExtracted={applyExtracted} />
+            <button
+              className="btn-primary text-sm py-1.5 flex items-center gap-1"
+              onClick={() => updateMutation.mutate(draft)}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? <Loader size={12} className="animate-spin" /> : <Save size={12} />}
+              Save
+            </button>
+            <button className="btn-ghost p-1.5" onClick={onClose}><X size={16} /></button>
           </div>
         </div>
-        <div className="flex gap-3 px-5 pb-5">
-          <button
-            onClick={() => create.mutate()}
-            disabled={!name.trim() || create.isPending}
-            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-card bg-accent text-white text-sm font-medium hover:bg-accent/90 disabled:opacity-40 transition-colors"
-          >
-            {create.isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-            Create Character
-          </button>
-          <button onClick={onClose} className="px-4 py-2 rounded-card border border-border text-ink-muted text-sm hover:bg-surface-2 transition-colors">
-            Cancel
-          </button>
+
+        <div className="p-6 space-y-4">
+          {/* Portrait */}
+          <div className="flex items-start gap-4">
+            <div className="flex flex-col gap-2 shrink-0">
+              <EntityAvatarWithArt
+                assetId={draft.portraitAssetId}
+                entityType="pc"
+                altText={pc.name}
+              />
+              <GenerateArtButton
+                kind="portrait_pc"
+                entityId={pc.id}
+                campaignId={campaignId}
+                entityType="pc"
+                currentAssetId={draft.portraitAssetId}
+                onGenerated={() => qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })}
+              />
+            </div>
+            <div className="flex-1 grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Character Name</label>
+                <input className="input text-sm" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Player Name</label>
+                <input className="input text-sm" value={draft.playerName} onChange={e => setDraft(d => ({ ...d, playerName: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Race</label>
+                <input className="input text-sm" value={draft.race} onChange={e => setDraft(d => ({ ...d, race: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Class</label>
+                <input className="input text-sm" value={draft.class} onChange={e => setDraft(d => ({ ...d, class: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Subclass</label>
+                <input className="input text-sm" value={draft.subclass} onChange={e => setDraft(d => ({ ...d, subclass: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Level</label>
+                <input
+                  type="number" min={1} max={20} className="input text-sm"
+                  value={draft.level}
+                  onChange={e => setDraft(d => ({ ...d, level: parseInt(e.target.value, 10) || 1 }))}
+                />
+              </div>
+              <div>
+                <label className="label">Background</label>
+                <input className="input text-sm" value={draft.background} onChange={e => setDraft(d => ({ ...d, background: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Alignment</label>
+                <select className="input text-sm" value={draft.alignment} onChange={e => setDraft(d => ({ ...d, alignment: e.target.value }))}>
+                  <option value="">—</option>
+                  {ALIGNMENTS.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Ability Scores */}
+          <div className="border border-border rounded-card p-4">
+            <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-3">Ability Scores</p>
+            <div className="flex gap-3 flex-wrap">
+              {ABILITY_LABELS.map(([key, label]) => (
+                <NumInput
+                  key={key}
+                  label={label}
+                  value={(draft.abilityScores as Record<string, number>)[key]}
+                  onChange={val => updateAbility(key, val)}
+                  max={30}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Combat Stats */}
+          {section('Combat Stats', combatOpen, () => setCombatOpen(v => !v), (
+            <div className="grid grid-cols-4 gap-3">
+              {([
+                ['hp', 'Current HP', 1, 999],
+                ['maxHp', 'Max HP', 1, 999],
+                ['tempHp', 'Temp HP', 0, 999],
+                ['ac', 'AC', 1, 30],
+                ['initiative', 'Initiative', -5, 20],
+                ['speed', 'Speed', 0, 120],
+                ['proficiencyBonus', 'Prof Bonus', 2, 6],
+              ] as [keyof CombatStats, string, number, number][]).map(([key, label, min, max]) => (
+                <div key={key} className="flex flex-col">
+                  <label className="label text-[10px]">{label}</label>
+                  <input
+                    type="number" min={min} max={max}
+                    className="input text-sm py-1"
+                    value={(draft.combatStats as Record<string, number>)[key as string] ?? ''}
+                    onChange={e => updateCombat(key, parseInt(e.target.value, 10) || 0)}
+                  />
+                </div>
+              ))}
+              <div className="flex flex-col">
+                <label className="label text-[10px]">Inspiration</label>
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!draft.combatStats.inspiration}
+                    onChange={e => updateCombat('inspiration', e.target.checked)}
+                    className="w-4 h-4 rounded border-border accent-accent"
+                  />
+                  <span className="text-sm text-ink">Yes</span>
+                </label>
+              </div>
+            </div>
+          ))}
+
+          {/* Saving Throws & Skills */}
+          {section('Saving Throws & Skills', skillsOpen, () => setSkillsOpen(v => !v), (
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Saving Throws</p>
+                <div className="space-y-1.5">
+                  {ABILITY_LABELS.map(([key, label]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <input
+                        type="number" min={-5} max={20}
+                        className="input text-sm py-0.5 w-14 text-center"
+                        value={(draft.savingThrows as Record<string, number>)[key as string] ?? ''}
+                        onChange={e => setDraft(d => ({ ...d, savingThrows: { ...d.savingThrows, [key]: parseInt(e.target.value, 10) || 0 } }))}
+                      />
+                      <span className="text-sm text-ink">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">Skills</p>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                  {SKILL_LABELS.map(([key, label]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <input
+                        type="number" min={-5} max={20}
+                        className="input text-sm py-0.5 w-14 text-center"
+                        value={(draft.skills as Record<string, number>)[key as string] ?? ''}
+                        onChange={e => setDraft(d => ({ ...d, skills: { ...d.skills, [key]: parseInt(e.target.value, 10) || 0 } }))}
+                      />
+                      <span className="text-sm text-ink">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Equipment */}
+          {section('Equipment', equipOpen, () => setEquipOpen(v => !v), (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  className="input text-sm flex-1"
+                  placeholder="Add item…"
+                  value={equipInput}
+                  onChange={e => setEquipInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addEquipment() } }}
+                />
+                <button className="btn-secondary py-1 px-3 text-sm flex items-center gap-1" onClick={addEquipment}>
+                  <Plus size={13} /> Add
+                </button>
+              </div>
+              {draft.equipment.length > 0 ? (
+                <ul className="space-y-1">
+                  {draft.equipment.map((item, i) => (
+                    <li key={i} className="flex items-center justify-between gap-2 py-0.5">
+                      <span className="text-sm text-ink">{item}</span>
+                      <button className="btn-ghost p-0.5 text-danger shrink-0" onClick={() => removeEquipment(i)}>
+                        <X size={12} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-ink-muted italic">No equipment added yet.</p>
+              )}
+            </div>
+          ))}
+
+          {/* Features & Traits */}
+          {section('Features & Traits', featuresOpen, () => setFeaturesOpen(v => !v), (
+            <textarea
+              className="textarea text-sm"
+              rows={4}
+              placeholder="Class features, racial traits, feats…"
+              value={draft.features}
+              onChange={e => setDraft(d => ({ ...d, features: e.target.value }))}
+            />
+          ))}
+
+          {/* Backstory & Notes */}
+          {section('Backstory & Notes', backstoryOpen, () => setBackstoryOpen(v => !v), (
+            <div className="space-y-3">
+              <div>
+                <label className="label">Appearance</label>
+                <textarea className="textarea text-sm" rows={2} value={draft.appearance} onChange={e => setDraft(d => ({ ...d, appearance: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Backstory</label>
+                <textarea className="textarea text-sm" rows={4} value={draft.backstory} onChange={e => setDraft(d => ({ ...d, backstory: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Notes</label>
+                <textarea className="textarea text-sm" rows={3} value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   )
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Main PlayersPage ──────────────────────────────────────────────────────────
 
 export default function PlayersPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [showNew, setShowNew] = useState(false)
+  const qc = useQueryClient()
+  const [selectedPcId, setSelectedPcId] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newPlayerName, setNewPlayerName] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['player-characters', campaignId],
@@ -771,91 +607,141 @@ export default function PlayersPage() {
     enabled: !!campaignId,
   })
 
-  const pcs: PlayerCharacter[] = data?.playerCharacters ?? []
-  const selected = pcs.find(p => p.id === selectedId) ?? null
+  const characters: PlayerCharacter[] = data?.items ?? []
+  const selectedPc = characters.find(pc => pc.id === selectedPcId) ?? null
+
+  const createMutation = useMutation({
+    mutationFn: (body: { name: string; playerName?: string }) =>
+      api.post(`/api/campaigns/${campaignId}/player-characters`, body),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
+      setSelectedPcId(res.data.item.id)
+      setCreating(false)
+      setNewName('')
+      setNewPlayerName('')
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (pcId: string) =>
+      api.delete(`/api/campaigns/${campaignId}/player-characters/${pcId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
+      setSelectedPcId(null)
+    },
+  })
+
+  function handleCreate() {
+    if (!newName.trim()) return
+    createMutation.mutate({ name: newName.trim(), playerName: newPlayerName.trim() || undefined })
+  }
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {showNew && campaignId && (
-        <NewPCModal
-          campaignId={campaignId}
-          onCreated={pc => { setShowNew(false); setSelectedId(pc.id) }}
-          onClose={() => setShowNew(false)}
-        />
-      )}
-
-      {/* Left panel — PC list */}
-      <div className="w-64 flex flex-col border-r border-border bg-surface flex-shrink-0">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div>
-            <h2 className="font-semibold text-ink text-sm">Players</h2>
-            <p className="text-xs text-ink-muted">{pcs.length} character{pcs.length !== 1 ? 's' : ''}</p>
-          </div>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="px-8 py-6 border-b border-border">
+        <div className="flex items-center justify-between">
+          <h1 className="display-font text-3xl font-bold text-ink flex items-center gap-3">
+            <Users size={28} className="text-accent" />
+            Players
+          </h1>
           <button
-            onClick={() => setShowNew(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-card bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 border border-accent/20 transition-colors"
+            className="btn-primary flex items-center gap-1.5"
+            onClick={() => setCreating(true)}
           >
-            <Plus size={13} /> Add
+            <Plus size={16} /> Add Character
           </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {isLoading && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-ink-muted" />
-            </div>
-          )}
-          {!isLoading && pcs.length === 0 && (
-            <div className="text-center py-8 px-3">
-              <User size={28} className="mx-auto text-ink-muted/40 mb-2" />
-              <p className="text-xs text-ink-muted">No characters yet</p>
-              <button
-                onClick={() => setShowNew(true)}
-                className="mt-3 text-xs text-accent hover:underline"
-              >
-                Add the first one
-              </button>
-            </div>
-          )}
-          {pcs.map(pc => (
-            <PCCard
-              key={pc.id}
-              pc={pc}
-              isSelected={selectedId === pc.id}
-              onClick={() => setSelectedId(pc.id)}
-            />
-          ))}
         </div>
       </div>
 
-      {/* Right panel — sheet editor */}
-      <div className="flex-1 overflow-hidden bg-surface">
-        {selected && campaignId ? (
-          <CharacterSheet
-            key={selected.id}
-            pc={selected}
-            campaignId={campaignId}
-            onUpdated={() => {}}
-            onDelete={() => setSelectedId(null)}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-8">
-            <User size={48} className="text-ink-muted/30" />
-            <div>
-              <p className="font-medium text-ink-muted">Select a character to view their sheet</p>
-              <p className="text-xs text-ink-muted/60 mt-1">
-                Or add a new player character to get started.
-              </p>
+      {/* Add character inline form */}
+      {creating && (
+        <div className="px-8 py-4 border-b border-border bg-surface-2">
+          <div className="flex items-end gap-3 max-w-lg">
+            <div className="flex-1">
+              <label className="label">Character Name *</label>
+              <input
+                className="input text-sm"
+                placeholder="Aragorn"
+                value={newName}
+                autoFocus
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="label">Player Name</label>
+              <input
+                className="input text-sm"
+                placeholder="Sarah"
+                value={newPlayerName}
+                onChange={e => setNewPlayerName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
+              />
             </div>
             <button
-              onClick={() => setShowNew(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-card bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
+              className="btn-primary py-2 flex items-center gap-1"
+              onClick={handleCreate}
+              disabled={createMutation.isPending || !newName.trim()}
             >
-              <Plus size={14} /> Add Character
+              {createMutation.isPending ? <Loader size={14} className="animate-spin" /> : <Check size={14} />}
+              Create
             </button>
+            <button className="btn-secondary py-2" onClick={() => { setCreating(false); setNewName('') }}>
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-8 py-6">
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : characters.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="text-5xl mb-4">🎲</div>
+            <h2 className="display-font text-xl text-ink mb-2">No player characters yet</h2>
+            <p className="text-ink-muted text-sm mb-4">
+              Add your party members to track their stats and portraits.
+            </p>
+            <button className="btn-primary" onClick={() => setCreating(true)}>
+              <Plus size={16} /> Add Character
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {characters.map(pc => (
+              <PCCard
+                key={pc.id}
+                pc={pc}
+                campaignId={campaignId!}
+                onSelect={() => setSelectedPcId(pc.id)}
+                onDelete={() => {
+                  if (confirm(`Delete ${pc.name}? This cannot be undone.`)) {
+                    deleteMutation.mutate(pc.id)
+                  }
+                }}
+              />
+            ))}
           </div>
         )}
       </div>
+
+      {/* Sheet editor modal */}
+      {selectedPc && (
+        <PCSheetEditor
+          pc={selectedPc}
+          campaignId={campaignId!}
+          onClose={() => setSelectedPcId(null)}
+          onSaved={() => {
+            qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
+          }}
+        />
+      )}
     </div>
   )
 }
+

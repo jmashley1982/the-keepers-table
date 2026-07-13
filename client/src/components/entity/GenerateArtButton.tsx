@@ -74,10 +74,18 @@ export default function GenerateArtButton({
   })
   const presets: StylePreset[] = presetsData?.presets ?? []
 
+  const isPc = entityType === 'pc'
   const entityPath = entityType === 'npc' ? 'npcs'
     : entityType === 'location' ? 'locations'
+    : entityType === 'pc' ? 'player-characters'
     : 'items'
-  const assetField = entityType === 'npc' ? 'portraitAssetId' : 'imageAssetId'
+  const assetField = (entityType === 'npc' || entityType === 'pc') ? 'portraitAssetId' : 'imageAssetId'
+  const patchBase = isPc
+    ? `/api/campaigns/${campaignId}/player-characters`
+    : `/api/entities/${campaignId}/${entityPath}`
+  const invalidateKey = isPc
+    ? ['player-characters', campaignId]
+    : ['entities', campaignId, entityType]
 
   const jobId = phase.name === 'generating' ? phase.jobId : null
   const jobStatus = useJobStatus(jobId, () => setPhase({ name: 'idle' }))
@@ -89,7 +97,7 @@ export default function GenerateArtButton({
         setPhase({ name: 'await_replace', newAssetId: jobStatus.assetId, prevAssetId: currentAssetId })
       } else {
         setPhase({ name: 'idle' })
-        qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
+        qc.invalidateQueries({ queryKey: invalidateKey })
         onGenerated?.()
       }
     }
@@ -142,11 +150,11 @@ export default function GenerateArtButton({
 
   const revertMutation = useMutation({
     mutationFn: ({ prevAssetId, newAssetId }: { prevAssetId: string; newAssetId: string }) =>
-      api.patch(`/api/entities/${campaignId}/${entityPath}/${entityId}`, {
+      api.patch(`${patchBase}/${entityId}`, {
         [assetField]: prevAssetId,
       }).then(() => deleteAssetMutation.mutateAsync(newAssetId)),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
+      qc.invalidateQueries({ queryKey: invalidateKey })
       setPhase({ name: 'idle' })
     },
   })
@@ -189,7 +197,7 @@ export default function GenerateArtButton({
     const { prevAssetId } = phase
     // Delete the superseded (old) asset from storage
     deleteAssetMutation.mutate(prevAssetId)
-    qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
+    qc.invalidateQueries({ queryKey: invalidateKey })
     setPhase({ name: 'idle' })
     onGenerated?.()
   }

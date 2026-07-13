@@ -20,6 +20,7 @@ import WorldMapGeneratorPage from './pages/campaign/WorldMapGeneratorPage'
 import MapsPage from './pages/campaign/MapsPage'
 import PlayersPage from './pages/campaign/PlayersPage'
 import CampaignSettingsPage from './pages/campaign/CampaignSettingsPage'
+import PlayersPage from './pages/campaign/PlayersPage'
 import SettingsPage from './pages/SettingsPage'
 import AppShell from './components/layout/AppShell'
 
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="campaign/:campaignId/generate/battle-map" element={<BattleMapGeneratorPage />} />
         <Route path="campaign/:campaignId/generate/world-map" element={<WorldMapGeneratorPage />} />
         <Route path="campaign/:campaignId/generate/:kind" element={<GeneratorPage />} />
+        <Route path="campaign/:campaignId/players" element={<PlayersPage />} />
         <Route path="campaign/:campaignId/settings" element={<CampaignSettingsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

@@ -2,13 +2,16 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { z } from 'zod'
-import { StorageService } from '../lib/storage.js'
-import { decrypt } from '../lib/crypto.js'
+import multer from 'multer'
 import Anthropic from '@anthropic-ai/sdk'
-import sharp from 'sharp'
+import { decrypt } from '../lib/crypto.js'
+import { StorageService } from '../lib/storage.js'
+import type { Prisma } from '@prisma/client'
 
-export const playerCharactersRouter = Router({ mergeParams: true })
+export const playerCharactersRouter = Router()
 playerCharactersRouter.use(requireAuth)
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
 
 async function verifyCampaign(campaignId: string, userId: string) {
   return prisma.campaign.findFirst({
@@ -16,196 +19,265 @@ async function verifyCampaign(campaignId: string, userId: string) {
   })
 }
 
-const pcSchema = z.object({
+async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
+  const anthropicCred = await prisma.apiCredential.findUnique({
+    where: { userId_provider: { userId, provider: 'anthropic' } },
+  })
+  if (anthropicCred?.encryptedKey) {
+    try {
+      const key = decrypt(anthropicCred.encryptedKey)
+      return new Anthropic({ apiKey: key })
+    } catch { /* fall through */ }
+  }
+  const evolinkCred = await prisma.apiCredential.findUnique({
+    where: { userId_provider: { userId, provider: 'evolink' } },
+  })
+  if (evolinkCred?.encryptedKey) {
+    try {
+      const key = decrypt(evolinkCred.encryptedKey)
+      return new Anthropic({ apiKey: key, baseURL: 'https://api.evolink.ai/v1' })
+    } catch { return null }
+  }
+  return null
+}
+
+const pcCreateSchema = z.object({
   name: z.string().min(1),
   playerName: z.string().optional(),
   race: z.string().optional(),
-  playbook: z.string().optional(),
+  class: z.string().optional(),
   subclass: z.string().optional(),
-  level: z.number().int().min(1).max(30).optional(),
+  level: z.number().int().min(1).max(20).optional(),
+
   background: z.string().optional(),
   alignment: z.string().optional(),
   appearance: z.string().optional(),
   backstory: z.string().optional(),
   notes: z.string().optional(),
-  bonds: z.string().optional(),
-  moves: z.string().optional(),
+  features: z.string().optional(),
+
   abilityScores: z.record(z.unknown()).optional(),
   combatStats: z.record(z.unknown()).optional(),
   skills: z.record(z.unknown()).optional(),
   savingThrows: z.record(z.unknown()).optional(),
   equipment: z.array(z.string()).optional(),
-  xp: z.number().int().min(0).optional(),
   portraitAssetId: z.string().nullable().optional(),
   sheetAssetId: z.string().nullable().optional(),
 })
 
-// LIST
-playerCharactersRouter.get('/', async (req, res) => {
+const pcUpdateSchema = pcCreateSchema.partial()
+
+// ── GET list ──────────────────────────────────────────────────────────────────
+
+playerCharactersRouter.get('/:campaignId/player-characters', async (req, res) => {
   const userId = res.locals.user.id
-  const { campaignId } = req.params as { campaignId: string }
+  const campaignId = req.params.campaignId as string
   const campaign = await verifyCampaign(campaignId, userId)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
-  const pcs = await prisma.playerCharacter.findMany({
+
+  const items = await prisma.playerCharacter.findMany({
     where: { campaignId, deletedAt: null },
-    orderBy: { createdAt: 'asc' },
-    include: { portraitAsset: { select: { id: true, altText: true, storageKeyThumb: true } } },
-  })
-  res.json({ playerCharacters: pcs })
-})
-
-// CREATE
-playerCharactersRouter.post('/', async (req, res) => {
-  const userId = res.locals.user.id
-  const { campaignId } = req.params as { campaignId: string }
-  const campaign = await verifyCampaign(campaignId, userId)
-  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
-  const parsed = pcSchema.safeParse(req.body)
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
-  const pc = await prisma.playerCharacter.create({ data: { ...parsed.data, campaignId } })
-  res.json({ playerCharacter: pc })
-})
-
-// GET ONE
-playerCharactersRouter.get('/:pcId', async (req, res) => {
-  const userId = res.locals.user.id
-  const { campaignId, pcId } = req.params as { campaignId: string; pcId: string }
-  const campaign = await verifyCampaign(campaignId, userId)
-  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
-  const pc = await prisma.playerCharacter.findFirst({
-    where: { id: pcId, campaignId, deletedAt: null },
+    orderBy: { updatedAt: 'desc' },
     include: {
-      portraitAsset: { select: { id: true, altText: true, storageKeyThumb: true } },
-      sheetAsset: { select: { id: true, altText: true, storageKeyThumb: true } },
+      portraitAsset: { select: { id: true, altText: true } },
     },
   })
-  if (!pc) { res.status(404).json({ error: 'Player character not found' }); return }
-  res.json({ playerCharacter: pc })
+  res.json({ items })
 })
 
-// UPDATE
-playerCharactersRouter.patch('/:pcId', async (req, res) => {
+// ── POST create ───────────────────────────────────────────────────────────────
+
+playerCharactersRouter.post('/:campaignId/player-characters', async (req, res) => {
   const userId = res.locals.user.id
-  const { campaignId, pcId } = req.params as { campaignId: string; pcId: string }
+  const campaignId = req.params.campaignId as string
   const campaign = await verifyCampaign(campaignId, userId)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
-  const parsed = pcSchema.partial().safeParse(req.body)
+
+  const parsed = pcCreateSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
-  const pc = await prisma.playerCharacter.update({ where: { id: pcId }, data: parsed.data })
-  res.json({ playerCharacter: pc })
+
+  const { abilityScores, combatStats, skills, savingThrows, equipment, ...rest } = parsed.data
+
+  const item = await prisma.playerCharacter.create({
+    data: {
+      ...rest,
+      campaignId,
+      ...(abilityScores !== undefined ? { abilityScores: abilityScores as Prisma.InputJsonValue } : {}),
+      ...(combatStats !== undefined ? { combatStats: combatStats as Prisma.InputJsonValue } : {}),
+      ...(skills !== undefined ? { skills: skills as Prisma.InputJsonValue } : {}),
+      ...(savingThrows !== undefined ? { savingThrows: savingThrows as Prisma.InputJsonValue } : {}),
+      ...(equipment !== undefined ? { equipment: equipment as Prisma.InputJsonValue } : {}),
+    },
+  })
+  res.json({ item })
 })
 
-// DELETE
-playerCharactersRouter.delete('/:pcId', async (req, res) => {
+// ── GET single ────────────────────────────────────────────────────────────────
+
+playerCharactersRouter.get('/:campaignId/player-characters/:pcId', async (req, res) => {
   const userId = res.locals.user.id
-  const { campaignId, pcId } = req.params as { campaignId: string; pcId: string }
+  const campaignId = req.params.campaignId as string
+  const pcId = req.params.pcId as string
   const campaign = await verifyCampaign(campaignId, userId)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const item = await prisma.playerCharacter.findFirst({
+    where: { id: pcId, campaignId, deletedAt: null },
+    include: {
+      portraitAsset: { select: { id: true, altText: true } },
+      sheetAsset: { select: { id: true } },
+    },
+  })
+  if (!item) { res.status(404).json({ error: 'Not found' }); return }
+  res.json({ item })
+})
+
+// ── PATCH update ──────────────────────────────────────────────────────────────
+
+playerCharactersRouter.patch('/:campaignId/player-characters/:pcId', async (req, res) => {
+  const userId = res.locals.user.id
+  const campaignId = req.params.campaignId as string
+  const pcId = req.params.pcId as string
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const existing = await prisma.playerCharacter.findFirst({ where: { id: pcId, campaignId, deletedAt: null } })
+  if (!existing) { res.status(404).json({ error: 'Player character not found' }); return }
+
+  const parsed = pcUpdateSchema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
+
+  const { abilityScores, combatStats, skills, savingThrows, equipment, portraitAssetId, sheetAssetId, ...rest } = parsed.data
+
+  const item = await prisma.playerCharacter.update({
+    where: { id: pcId },
+    data: {
+      ...rest,
+      ...(portraitAssetId !== undefined ? { portraitAssetId } : {}),
+      ...(sheetAssetId !== undefined ? { sheetAssetId } : {}),
+      ...(abilityScores !== undefined ? { abilityScores: abilityScores as Prisma.InputJsonValue } : {}),
+      ...(combatStats !== undefined ? { combatStats: combatStats as Prisma.InputJsonValue } : {}),
+      ...(skills !== undefined ? { skills: skills as Prisma.InputJsonValue } : {}),
+      ...(savingThrows !== undefined ? { savingThrows: savingThrows as Prisma.InputJsonValue } : {}),
+      ...(equipment !== undefined ? { equipment: equipment as Prisma.InputJsonValue } : {}),
+    },
+  })
+  res.json({ item })
+})
+
+// ── DELETE (soft) ─────────────────────────────────────────────────────────────
+
+playerCharactersRouter.delete('/:campaignId/player-characters/:pcId', async (req, res) => {
+  const userId = res.locals.user.id
+  const campaignId = req.params.campaignId as string
+  const pcId = req.params.pcId as string
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const existing = await prisma.playerCharacter.findFirst({ where: { id: pcId, campaignId, deletedAt: null } })
+  if (!existing) { res.status(404).json({ error: 'Player character not found' }); return }
+
   await prisma.playerCharacter.update({ where: { id: pcId }, data: { deletedAt: new Date() } })
   res.json({ ok: true })
 })
 
-// SHEET UPLOAD + CLAUDE VISION EXTRACTION
-playerCharactersRouter.post('/:pcId/sheet-upload', async (req, res) => {
-  const userId = res.locals.user.id
-  const { campaignId, pcId } = req.params as { campaignId: string; pcId: string }
-  const campaign = await verifyCampaign(campaignId, userId)
-  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
-  const pc = await prisma.playerCharacter.findFirst({ where: { id: pcId, campaignId, deletedAt: null } })
-  if (!pc) { res.status(404).json({ error: 'Player character not found' }); return }
+// ── POST sheet upload + Claude Vision extraction ──────────────────────────────
 
-  const bodySchema = z.object({
-    imageData: z.string().min(1),
-    mimeType: z.string().default('image/png'),
-  })
-  const parsed = bodySchema.safeParse(req.body)
-  if (!parsed.success) { res.status(400).json({ error: 'imageData (base64) and mimeType required' }); return }
+const SHEET_EXTRACT_PROMPT = `You are a D&D character sheet parser. Analyze this character sheet image and extract all available information. Return ONLY valid JSON with no prose or markdown.
 
-  try {
-    const { imageData, mimeType } = parsed.data
-    const imageBuffer = Buffer.from(imageData, 'base64')
+Extract these fields (omit fields you cannot find, use null for missing numbers):
+{
+  "name": "character name",
+  "playerName": "player name if visible",
+  "race": "race/species",
+  "class": "class",
+  "subclass": "subclass if visible",
+  "level": <number or null>,
+  "background": "background",
+  "alignment": "alignment",
+  "appearance": "physical description if visible",
+  "backstory": "backstory/personality if visible",
+  "abilityScores": { "str": <num>, "dex": <num>, "con": <num>, "int": <num>, "wis": <num>, "cha": <num> },
+  "combatStats": {
+    "hp": <num>,
+    "maxHp": <num>,
+    "tempHp": <num>,
+    "ac": <num>,
+    "initiative": <num>,
+    "speed": <num>,
+    "proficiencyBonus": <num>,
+    "inspiration": <boolean>
+  },
+  "savingThrows": { "str": <num>, "dex": <num>, "con": <num>, "int": <num>, "wis": <num>, "cha": <num> },
+  "skills": { "acrobatics": <num>, "animalHandling": <num>, "arcana": <num>, "athletics": <num>, "deception": <num>, "history": <num>, "insight": <num>, "intimidation": <num>, "investigation": <num>, "medicine": <num>, "nature": <num>, "perception": <num>, "performance": <num>, "persuasion": <num>, "religion": <num>, "sleightOfHand": <num>, "stealth": <num>, "survival": <num> },
+  "equipment": ["item1", "item2"],
+  "features": "features and traits text",
+  "notes": "any other notes"
+}`
 
-    const asset = await prisma.asset.create({
-      data: { campaignId, kind: 'sheet_upload', storageKeyOriginal: '', source: 'uploaded' },
-    })
-    const ext = mimeType.includes('jpeg') || mimeType.includes('jpg') ? 'jpg'
-      : mimeType.includes('webp') ? 'webp'
-      : 'png'
-    const storageKey = StorageService.assetKey(campaignId, asset.id, 'original', ext)
-    await StorageService.put(storageKey, imageBuffer)
-    await prisma.asset.update({ where: { id: asset.id }, data: { storageKeyOriginal: storageKey } })
-    await prisma.playerCharacter.update({ where: { id: pcId }, data: { sheetAssetId: asset.id } })
+playerCharactersRouter.post(
+  '/:campaignId/player-characters/:pcId/sheet-upload',
+  upload.single('sheet'),
+  async (req, res) => {
+    const userId = res.locals.user.id
+    const campaignId = req.params.campaignId as string
+    const pcId = req.params.pcId as string
+    const campaign = await verifyCampaign(campaignId, userId)
+    if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
 
-    // Claude Vision extraction
-    const anthropicCred = await prisma.apiCredential.findUnique({
-      where: { userId_provider: { userId, provider: 'anthropic' } },
-    })
-    if (!anthropicCred?.encryptedKey) {
-      res.json({ assetId: asset.id, extracted: null, warning: 'No Anthropic key — sheet saved but data not auto-extracted.' })
-      return
+    const pc = await prisma.playerCharacter.findFirst({ where: { id: pcId, campaignId, deletedAt: null } })
+    if (!pc) { res.status(404).json({ error: 'Player character not found' }); return }
+
+    if (!req.file) { res.status(400).json({ error: 'No file uploaded' }); return }
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      res.status(400).json({ error: 'Only PNG, JPEG, or WebP images are allowed' }); return
     }
 
-    const anthKey = decrypt(anthropicCred.encryptedKey)
-    const client = new Anthropic({ apiKey: anthKey })
+    const client = await getAnthropicClient(userId)
+    if (!client) { res.status(402).json({ error: 'No Anthropic or Evolink API key configured' }); return }
 
-    const thumbBuffer = await sharp(imageBuffer)
-      .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toBuffer()
-
-    const extractMsg = await client.messages.create({
-      model: 'claude-opus-4-5',
-      max_tokens: 2048,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: 'image/jpeg', data: thumbBuffer.toString('base64') },
-          },
-          {
-            type: 'text',
-            text: `You are extracting data from a TTRPG character sheet image. Extract every piece of information visible.
-
-Return ONLY a valid JSON object (no markdown, no explanation):
-{
-  "name": "character name or null",
-  "playerName": "player real name or null",
-  "race": "race/ancestry/species or null",
-  "playbook": "class/playbook/archetype or null",
-  "subclass": "subclass/specialization or null",
-  "level": integer or null,
-  "background": "background/origin or null",
-  "alignment": "alignment or null",
-  "xp": integer or null,
-  "appearance": "physical description or null",
-  "backstory": "backstory/history or null",
-  "bonds": "bonds/ideals/flaws/drives or null",
-  "moves": "class features/moves/abilities/spells as text block or null",
-  "equipment": ["item1", "item2"],
-  "notes": "any other notable info or null",
-  "abilityScores": {"str": int|null, "dex": int|null, "con": int|null, "int": int|null, "wis": int|null, "cha": int|null},
-  "combatStats": {"hp": int|null, "maxHp": int|null, "tempHp": int|null, "ac": int|null, "armor": int|null, "initiative": int|null, "speed": "string or null", "proficiencyBonus": int|null, "damage": "dice string or null"},
-  "skills": {},
-  "savingThrows": {}
-}`,
-          },
-        ],
-      }],
+    const asset = await prisma.asset.create({
+      data: {
+        campaignId,
+        kind: 'sheet_upload',
+        storageKeyOriginal: '',
+        source: 'uploaded',
+      },
     })
 
-    const rawText = extractMsg.content[0].type === 'text' ? extractMsg.content[0].text.trim() : '{}'
+    const ext = req.file.mimetype === 'image/png' ? 'png' : req.file.mimetype === 'image/webp' ? 'webp' : 'jpg'
+    const storageKey = StorageService.uploadKey(campaignId, asset.id, `sheet.${ext}`)
+    await StorageService.put(storageKey, req.file.buffer, req.file.mimetype)
+    await prisma.asset.update({ where: { id: asset.id }, data: { storageKeyOriginal: storageKey } })
+
+    const mediaType = req.file.mimetype as 'image/png' | 'image/jpeg' | 'image/webp'
+    const base64 = req.file.buffer.toString('base64')
+
     let extracted: Record<string, unknown> = {}
     try {
-      const clean = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
-      extracted = JSON.parse(clean)
-    } catch {
-      extracted = {}
+      const msg = await client.messages.create({
+        model: 'claude-opus-4-5',
+        max_tokens: 2048,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+            { type: 'text', text: SHEET_EXTRACT_PROMPT },
+          ],
+        }],
+      })
+      const raw = msg.content[0].type === 'text' ? msg.content[0].text : ''
+      const match = raw.match(/\{[\s\S]*\}/)
+      if (match) {
+        extracted = JSON.parse(match[0]) as Record<string, unknown>
+      }
+    } catch (err) {
+      console.error('[sheet-upload] Vision extraction failed:', err instanceof Error ? err.message : err)
     }
 
     res.json({ assetId: asset.id, extracted })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to process sheet'
-    res.status(500).json({ error: msg })
   }
-})
+)
+

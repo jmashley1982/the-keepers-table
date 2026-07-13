@@ -74,7 +74,7 @@ app.use('/api/assets', assetsRouter)
 app.use('/api/jobs', jobsRouter)
 app.use('/api/style-presets', stylePresetsRouter)
 app.use('/api/campaigns/:campaignId/maps', mapsRouter)
-app.use('/api/campaigns/:campaignId/player-characters', playerCharactersRouter)
+app.use('/api/campaigns', playerCharactersRouter)
 
 // Health (no session required)
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))

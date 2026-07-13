@@ -101,18 +101,18 @@ model Campaign {
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
 
-  owner            User             @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-  systemTemplate   SystemTemplate   @relation(fields: [systemTemplateId], references: [id])
-  parties          Party[]
-  sessions         GameSession[]
-  npcs             NPC[]
-  items            Item[]
-  locations        Location[]
-  factions         Faction[]
-  encounters       Encounter[]
-  plotThreads      PlotThread[]
-  relationships    EntityRelationship[]
-  mapAssets        MapAsset[]
+  owner          User           @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  systemTemplate SystemTemplate @relation(fields: [systemTemplateId], references: [id])
+  parties        Party[]
+  sessions       GameSession[]
+  npcs           NPC[]
+  items          Item[]
+  locations      Location[]
+  factions       Faction[]
+  encounters     Encounter[]
+  plotThreads    PlotThread[]
+  relationships  EntityRelationship[]
+  mapAssets      MapAsset[]
   generationJobs   GenerationJob[]
   assets           Asset[]
   playerCharacters PlayerCharacter[]
@@ -374,49 +374,14 @@ model Asset {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  campaign          Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  npcPortraits      NPC[]             @relation("NpcPortrait")
-  locationImages    Location[]        @relation("LocationImage")
-  itemImages        Item[]            @relation("ItemImage")
-  mapAssets         MapAsset[]        @relation("MapAssetImage")
-  artStylePreview   ArtStylePreset?   @relation("PresetPreview")
-  pcPortraits       PlayerCharacter[] @relation("PcPortrait")
-  pcSheets          PlayerCharacter[] @relation("PcSheet")
-}
-
-// ─── Player Characters ────────────────────────────────────────────────────────
-
-model PlayerCharacter {
-  id              String    @id @default(cuid())
-  campaignId      String
-  name            String
-  playerName      String    @default("")
-  race            String    @default("")
-  playbook        String    @default("")
-  subclass        String    @default("")
-  level           Int       @default(1)
-  background      String    @default("")
-  alignment       String    @default("")
-  appearance      String    @default("")
-  backstory       String    @default("")
-  notes           String    @default("")
-  bonds           String    @default("")
-  moves           String    @default("")
-  abilityScores   Json      @default("{}")
-  combatStats     Json      @default("{}")
-  skills          Json      @default("{}")
-  savingThrows    Json      @default("{}")
-  equipment       Json      @default("[]")
-  xp              Int       @default(0)
-  portraitAssetId String?
-  sheetAssetId    String?
-  deletedAt       DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  portraitAsset Asset?   @relation("PcPortrait", fields: [portraitAssetId], references: [id])
-  sheetAsset    Asset?   @relation("PcSheet", fields: [sheetAssetId], references: [id])
+  campaign        Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  npcPortraits    NPC[]           @relation("NpcPortrait")
+  locationImages  Location[]      @relation("LocationImage")
+  itemImages      Item[]          @relation("ItemImage")
+  mapAssets       MapAsset[]      @relation("MapAssetImage")
+  artStylePreview ArtStylePreset? @relation("PresetPreview")
+  pcPortraits     PlayerCharacter[] @relation("PcPortrait")
+  pcSheets        PlayerCharacter[] @relation("PcSheet")
 }
 
 // ─── Art Style Presets ────────────────────────────────────────────────────────
@@ -524,4 +489,41 @@ model CustomGenerator {
   updatedAt           DateTime  @updatedAt
 
   owner   User    @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+}
+
+// ─── Player Characters ────────────────────────────────────────────────────────
+
+model PlayerCharacter {
+  id              String    @id @default(cuid())
+  campaignId      String
+  name            String
+  playerName      String    @default("")
+  race            String    @default("")
+  class           String    @default("")
+  playbook        String    @default("")
+  subclass        String    @default("")
+  level           Int       @default(1)
+  background      String    @default("")
+  alignment       String    @default("")
+  appearance      String    @default("")
+  backstory       String    @default("")
+  notes           String    @default("")
+  features        String    @default("")
+  bonds           String    @default("")
+  moves           String    @default("")
+  abilityScores   Json      @default("{}")
+  combatStats     Json      @default("{}")
+  skills          Json      @default("{}")
+  savingThrows    Json      @default("{}")
+  equipment       Json      @default("[]")
+  xp              Int       @default(0)
+  portraitAssetId String?
+  sheetAssetId    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  portraitAsset Asset?   @relation("PcPortrait", fields: [portraitAssetId], references: [id])
+  sheetAsset    Asset?   @relation("PcSheet", fields: [sheetAssetId], references: [id])
 }
