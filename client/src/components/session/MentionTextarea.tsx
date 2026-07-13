@@ -42,7 +42,8 @@ interface Props {
 }
 
 export default function MentionTextarea({ value, onChange, campaignId, className, placeholder }: Props) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const textareaRef  = useRef<HTMLTextAreaElement>(null)
+  const navigatingRef = useRef(false)   // true while arrow/enter/esc is handling the dropdown
   const [mentionState, setMentionState] = useState<{ query: string; start: number } | null>(null)
   const [selectedIdx, setSelectedIdx] = useState(0)
 
@@ -85,6 +86,11 @@ export default function MentionTextarea({ value, onChange, campaignId, className
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (!mentionState || filtered.length === 0) return
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
+      navigatingRef.current = true
+      // Reset on the next microtask so onSelect (which fires after keydown) is suppressed
+      Promise.resolve().then(() => { navigatingRef.current = false })
+    }
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setSelectedIdx(i => Math.min(i + 1, filtered.length - 1))
@@ -92,10 +98,8 @@ export default function MentionTextarea({ value, onChange, campaignId, className
       e.preventDefault()
       setSelectedIdx(i => Math.max(i - 1, 0))
     } else if (e.key === 'Enter' || e.key === 'Tab') {
-      if (mentionState && filtered.length > 0) {
-        e.preventDefault()
-        insertMention(filtered[selectedIdx])
-      }
+      e.preventDefault()
+      insertMention(filtered[selectedIdx])
     } else if (e.key === 'Escape') {
       setMentionState(null)
     }
@@ -128,6 +132,7 @@ export default function MentionTextarea({ value, onChange, campaignId, className
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onSelect={e => {
+          if (navigatingRef.current) return   // suppress cursor-move detection during dropdown navigation
           const ta = e.target as HTMLTextAreaElement
           detectMention(ta.value, ta.selectionStart)
         }}
