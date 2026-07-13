@@ -16,12 +16,28 @@ const CANDLELIGHT_ICONS = {
   sessions:      '/icons/candlelight/sessions.webp',
 } as const
 
+const ELDRITCH_ICONS = {
+  newSession:    '/icons/eldritch/new_sesh.webp',
+  generateNpc:   '/icons/eldritch/gen_npc.webp',
+  genEncounter:  '/icons/eldritch/gen_enc.webp',
+  genTreasure:   '/icons/eldritch/gen_treas.webp',
+  npcs:          '/icons/eldritch/npcs.webp',
+  items:         '/icons/eldritch/items.webp',
+  locations:     '/icons/eldritch/locations.webp',
+  sessions:      '/icons/eldritch/sessions.webp',
+} as const
+
+const THEME_ICONS: Partial<Record<string, typeof CANDLELIGHT_ICONS>> = {
+  candlelight: CANDLELIGHT_ICONS,
+  eldritch:    ELDRITCH_ICONS,
+}
+
 export default function CampaignDashboard() {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const theme = useUIStore(s => s.theme)
-  const ci = theme === 'candlelight' ? CANDLELIGHT_ICONS : null
+  const ci = THEME_ICONS[theme] ?? null
   const [prepLoading, setPrepLoading] = useState(false)
   const [prepSuggestions, setPrepSuggestions] = useState<PrepSuggestion[]>([])
 
