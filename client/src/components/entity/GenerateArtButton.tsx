@@ -390,8 +390,7 @@ export default function GenerateArtButton({
             <div className="flex gap-0.5">
               {([
                 ['gpt-image-2',        'High'],
-                ['nano-banana-2-lite', 'Med'],
-                ['z-image-turbo',      'Low'],
+                ['nano-banana-2-lite', 'Low'],
               ] as const).map(([v, label]) => (
                 <button
                   key={v}
@@ -408,7 +407,7 @@ export default function GenerateArtButton({
               ))}
             </div>
             <p className="text-[8px] text-ink-muted/60 mt-0.5 leading-tight">
-              {selectedModel === 'gpt-image-2' ? 'GPT2 (1K)' : selectedModel === 'nano-banana-2-lite' ? 'Nano Banana 2 Lite (1K)' : selectedModel === 'z-image-turbo' ? 'Z-Image Turbo (1K)' : 'From your preferences'}
+              {selectedModel === 'gpt-image-2' ? 'GPT2 (1K)' : selectedModel === 'nano-banana-2-lite' ? 'Nano Banana 2 Lite (1K)' : 'From your preferences'}
             </p>
           </div>
 

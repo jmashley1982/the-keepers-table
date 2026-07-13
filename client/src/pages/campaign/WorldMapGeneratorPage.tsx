@@ -229,7 +229,7 @@ export default function WorldMapGeneratorPage() {
     } catch (e) {
       alert(apiError(e))
     }
-  }, [campaignId, scope, description, customPrompt, useFromCampaign, geoSummary, aspect, selectedPreset, submitImageGenerate])
+  }, [campaignId, scope, description, customPrompt, useFromCampaign, geoSummary, aspect, selectedPreset, selectedModel, submitImageGenerate])
 
   const displayAssetId = mapAsset?.imageAsset?.id ?? mapAsset?.imageAssetId ?? null
 
@@ -442,7 +442,7 @@ export default function WorldMapGeneratorPage() {
             <div>
               <label className="label">Quality</label>
               <div className="flex gap-1 bg-surface-2 rounded-card p-1">
-                {([['gpt-image-2', 'High'], ['nano-banana-2-lite', 'Medium'], ['z-image-turbo', 'Low']] as const).map(([v, label]) => (
+                {([['gpt-image-2', 'High'], ['nano-banana-2-lite', 'Low']] as const).map(([v, label]) => (
                   <button
                     key={v}
                     onClick={() => setSelectedModel(v)}

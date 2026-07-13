@@ -192,8 +192,7 @@ function StylePresetsSection() {
 
 const IMAGE_MODEL_OPTIONS = [
   { value: 'gpt-image-2',        label: 'High — GPT2 (1K)' },
-  { value: 'nano-banana-2-lite', label: 'Medium — Google Nano Banana 2 Lite (1K)' },
-  { value: 'z-image-turbo',      label: 'Low — Z-Image Turbo (1K)' },
+  { value: 'nano-banana-2-lite', label: 'Low — Google Nano Banana 2 Lite (1K)' },
 ]
 
 const IMAGE_CATEGORIES = [

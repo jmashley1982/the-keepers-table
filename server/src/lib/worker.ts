@@ -18,7 +18,6 @@ const EVOLINK_MODEL_MAP: Record<string, string> = {
   'seedream-4.5':     'doubao-seedream-4.5',
   'seedream-4':       'doubao-seedream-4.0',
   'seedream-5':       'doubao-seedream-5.0-lite',
-  'z-image-turbo':    'z-image-turbo',
 }
 
 // Aspect-ratio token → EvoLink size string
@@ -195,7 +194,40 @@ async function processImageGenerate(jobId: string): Promise<void> {
     let negativePrompt = 'watermark, text, signature, blurry, low quality, distorted, deformed, duplicate, extra limbs'
 
     if (userPrompt) {
-      finalPrompt = `${userPrompt}, ${styleFragment}`
+      // Quietly enrich the user's prompt with Claude Sonnet: deeper visual
+      // detail only — never changes the subject or intent. Falls back to the
+      // original prompt on any failure or if no Anthropic key is configured.
+      let enrichedPrompt = userPrompt
+      const promptCred = await prisma.apiCredential.findUnique({
+        where: { userId_provider: { userId: genJob.userId, provider: 'anthropic' } },
+      })
+      if (promptCred?.encryptedKey) {
+        try {
+          const anthroClient = new Anthropic({ apiKey: decrypt(promptCred.encryptedKey) })
+          const enrichMsg = await anthroClient.messages.create({
+            model: 'claude-sonnet-4-5',
+            max_tokens: 300,
+            messages: [{
+              role: 'user',
+              content: `You refine image-generation prompts. Rewrite the prompt below with a deeper level of concrete visual detail (lighting, texture, atmosphere, composition).
+
+Rules — all must be followed:
+- NEVER change the subject, setting, or goal of the prompt
+- Do not add new objects, characters, locations, or style directions the prompt didn't imply
+- Keep it subtle and natural — an enhancement, not a rewrite
+- Stay concise: 60 words maximum
+- Return ONLY the rewritten prompt text — no quotes, no commentary, no markdown
+
+Prompt: ${userPrompt}`,
+            }],
+          })
+          const out = enrichMsg.content[0].type === 'text' ? enrichMsg.content[0].text.trim() : ''
+          if (out.length >= 10 && out.length <= 1200) enrichedPrompt = out
+        } catch {
+          // keep the original prompt untouched
+        }
+      }
+      finalPrompt = `${enrichedPrompt}, ${styleFragment}`
     } else {
       const anthropicCred = await prisma.apiCredential.findUnique({
         where: { userId_provider: { userId: genJob.userId, provider: 'anthropic' } },
@@ -327,10 +359,17 @@ Return ONLY valid JSON — no prose, no markdown:
 
     // ── 6. Submit to EvoLink ───────────────────────────────────────────────
     console.log(`[image.generate] Submitting job ${jobId}: model=${evolinkModel} size=${size} entityType=${entityType}`)
+    const submitBody: Record<string, unknown> = { model: evolinkModel, prompt: promptWithNegative, size }
+    if (evolinkModel === 'gpt-image-2') {
+      // Pin GPT Image 2 to 1K / low rendering quality — EvoLink defaults to
+      // `medium`, which bills ~9x more for negligible gain at tabletop sizes.
+      submitBody.quality = 'low'
+      submitBody.resolution = '1K'
+    }
     const submitRes = await fetch('https://api.evolink.ai/v1/images/generations', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${evolinkKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: evolinkModel, prompt: promptWithNegative, size }),
+      body: JSON.stringify(submitBody),
     })
 
     if (!submitRes.ok) {
