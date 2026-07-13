@@ -4,11 +4,27 @@ import { api } from '../../lib/api'
 import { useState, useRef } from 'react'
 import { cn } from '../../lib/cn'
 import {
-  Plus, Trash2, Edit2, Save, X, Upload, Check,
-  ChevronDown, ChevronUp, Loader, Users, ArrowUp, ArrowDown,
+  Plus, Trash2, Save, X, Upload, Check,
+  ChevronDown, ChevronUp, Loader, Users, ArrowUp, ArrowDown, GripVertical,
 } from 'lucide-react'
 import { EntityAvatarWithArt } from '../../components/entity/GenerateArtButton'
 import GenerateArtButton from '../../components/entity/GenerateArtButton'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -216,7 +232,7 @@ function SheetUploadButton({ campaignId, pcId, onExtracted }: {
   )
 }
 
-// ── PC Card (compact) ─────────────────────────────────────────────────────────
+// ── PC Card (compact, sortable) ───────────────────────────────────────────────
 
 function PCCard({ pc, campaignId, onSelect, onDelete, onMoveUp, onMoveDown, isFirst, isLast }: {
   pc: PlayerCharacter; campaignId: string
@@ -225,9 +241,28 @@ function PCCard({ pc, campaignId, onSelect, onDelete, onMoveUp, onMoveDown, isFi
   isFirst: boolean; isLast: boolean
 }) {
   const qc = useQueryClient()
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: pc.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
   return (
     <div
-      className="card cursor-pointer hover:border-accent/40 transition-colors group"
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'card cursor-pointer hover:border-accent/40 transition-colors group',
+        isDragging && 'opacity-50 shadow-lg ring-2 ring-accent/40',
+      )}
       onClick={onSelect}
     >
       <div className="flex items-start gap-3">
@@ -260,6 +295,14 @@ function PCCard({ pc, campaignId, onSelect, onDelete, onMoveUp, onMoveDown, isFi
           </div>
         </div>
         <div className="flex flex-col gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+          <button
+            className="btn-ghost p-1 text-ink-muted cursor-grab active:cursor-grabbing"
+            title="Drag to reorder"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical size={13} />
+          </button>
           <button
             className="btn-ghost p-1 text-ink-muted disabled:opacity-30"
             onClick={onMoveUp}
@@ -674,6 +717,22 @@ export default function PlayersPage() {
     reorderMutation.mutate(newOrder.map(pc => pc.id))
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = characters.findIndex(pc => pc.id === active.id)
+    const newIndex = characters.findIndex(pc => pc.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const newOrder = [...characters]
+    newOrder.splice(newIndex, 0, newOrder.splice(oldIndex, 1)[0])
+    reorderMutation.mutate(newOrder.map(pc => pc.id))
+  }
+
   function handleCreate() {
     if (!newName.trim()) return
     createMutation.mutate({ name: newName.trim(), playerName: newPlayerName.trim() || undefined })
@@ -755,25 +814,33 @@ export default function PlayersPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {characters.map((pc, index) => (
-              <PCCard
-                key={pc.id}
-                pc={pc}
-                campaignId={campaignId!}
-                onSelect={() => setSelectedPcId(pc.id)}
-                onDelete={() => {
-                  if (confirm(`Delete ${pc.name}? This cannot be undone.`)) {
-                    deleteMutation.mutate(pc.id)
-                  }
-                }}
-                onMoveUp={() => moveCharacter(index, -1)}
-                onMoveDown={() => moveCharacter(index, 1)}
-                isFirst={index === 0}
-                isLast={index === characters.length - 1}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={characters.map(pc => pc.id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {characters.map((pc, index) => (
+                  <PCCard
+                    key={pc.id}
+                    pc={pc}
+                    campaignId={campaignId!}
+                    onSelect={() => setSelectedPcId(pc.id)}
+                    onDelete={() => {
+                      if (confirm(`Delete ${pc.name}? This cannot be undone.`)) {
+                        deleteMutation.mutate(pc.id)
+                      }
+                    }}
+                    onMoveUp={() => moveCharacter(index, -1)}
+                    onMoveDown={() => moveCharacter(index, 1)}
+                    isFirst={index === 0}
+                    isLast={index === characters.length - 1}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
