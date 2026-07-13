@@ -3,11 +3,16 @@ import { Client } from '@replit/object-storage'
 let _client: Client | null = null
 let _initFailed = false
 
+function newClient(): Client {
+  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID
+  return bucketId ? new Client({ bucketId }) : new Client()
+}
+
 function getClient(): Client {
   if (_initFailed) throw new Error('Replit Object Storage is not configured (no bucket available). Enable it in the Replit storage panel.')
   if (!_client) {
     try {
-      _client = new Client()
+      _client = newClient()
     } catch (err) {
       _initFailed = true
       const msg = err instanceof Error ? err.message : String(err)
@@ -22,7 +27,7 @@ export const StorageService = {
     if (_initFailed) return false
     if (_client) return true
     try {
-      _client = new Client()
+      _client = newClient()
       return true
     } catch {
       _initFailed = true

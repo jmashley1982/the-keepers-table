@@ -5,3 +5,4 @@
 - [SSE streaming format](sse-streaming.md) — server sends `{ text: string }` chunks then `{ done: true, jobId }`; client accumulates fullText then parses as JSON after done
 - [Generator routing bugs fixed](generator-routing.md) — QuickGenerate had location→'npc'; LibraryPage used slice(-1) for encounters; both corrected to literal 'location'/'encounter'
 - [EvoLink image API](evolink-api.md) — api.evolink.ai (not EachLabs); model IDs are vendor names (gemini-*/doubao-*); validate keys via GET /v1/credits; no negative_prompt param.
+- [Object storage bucket](object-storage-bucket.md) — @replit/object-storage Client needs explicit bucketId (DEFAULT_OBJECT_STORAGE_BUCKET_ID); missing bucket surfaced as "fetch failed" in worker jobs.
