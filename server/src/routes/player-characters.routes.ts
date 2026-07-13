@@ -256,6 +256,7 @@ playerCharactersRouter.post(
     const base64 = req.file.buffer.toString('base64')
 
     let extracted: Record<string, unknown> = {}
+    let extractionFailed = false
     try {
       const msg = await client.messages.create({
         model: 'claude-opus-4-5',
@@ -275,9 +276,21 @@ playerCharactersRouter.post(
       }
     } catch (err) {
       console.error('[sheet-upload] Vision extraction failed:', err instanceof Error ? err.message : err)
+      extractionFailed = true
     }
 
-    res.json({ assetId: asset.id, extracted })
+    const meaningfulKeys = Object.keys(extracted).filter(k => {
+      const v = extracted[k]
+      if (v === null || v === undefined || v === '') return false
+      if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v as object).length === 0) return false
+      if (Array.isArray(v) && (v as unknown[]).length === 0) return false
+      return true
+    })
+    if (!extractionFailed && meaningfulKeys.length === 0) {
+      extractionFailed = true
+    }
+
+    res.json({ assetId: asset.id, extracted, extractionFailed })
   }
 )
 

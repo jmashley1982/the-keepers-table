@@ -143,13 +143,18 @@ function SheetUploadButton({ campaignId, pcId, onExtracted }: {
     const form = new FormData()
     form.append('sheet', file)
     try {
-      const res = await api.post<{ assetId: string; extracted: Partial<PCDraft> }>(
+      const res = await api.post<{ assetId: string; extracted: Partial<PCDraft>; extractionFailed?: boolean }>(
         `/api/campaigns/${campaignId}/player-characters/${pcId}/sheet-upload`,
         form,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       )
-      setPreviewData({ ...res.data.extracted, sheetAssetId: res.data.assetId })
-      setStatus('done')
+      if (res.data.extractionFailed) {
+        setError("Couldn't read the sheet — try a clearer photo")
+        setStatus('error')
+      } else {
+        setPreviewData({ ...res.data.extracted, sheetAssetId: res.data.assetId })
+        setStatus('done')
+      }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } } }
       setError(e?.response?.data?.error ?? 'Upload failed')
