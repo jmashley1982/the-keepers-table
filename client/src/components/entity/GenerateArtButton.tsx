@@ -21,7 +21,7 @@ type Phase =
   | { name: 'await_replace'; newAssetId: string; prevAssetId: string }
   | { name: 'failed'; error: string }
 
-type AspectRatio = 'portrait' | 'square' | 'landscape'
+type AspectRatio = 'portrait'
 
 interface StylePreset {
   id: string
@@ -54,9 +54,7 @@ export default function GenerateArtButton({
   const [customPrompt, setCustomPrompt] = useState('')
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [selectedModel, setSelectedModel] = useState<string>('')
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>(
-    kind === 'portrait_npc' ? 'portrait' : 'square'
-  )
+  const [aspectRatio] = useState<AspectRatio>('portrait')
   const [isPreviewing, setIsPreviewing] = useState(false)
 
   const { data: credsData } = useQuery({
@@ -378,41 +376,32 @@ export default function GenerateArtButton({
             </div>
           )}
 
-          {/* Aspect ratio */}
+          {/* Quality / model picker */}
           <div>
-            <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Aspect</p>
+            <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Quality</p>
             <div className="flex gap-0.5">
-              {(['portrait', 'square', 'landscape'] as AspectRatio[]).map(ar => (
+              {([
+                ['gpt-image-2',        'High'],
+                ['nano-banana-2-lite', 'Med'],
+                ['z-image-turbo',      'Low'],
+              ] as const).map(([v, label]) => (
                 <button
-                  key={ar}
-                  onClick={() => setAspectRatio(ar)}
+                  key={v}
+                  onClick={() => setSelectedModel(prev => prev === v ? '' : v)}
                   className={cn(
-                    'flex-1 text-[9px] py-0.5 rounded border capitalize transition-colors',
-                    aspectRatio === ar
+                    'flex-1 text-[9px] py-0.5 rounded border transition-colors',
+                    selectedModel === v
                       ? 'bg-accent text-white border-accent'
                       : 'bg-surface border-border text-ink-muted hover:border-accent/40'
                   )}
                 >
-                  {ar === 'portrait' ? '2:3' : ar === 'square' ? '1:1' : '3:2'}
+                  {label}
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Model picker */}
-          <div>
-            <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Model</p>
-            <select
-              className="w-full text-[10px] bg-surface border border-border rounded px-1 py-0.5 text-ink focus:outline-none focus:border-accent/60"
-              value={selectedModel}
-              onChange={e => setSelectedModel(e.target.value)}
-            >
-              <option value="">Default</option>
-              <option value="nano-banana-pro">Nano Banana Pro (best)</option>
-              <option value="nano-banana-2-lite">Nano Banana 2 Lite</option>
-              <option value="seedream-4.5">Seedream 4.5</option>
-              <option value="z-image-turbo">Z Image Turbo (fastest)</option>
-            </select>
+            <p className="text-[8px] text-ink-muted/60 mt-0.5 leading-tight">
+              {selectedModel === 'gpt-image-2' ? 'GPT2 (1K)' : selectedModel === 'nano-banana-2-lite' ? 'Nano Banana 2 Lite (1K)' : selectedModel === 'z-image-turbo' ? 'Z-Image Turbo (1K)' : 'From your preferences'}
+            </p>
           </div>
 
           {/* Actions */}

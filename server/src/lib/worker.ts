@@ -10,13 +10,31 @@ let boss: PgBoss | null = null
 
 // Friendly model names (stored in prefs/UI) → actual EvoLink model IDs
 const EVOLINK_MODEL_MAP: Record<string, string> = {
+  'gpt2':             'gpt-image-2',
+  'gpt-image-2':      'gpt-image-2',
   'nano-banana-2-lite': 'gemini-3.1-flash-lite-image',
-  'nano-banana-2': 'gemini-3.1-flash-image-preview',
-  'nano-banana-pro': 'gemini-3-pro-image-preview',
-  'seedream-4.5': 'doubao-seedream-4.5',
-  'seedream-4': 'doubao-seedream-4.0',
-  'seedream-5': 'doubao-seedream-5.0-lite',
-  'z-image-turbo': 'z-image-turbo',
+  'nano-banana-2':    'gemini-3.1-flash-image-preview',
+  'nano-banana-pro':  'gemini-3-pro-image-preview',
+  'seedream-4.5':     'doubao-seedream-4.5',
+  'seedream-4':       'doubao-seedream-4.0',
+  'seedream-5':       'doubao-seedream-5.0-lite',
+  'z-image-turbo':    'z-image-turbo',
+}
+
+// Aspect-ratio token → EvoLink size string
+const ASPECT_SIZE_MAP: Record<string, string> = {
+  widescreen: '16:9',
+  landscape:  '4:3',
+  square:     '1:1',
+  portrait:   '2:3',
+  '16:9':     '16:9',
+  '9:16':     '9:16',
+  '4:3':      '4:3',
+  '1:1':      '1:1',
+  '2:3':      '2:3',
+  '3:4':      '3:4',
+  '5:4':      '5:4',
+  '4:5':      '4:5',
 }
 
 export async function startWorker(): Promise<void> {
@@ -279,14 +297,14 @@ Return ONLY valid JSON — no prose, no markdown:
     const imageModelByCategory = (userPref?.imageModelByCategory ?? {}) as Record<string, string>
     // Category key must match what the Settings UI stores (npc, location, item, encounter)
     const categoryKey = entityType === 'map' ? 'encounter' : entityType
-    const model = input.model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'nano-banana-2-lite'
+    const model = input.model ?? imageModelByCategory[categoryKey] ?? userPref?.defaultImageModel ?? 'gpt-image-2'
     // Strict allow-list: friendly names map to EvoLink IDs; already-valid EvoLink IDs
     // pass through; anything else (legacy flux/SD values, typos) falls back to default.
     const evolinkModel = EVOLINK_MODEL_MAP[model]
-      ?? (Object.values(EVOLINK_MODEL_MAP).includes(model) ? model : EVOLINK_MODEL_MAP['nano-banana-2-lite'])
+      ?? (Object.values(EVOLINK_MODEL_MAP).includes(model) ? model : EVOLINK_MODEL_MAP['gpt-image-2'])
 
     const aspectRatio = input.aspectRatio ?? (kind === 'portrait_npc' ? 'portrait' : 'square')
-    const size = aspectRatio === 'widescreen' ? '16:9' : aspectRatio === 'landscape' ? '4:3' : aspectRatio === 'square' ? '1:1' : '3:4'
+    const size = ASPECT_SIZE_MAP[aspectRatio] ?? '1:1'
 
     // EvoLink prompt limit is 2000 chars; fold the negative prompt in as guidance.
     // Trim the body first so the "Avoid:" constraints are never clipped.

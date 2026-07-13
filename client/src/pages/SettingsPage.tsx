@@ -191,10 +191,9 @@ function StylePresetsSection() {
 }
 
 const IMAGE_MODEL_OPTIONS = [
-  { value: 'gpt-image-2',        label: 'High Detail — GPT Image 2' },
-  { value: 'nano-banana-2-lite', label: 'Medium — Nano Banana 2 Lite' },
-  { value: 'seedream-4.5',       label: 'Medium Alt — Seedream 4.5' },
-  { value: 'z-image-turbo',      label: 'Low — Z Image Turbo' },
+  { value: 'gpt-image-2',        label: 'High — GPT2 (1K)' },
+  { value: 'nano-banana-2-lite', label: 'Medium — Google Nano Banana 2 Lite (1K)' },
+  { value: 'z-image-turbo',      label: 'Low — Z-Image Turbo (1K)' },
 ]
 
 const IMAGE_CATEGORIES = [
@@ -374,7 +373,7 @@ export default function SettingsPage() {
               <label className="label mb-0 min-w-[130px]">{cat.label}</label>
               <select
                 className="input flex-1"
-                value={imageModelByCategory[cat.key] ?? 'nano-banana-2-lite'}
+                value={imageModelByCategory[cat.key] ?? 'gpt-image-2'}
                 onChange={e => handleImageModelChange(cat.key, e.target.value)}
                 disabled={!hasEvolinkKey}
               >

@@ -34,7 +34,8 @@ export default function BattleMapGeneratorPage() {
   const [description, setDescription] = useState('')
   const [linkedType, setLinkedType] = useState<'none' | 'encounter' | 'location'>('none')
   const [linkedId, setLinkedId] = useState('')
-  const [aspect, setAspect] = useState<'square' | 'landscape'>('square')
+  const [aspect, setAspect] = useState<'16:9' | '9:16' | '5:4' | '4:5'>('16:9')
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-image-2')
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
@@ -95,6 +96,7 @@ export default function BattleMapGeneratorPage() {
         entityId: mapId,
         campaignId: campaignId!,
         aspectRatio: aspect,
+        model: selectedModel,
       }
       if (selectedPreset) body.stylePreset = selectedPreset
       if (customPrompt.trim()) body.prompt = customPrompt.trim()
@@ -133,6 +135,7 @@ export default function BattleMapGeneratorPage() {
         entityId: map.id,
         campaignId: campaignId!,
         aspectRatio: aspect,
+        model: selectedModel,
       }
       if (selectedPreset) body.stylePreset = selectedPreset
       if (customPrompt.trim()) body.prompt = customPrompt.trim()
@@ -281,22 +284,43 @@ export default function BattleMapGeneratorPage() {
             )}
           </div>
 
-          {/* Aspect ratio */}
+          {/* Quality / model */}
           <div>
-            <label className="label">Aspect ratio</label>
+            <label className="label">Quality</label>
             <div className="flex gap-1 bg-surface-2 rounded-card p-1">
-              {([['square', '1:1'], ['landscape', '4:3']] as const).map(([v, label]) => (
+              {([['gpt-image-2', 'High'], ['nano-banana-2-lite', 'Medium'], ['z-image-turbo', 'Low']] as const).map(([v, label]) => (
                 <button
                   key={v}
-                  onClick={() => setAspect(v)}
+                  onClick={() => setSelectedModel(v)}
                   className={cn(
                     'flex-1 rounded py-1.5 text-xs font-medium transition-all',
-                    aspect === v
+                    selectedModel === v
                       ? 'bg-surface text-ink shadow-sm'
                       : 'text-ink-muted hover:text-ink',
                   )}
                 >
                   {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Aspect ratio */}
+          <div>
+            <label className="label">Aspect ratio</label>
+            <div className="grid grid-cols-4 gap-1 bg-surface-2 rounded-card p-1">
+              {(['16:9', '9:16', '5:4', '4:5'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setAspect(v)}
+                  className={cn(
+                    'rounded py-1.5 text-xs font-medium transition-all',
+                    aspect === v
+                      ? 'bg-surface text-ink shadow-sm'
+                      : 'text-ink-muted hover:text-ink',
+                  )}
+                >
+                  {v}
                 </button>
               ))}
             </div>

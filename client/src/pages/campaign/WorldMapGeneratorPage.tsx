@@ -22,11 +22,11 @@ interface MapAsset {
   imageAsset?: { id: string; width?: number; height?: number }
 }
 
-// 16:9 → widescreen (1280×720), 4:3 → landscape (1024×768), 1:1 → square (1024×1024)
 const ASPECT_OPTIONS = [
-  { value: 'widescreen', label: '16:9', hint: '1280×720' },
-  { value: 'landscape', label: '4:3', hint: '1024×768' },
-  { value: 'square', label: '1:1', hint: '1024×1024' },
+  { value: '16:9', label: '16:9', hint: 'wide landscape' },
+  { value: '9:16', label: '9:16', hint: 'tall portrait' },
+  { value: '5:4', label: '5:4', hint: 'near-square wide' },
+  { value: '4:5', label: '4:5', hint: 'near-square tall' },
 ] as const
 
 type Aspect = typeof ASPECT_OPTIONS[number]['value']
@@ -41,7 +41,8 @@ export default function WorldMapGeneratorPage() {
   const [useFromCampaign, setUseFromCampaign] = useState(false)
   const [geoSummary, setGeoSummary] = useState('')
   const [geoLoading, setGeoLoading] = useState(false)
-  const [aspect, setAspect] = useState<Aspect>('widescreen')
+  const [aspect, setAspect] = useState<Aspect>('16:9')
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-image-2')
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
@@ -210,6 +211,7 @@ export default function WorldMapGeneratorPage() {
         entityId: map.id,
         campaignId,
         aspectRatio: aspect,
+        model: selectedModel,
       }
       if (selectedPreset) body.stylePreset = selectedPreset
       if (customPrompt.trim()) body.prompt = customPrompt.trim()
@@ -436,10 +438,31 @@ export default function WorldMapGeneratorPage() {
               )}
             </div>
 
-            {/* Aspect ratio — 16:9 default */}
+            {/* Quality / model */}
+            <div>
+              <label className="label">Quality</label>
+              <div className="flex gap-1 bg-surface-2 rounded-card p-1">
+                {([['gpt-image-2', 'High'], ['nano-banana-2-lite', 'Medium'], ['z-image-turbo', 'Low']] as const).map(([v, label]) => (
+                  <button
+                    key={v}
+                    onClick={() => setSelectedModel(v)}
+                    className={cn(
+                      'flex-1 rounded py-1.5 text-xs font-medium transition-all',
+                      selectedModel === v
+                        ? 'bg-surface text-ink shadow-sm'
+                        : 'text-ink-muted hover:text-ink',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Aspect ratio */}
             <div>
               <label className="label">Aspect ratio</label>
-              <div className="flex gap-1 bg-surface-2 rounded-card p-1">
+              <div className="grid grid-cols-4 gap-1 bg-surface-2 rounded-card p-1">
                 {ASPECT_OPTIONS.map(({ value, label, hint }) => (
                   <button
                     key={value}
