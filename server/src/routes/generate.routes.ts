@@ -563,7 +563,7 @@ generateRouter.post('/image', async (req, res) => {
     prompt: z.string().optional(),
     stylePreset: z.string().optional(),
     model: z.string().optional(),
-    aspectRatio: z.enum(['portrait', 'square', 'landscape', 'widescreen']).optional(),
+    aspectRatio: z.enum(['portrait', 'square', 'landscape', 'widescreen', '16:9', '9:16', '4:3', '3:4', '1:1', '2:3', '5:4', '4:5']).optional(),
     confirmed: z.boolean().optional(),
   })
 
