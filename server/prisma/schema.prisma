@@ -198,6 +198,7 @@ model NPC {
   factionId          String?
   firstSessionId     String?
   lastSeenSessionId  String?
+  sortOrder          Int       @default(0)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   deletedAt          DateTime?
@@ -225,6 +226,7 @@ model Location {
   parentLocationId String?
   mapAssetId       String?
   ambience         Json?
+  sortOrder        Int       @default(0)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
@@ -258,6 +260,7 @@ model Item {
   currentOwnerType String    @default("unclaimed")
   currentOwnerId   String?
   originSessionId  String?
+  sortOrder        Int       @default(0)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
@@ -281,6 +284,7 @@ model Faction {
   goals                 String    @default("")
   dispositionToParty    String    @default("neutral")
   headquartersLocationId String?
+  sortOrder             Int       @default(0)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   deletedAt             DateTime?
@@ -313,6 +317,7 @@ model Encounter {
   mapAssetId    String?
   soundtrack    Json?
   outcome       String?
+  sortOrder     Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
@@ -332,6 +337,7 @@ model PlotThread {
   status              String    @default("active") // "active" | "resolved" | "dormant"
   relatedEntities     Json      @default("[]")
   lastTouchedSessionId String?
+  sortOrder           Int       @default(0)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?

@@ -34,7 +34,7 @@ function entityRoutes(
     const q = (req.query.q as string) ?? ''
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { campaignId, deletedAt: null }
-    const items = await model.findMany({ where, orderBy: { updatedAt: 'desc' } })
+    const items = await model.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] })
     if (q) {
       const lower = q.toLowerCase()
       return res.json({ items: items.filter((i: { name: string; description: string }) =>
@@ -53,7 +53,12 @@ function entityRoutes(
     if (!parsed.success) {
       res.status(400).json({ error: (parsed as { error: z.ZodError }).error.issues[0]?.message }); return
     }
-    const item = await model.create({ data: { ...(parsed as { data: Record<string, unknown> }).data, campaignId } })
+    const maxOrder = await model.aggregate({
+      where: { campaignId, deletedAt: null },
+      _max: { sortOrder: true },
+    })
+    const nextSortOrder = (maxOrder._max.sortOrder ?? -1) + 1
+    const item = await model.create({ data: { ...(parsed as { data: Record<string, unknown> }).data, campaignId, sortOrder: nextSortOrder } })
     res.json({ item })
   })
 
@@ -123,7 +128,7 @@ entitiesRouter.get('/:campaignId/npcs', async (req, res) => {
   const q = (req.query.q as string) ?? ''
   const items = await prisma.nPC.findMany({
     where: { campaignId, deletedAt: null },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     include: { portraitAsset: { select: { id: true, altText: true } } },
   })
   const filtered = q
@@ -157,7 +162,7 @@ entitiesRouter.get('/:campaignId/locations', async (req, res) => {
   const q = (req.query.q as string) ?? ''
   const items = await prisma.location.findMany({
     where: { campaignId, deletedAt: null },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     include: {
       mapAsset: { include: { imageAsset: true } },
       imageAsset: { select: { id: true, altText: true } },
@@ -195,7 +200,7 @@ entitiesRouter.get('/:campaignId/items', async (req, res) => {
   const q = (req.query.q as string) ?? ''
   const items = await prisma.item.findMany({
     where: { campaignId, deletedAt: null },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     include: { imageAsset: { select: { id: true, altText: true } } },
   })
   const filtered = q
@@ -246,7 +251,7 @@ entitiesRouter.get('/:campaignId/encounters', async (req, res) => {
   const q = (req.query.q as string) ?? ''
   const items = await prisma.encounter.findMany({
     where: { campaignId, deletedAt: null },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
   })
   const filtered = q
     ? items.filter(i => i.name.toLowerCase().includes(q.toLowerCase()) || i.description?.toLowerCase().includes(q.toLowerCase()))
