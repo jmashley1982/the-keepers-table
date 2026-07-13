@@ -244,27 +244,6 @@ export default function GenerateArtButton({
         </div>
       )}
 
-      {/* ── Always-visible preset chip row (idle only) ─────────────────────── */}
-      {phase.name === 'idle' && presets.length > 0 && (
-        <div className="flex flex-wrap gap-0.5 mt-0.5">
-          {presets.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setSelectedPreset(prev => prev === p.name ? null : p.name)}
-              className={cn(
-                'text-[9px] px-1 py-0.5 rounded border transition-colors leading-none',
-                selectedPreset === p.name
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-surface border-border text-ink-muted hover:border-accent/40 hover:text-ink'
-              )}
-              title={p.promptFragment}
-            >
-              {p.name}
-            </button>
-          ))}
-        </div>
-      )}
-
       {phase.name === 'confirm' && (
         <div className="flex flex-col gap-0.5">
           <p className="text-[9px] text-amber-400 leading-tight">
@@ -375,6 +354,30 @@ export default function GenerateArtButton({
             />
           </div>
 
+          {/* Style preset */}
+          {presets.length > 0 && (
+            <div>
+              <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Style</p>
+              <div className="flex flex-wrap gap-0.5">
+                {presets.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPreset(prev => prev === p.name ? null : p.name)}
+                    className={cn(
+                      'text-[9px] px-1 py-0.5 rounded border transition-colors leading-none',
+                      selectedPreset === p.name
+                        ? 'bg-accent text-white border-accent'
+                        : 'bg-surface border-border text-ink-muted hover:border-accent/40 hover:text-ink'
+                    )}
+                    title={p.promptFragment}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Aspect ratio */}
           <div>
             <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Aspect</p>
@@ -450,28 +453,69 @@ export function EntityAvatarWithArt({
   isGenerating?: boolean
   altText?: string | null
 }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+
   const src = assetId
     ? `/api/assets/${assetId}?size=thumb`
     : portraitUrl ?? imageUrl ?? null
+  const fullSrc = assetId
+    ? `/api/assets/${assetId}?size=full`
+    : portraitUrl ?? imageUrl ?? null
+
+  useEffect(() => {
+    if (!lightboxOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightboxOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lightboxOpen])
 
   return (
-    <div className="relative w-12 h-12 flex-shrink-0">
-      {src ? (
-        <img
-          src={src}
-          alt={altText ?? `${entityType} art`}
-          className="w-12 h-12 rounded-card object-cover"
-        />
-      ) : (
-        <div className="w-12 h-12 rounded-card bg-surface-2 flex items-center justify-center text-xl">
-          {ENTITY_EMOJI[entityType] ?? '📄'}
+    <>
+      <div className="relative w-12 h-12 flex-shrink-0">
+        {src ? (
+          <button
+            onClick={() => setLightboxOpen(true)}
+            className="block w-12 h-12 rounded-card overflow-hidden cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-accent/60"
+            title="Click to enlarge"
+          >
+            <img
+              src={src}
+              alt={altText ?? `${entityType} art`}
+              className="w-12 h-12 rounded-card object-cover hover:scale-105 transition-transform"
+            />
+          </button>
+        ) : (
+          <div className="w-12 h-12 rounded-card bg-surface-2 flex items-center justify-center text-xl">
+            {ENTITY_EMOJI[entityType] ?? '📄'}
+          </div>
+        )}
+        {isGenerating && (
+          <div className="absolute inset-0 rounded-card bg-black/50 flex items-center justify-center pointer-events-none">
+            <div className="w-5 h-5 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+      </div>
+
+      {lightboxOpen && fullSrc && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 flex items-center justify-center p-6 cursor-zoom-out"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            title="Close"
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={fullSrc}
+            alt={altText ?? `${entityType} art`}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
         </div>
       )}
-      {isGenerating && (
-        <div className="absolute inset-0 rounded-card bg-black/50 flex items-center justify-center">
-          <div className="w-5 h-5 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-    </div>
+    </>
   )
 }

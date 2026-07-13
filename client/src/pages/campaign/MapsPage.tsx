@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Map, X, Download, Grid, Wand2, Upload, MapPin as PinIcon, Globe } from 'lucide-react'
+import { Map, X, Download, Grid, Wand2, Upload, MapPin as PinIcon, Globe, Trash2, CheckSquare, Check } from 'lucide-react'
 import MapViewer from '../../components/map/MapViewer'
 import PinLayer from '../../components/map/PinLayer'
 import type { MapPin, AvailableLocation } from '../../components/map/PinLayer'
@@ -48,6 +48,8 @@ export default function MapsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [editPins, setEditPins] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const uploadStatus = useJobStatus(uploadJobId)
 
@@ -96,6 +98,44 @@ export default function MapsPage() {
     },
     onError: e => alert(apiError(e)),
   })
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (mapIds: string[]) => {
+      const results = await Promise.allSettled(
+        mapIds.map(id => api.delete(`/api/campaigns/${campaignId}/maps/${id}`)),
+      )
+      const deletedIds = mapIds.filter((_, i) => results[i].status === 'fulfilled')
+      const failed = mapIds.length - deletedIds.length
+      return { deletedIds, failed, total: mapIds.length }
+    },
+    onSuccess: ({ deletedIds, failed, total }) => {
+      if (failed === 0) {
+        setSelectedIds(new Set())
+        setSelectMode(false)
+      } else {
+        // Keep only the maps that failed to delete selected so the user can retry
+        setSelectedIds(prev => {
+          const next = new Set(prev)
+          deletedIds.forEach(id => next.delete(id))
+          return next
+        })
+        alert(`${failed} of ${total} maps could not be deleted — they remain selected so you can retry.`)
+      }
+    },
+    onError: e => alert(apiError(e)),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['maps', campaignId] })
+    },
+  })
+
+  const toggleSelected = useCallback((mapId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(mapId)) next.delete(mapId)
+      else next.add(mapId)
+      return next
+    })
+  }, [])
 
   const allMaps: MapAssetRow[] = data?.items ?? []
   const maps = kindFilter === 'all' ? allMaps : allMaps.filter(m => m.kind === kindFilter)
@@ -240,6 +280,18 @@ export default function MapsPage() {
             className="hidden"
             onChange={handleFileSelect}
           />
+          {allMaps.length > 0 && (
+            <button
+              className={cn('btn-secondary gap-1', selectMode && 'border-accent/60 text-accent')}
+              onClick={() => {
+                setSelectMode(v => !v)
+                setSelectedIds(new Set())
+              }}
+            >
+              <CheckSquare size={14} />
+              {selectMode ? 'Done' : 'Select'}
+            </button>
+          )}
           <button
             className="btn-secondary gap-1"
             onClick={() => fileInputRef.current?.click()}
@@ -280,6 +332,39 @@ export default function MapsPage() {
             onClick={() => setUploadError(null)}
           >
             ✕
+          </button>
+        </div>
+      )}
+
+      {/* Bulk-select action bar */}
+      {selectMode && (
+        <div className="mb-4 rounded-lg border border-border bg-surface-2 px-4 py-2.5 flex items-center gap-3 flex-wrap">
+          <p className="text-sm text-ink-muted flex-1">
+            {selectedIds.size === 0
+              ? 'Click maps to select them'
+              : `${selectedIds.size} map${selectedIds.size === 1 ? '' : 's'} selected`}
+          </p>
+          <button
+            className="text-xs text-ink-muted hover:text-ink px-2 py-1 rounded transition-colors"
+            onClick={() => {
+              setSelectedIds(prev =>
+                prev.size === maps.length ? new Set() : new Set(maps.map(m => m.id)),
+              )
+            }}
+          >
+            {selectedIds.size === maps.length && maps.length > 0 ? 'Deselect all' : 'Select all'}
+          </button>
+          <button
+            className="btn-secondary gap-1 text-danger border-danger/40 hover:bg-danger/10 text-xs"
+            disabled={selectedIds.size === 0 || bulkDeleteMutation.isPending}
+            onClick={() => {
+              if (confirm(`Delete ${selectedIds.size} map${selectedIds.size === 1 ? '' : 's'}? This cannot be undone.`)) {
+                bulkDeleteMutation.mutate([...selectedIds])
+              }
+            }}
+          >
+            <Trash2 size={13} />
+            {bulkDeleteMutation.isPending ? 'Deleting…' : 'Delete selected'}
           </button>
         </div>
       )}
@@ -338,23 +423,45 @@ export default function MapsPage() {
           {maps.map(m => {
             const thumbAssetId = m.imageAsset?.id ?? m.imageAssetId
             const pinCount = m._count?.pins ?? 0
+            const isSelected = selectedIds.has(m.id)
             return (
               <div
                 key={m.id}
-                className="card hover:border-accent/40 cursor-pointer transition-colors group overflow-hidden p-0"
-                onClick={() => openMap(m)}
+                className={cn(
+                  'card cursor-pointer transition-colors group overflow-hidden p-0',
+                  selectMode && isSelected
+                    ? 'border-accent ring-1 ring-accent'
+                    : 'hover:border-accent/40',
+                )}
+                onClick={() => (selectMode ? toggleSelected(m.id) : openMap(m))}
               >
                 <div className="aspect-square bg-neutral-900 flex items-center justify-center overflow-hidden relative">
                   {thumbAssetId ? (
                     <img
                       src={`/api/assets/${thumbAssetId}?size=thumb`}
                       alt={m.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className={cn(
+                        'w-full h-full object-cover transition-transform duration-300',
+                        !selectMode && 'group-hover:scale-105',
+                        selectMode && isSelected && 'opacity-70',
+                      )}
                     />
                   ) : (
                     <Map size={32} className="text-white/20" />
                   )}
-                  {Boolean(m.grid) && (m.grid as GridSettings).visible && (
+                  {selectMode && (
+                    <div
+                      className={cn(
+                        'absolute top-1.5 left-1.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors',
+                        isSelected
+                          ? 'bg-accent border-accent'
+                          : 'bg-black/40 border-white/60',
+                      )}
+                    >
+                      {isSelected && <Check size={13} className="text-white" strokeWidth={3} />}
+                    </div>
+                  )}
+                  {!selectMode && Boolean(m.grid) && (m.grid as GridSettings).visible && (
                     <div className="absolute top-1.5 left-1.5 bg-black/50 rounded p-0.5">
                       <Grid size={10} className="text-white/70" />
                     </div>
@@ -364,6 +471,20 @@ export default function MapsPage() {
                       <PinIcon size={9} className="text-white/80" />
                       <span className="text-white/80 text-[9px] font-semibold">{pinCount}</span>
                     </div>
+                  )}
+                  {!selectMode && (
+                    <button
+                      className="absolute bottom-1.5 right-1.5 p-1.5 rounded bg-black/60 text-white/60 hover:text-danger hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title={`Delete ${m.title}`}
+                      onClick={e => {
+                        e.stopPropagation()
+                        if (confirm(`Delete "${m.title}"? This cannot be undone.`)) {
+                          deleteMutation.mutate(m.id)
+                        }
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   )}
                 </div>
                 <div className="p-3">

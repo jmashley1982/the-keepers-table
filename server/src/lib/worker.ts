@@ -186,6 +186,7 @@ Art style: ${styleFragment}
 
 STRICT RULES — all must be followed:
 - Painterly fantasy cartography style — hand-illustrated, antique, evocative
+- FICTIONAL invented geography ONLY — the landmasses must be original and imaginary, never Earth's continents or any recognizable real-world geography
 - Bird's eye geographic overview — NOT photorealistic or orthographic grid
 - NO text, NO labels, NO legends, NO compass roses, NO map borders or cartouches
 - Show natural terrain: mountains as stylised peaks, forests as clusters of illustrated trees, rivers as winding blue lines, coastlines with surf detail
@@ -246,6 +247,18 @@ Return ONLY valid JSON — no prose, no markdown:
       }
     }
 
+    // ── 3b. Hard constraints for map kinds (applies to BOTH user prompts and
+    // art-director prompts — image models drift toward isometric views and
+    // real-world Earth geography without explicit framing) ─────────────────
+    if (kind === 'map_battle') {
+      finalPrompt = `Strict top-down orthographic tabletop RPG battle map, bird's-eye view from directly overhead (90-degree camera angle, flat 2D floor plan perspective, like an architectural blueprint rendered as painted terrain). ${finalPrompt}. Flat overhead view only — absolutely no isometric angle, no 3D tilt, no perspective depth, no walls shown from the side, no grid lines, no text or labels.`
+      negativePrompt = `isometric, isometric view, 3/4 view, angled perspective, oblique projection, side view, 3D render perspective, tilted camera, horizon line, vanishing point, walls in elevation, grid lines, hex grid, text, labels, ${negativePrompt}`
+    } else if (kind === 'map_world' || kind === 'map_region') {
+      const scopeWord = kind === 'map_world' ? 'world with entirely fictional continents' : 'region with entirely fictional geography'
+      finalPrompt = `Hand-painted fantasy cartography of a completely fictional, invented ${scopeWord} — original imaginary landmasses that must NOT resemble Earth or any real-world continents. ${finalPrompt}. Invented coastlines and landmass shapes only, no recognizable real-world geography, no text or labels.`
+      negativePrompt = `Earth, world map of Earth, real-world continents, Africa, Europe, Asia, North America, South America, Australia, Antarctica, Greenland, recognizable geography, satellite photo, globe, text, labels, legends, compass rose, ${negativePrompt}`
+    }
+
     // Store crafted prompt on the job for inspection
     await prisma.generationJob.update({
       where: { id: jobId },
@@ -275,11 +288,12 @@ Return ONLY valid JSON — no prose, no markdown:
     const aspectRatio = input.aspectRatio ?? (kind === 'portrait_npc' ? 'portrait' : 'square')
     const size = aspectRatio === 'widescreen' ? '16:9' : aspectRatio === 'landscape' ? '4:3' : aspectRatio === 'square' ? '1:1' : '3:4'
 
-    // EvoLink prompt limit is 2000 chars; fold the negative prompt in as guidance
-    let promptWithNegative = negativePrompt
-      ? `${finalPrompt}\n\nAvoid: ${negativePrompt}`
-      : finalPrompt
-    if (promptWithNegative.length > 2000) promptWithNegative = promptWithNegative.slice(0, 2000)
+    // EvoLink prompt limit is 2000 chars; fold the negative prompt in as guidance.
+    // Trim the body first so the "Avoid:" constraints are never clipped.
+    const avoidSection = negativePrompt ? `\n\nAvoid: ${negativePrompt.slice(0, 600)}` : ''
+    const bodyBudget = 2000 - avoidSection.length
+    const promptBody = finalPrompt.length > bodyBudget ? finalPrompt.slice(0, bodyBudget) : finalPrompt
+    const promptWithNegative = `${promptBody}${avoidSection}`
 
     // ── 6. Submit to EvoLink ───────────────────────────────────────────────
     console.log(`[image.generate] Submitting job ${jobId}: model=${evolinkModel} size=${size} entityType=${entityType}`)
