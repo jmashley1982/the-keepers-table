@@ -6,10 +6,12 @@ import { cn } from '../../lib/cn'
 import EntityCard from '../../components/entity/EntityCard'
 import MapViewer from '../../components/map/MapViewer'
 import PinLayer from '../../components/map/PinLayer'
+import MentionTextarea from '../../components/session/MentionTextarea'
 import {
   Save, Loader, Clock, X, CheckCircle, Play, StopCircle,
   Search, Users, Swords, MapPin, ChevronRight, Plus,
-  BookOpen, Scroll, AlertTriangle, Map as MapIcon,
+  BookOpen, Scroll, AlertTriangle, Map as MapIcon, Shield, AtSign,
+  Heart, Sword,
 } from 'lucide-react'
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -21,15 +23,23 @@ interface WrapResult {
   new_entities_detected: NewEntity[]; hooks_for_next: string[];
 }
 interface Entity { id: string; name: string; role?: string; status?: string; type?: string; difficulty?: string; dispositionToParty?: string; description?: string; [key: string]: unknown }
+interface PlayerCharacter {
+  id: string; name: string; playerName?: string; race?: string;
+  class?: string; subclass?: string; level?: number; background?: string;
+  notes?: string; appearance?: string; backstory?: string;
+  combatStats?: { hp?: number; maxHp?: number; ac?: number; initiative?: number }
+  abilityScores?: { str?: number; dex?: number; con?: number; int?: number; wis?: number; cha?: number }
+  portraitAsset?: { id: string }
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const SECTION_ICONS: Record<string, React.ReactNode> = {
-  npcs: <Users size={14} />, encounters: <Swords size={14} />,
+  players: <Shield size={14} />, npcs: <Users size={14} />, encounters: <Swords size={14} />,
   locations: <MapPin size={14} />, items: <BookOpen size={14} />,
   factions: <Scroll size={14} />, maps: <MapIcon size={14} />,
 }
 const SECTION_LABELS: Record<string, string> = {
-  npcs: 'NPCs', encounters: 'Encounters', locations: 'Locations',
+  players: 'Players', npcs: 'NPCs', encounters: 'Encounters', locations: 'Locations',
   items: 'Items', factions: 'Factions', maps: 'Maps',
 }
 const ENTITY_TYPES: Record<string, string> = {
@@ -59,9 +69,10 @@ export default function LiveSessionPage() {
   const [elapsed, setElapsed] = useState(0)
 
   // ── Section rail state ──
-  const [activeSection, setActiveSection] = useState<string>('npcs')
+  const [activeSection, setActiveSection] = useState<string>('players')
   const [searchQuery, setSearchQuery] = useState('')
   const [peekedEntity, setPeekedEntity] = useState<{ entity: Entity; type: string } | null>(null)
+  const [peekedPC, setPeekedPC] = useState<PlayerCharacter | null>(null)
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null)
   const [mapImageSize, setMapImageSize] = useState({ w: 1280, h: 720 })
   const [mapScale, setMapScale] = useState(1)
@@ -75,10 +86,17 @@ export default function LiveSessionPage() {
     enabled: !!campaignId && !!sessionId,
   })
 
+  const { data: pcListData } = useQuery({
+    queryKey: ['player-characters', campaignId],
+    queryFn: () => api.get(`/api/campaigns/${campaignId}/player-characters`).then(r => r.data),
+    enabled: !!campaignId,
+  })
+  const playerCharacters: PlayerCharacter[] = pcListData?.items ?? []
+
   const { data: sectionData } = useQuery({
     queryKey: ['entities', campaignId, activeSection],
     queryFn: () => api.get(`/api/entities/${campaignId}/${activeSection}`).then(r => r.data),
-    enabled: !!campaignId && activeSection !== 'maps',
+    enabled: !!campaignId && activeSection !== 'maps' && activeSection !== 'players',
   })
 
   const { data: mapsData } = useQuery({
@@ -174,6 +192,9 @@ export default function LiveSessionPage() {
   const filteredItems = searchQuery.trim()
     ? allItems.filter(e => e.name?.toLowerCase().includes(searchQuery.toLowerCase()))
     : allItems
+  const filteredPCs = searchQuery.trim()
+    ? playerCharacters.filter(pc => pc.name.toLowerCase().includes(searchQuery.toLowerCase()) || pc.playerName?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : playerCharacters
 
   if (!session) return (
     <div className="flex items-center justify-center h-full">
@@ -236,7 +257,7 @@ export default function LiveSessionPage() {
             {Object.keys(SECTION_ICONS).map(sec => (
               <button
                 key={sec}
-                onClick={() => { setActiveSection(sec); setPeekedEntity(null) }}
+                onClick={() => { setActiveSection(sec); setPeekedEntity(null); setPeekedPC(null) }}
                 className={cn(
                   'flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
                   activeSection === sec
@@ -300,40 +321,86 @@ export default function LiveSessionPage() {
             </div>
           )}
 
-          {/* Entity list */}
+          {/* Entity / PC list */}
           <div className="flex-1 overflow-y-auto">
-            {activeSection === 'maps' ? null : filteredItems.length === 0 ? (
-              <div className="p-4 text-center">
-                <p className="text-xs text-ink-muted">No {SECTION_LABELS[activeSection].toLowerCase()} yet.</p>
-                <button
-                  className="btn-ghost text-xs mt-2 text-accent"
-                  onClick={() => navigate(`/campaign/${campaignId}/generate/${ENTITY_TYPES[activeSection]}`)}
-                >
-                  <Plus size={10} /> Generate one
-                </button>
-              </div>
-            ) : (
-              filteredItems.map(entity => (
-                <button
-                  key={entity.id}
-                  onClick={() => setPeekedEntity(
-                    peekedEntity?.entity.id === entity.id ? null : { entity, type: ENTITY_TYPES[activeSection] }
-                  )}
-                  className={cn(
-                    'w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-surface-2 transition-colors flex items-center justify-between gap-2',
-                    peekedEntity?.entity.id === entity.id && 'bg-accent/5 border-l-2 border-l-accent'
-                  )}
-                >
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-ink truncate">{entity.name}</p>
-                    <p className="text-[10px] text-ink-muted truncate">
-                      {entity.role ?? entity.type ?? entity.difficulty ?? ''}
-                    </p>
+            {activeSection === 'maps' ? null
+              : activeSection === 'players' ? (
+                filteredPCs.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <Shield size={20} className="mx-auto text-ink-muted/30 mb-2" />
+                    <p className="text-xs text-ink-muted mb-2">No player characters yet.</p>
+                    <button
+                      className="btn-ghost text-xs text-accent"
+                      onClick={() => navigate(`/campaign/${campaignId}/players`)}
+                    >
+                      <Plus size={10} /> Add a PC
+                    </button>
                   </div>
-                  <ChevronRight size={10} className="text-ink-muted shrink-0" />
-                </button>
-              ))
-            )}
+                ) : (
+                  filteredPCs.map(pc => (
+                    <button
+                      key={pc.id}
+                      onClick={() => setPeekedPC(peekedPC?.id === pc.id ? null : pc)}
+                      className={cn(
+                        'w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-surface-2 transition-colors flex items-center gap-2.5',
+                        peekedPC?.id === pc.id && 'bg-accent/5 border-l-2 border-l-accent'
+                      )}
+                    >
+                      {pc.portraitAsset ? (
+                        <img
+                          src={`/api/assets/${pc.portraitAsset.id}/serve`}
+                          className="w-7 h-7 rounded-full object-cover shrink-0 border border-border"
+                          alt={pc.name}
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-surface-2 border border-border flex items-center justify-center shrink-0">
+                          <Shield size={12} className="text-ink-muted/50" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-ink truncate">{pc.name}</p>
+                        <p className="text-[10px] text-ink-muted truncate">
+                          {[pc.race, pc.class, pc.level ? `Lv${pc.level}` : ''].filter(Boolean).join(' · ')}
+                          {pc.playerName && <span className="ml-1 opacity-60">({pc.playerName})</span>}
+                        </p>
+                      </div>
+                      <ChevronRight size={10} className="text-ink-muted shrink-0" />
+                    </button>
+                  ))
+                )
+              ) : filteredItems.length === 0 ? (
+                <div className="p-4 text-center">
+                  <p className="text-xs text-ink-muted">No {SECTION_LABELS[activeSection].toLowerCase()} yet.</p>
+                  <button
+                    className="btn-ghost text-xs mt-2 text-accent"
+                    onClick={() => navigate(`/campaign/${campaignId}/generate/${ENTITY_TYPES[activeSection]}`)}
+                  >
+                    <Plus size={10} /> Generate one
+                  </button>
+                </div>
+              ) : (
+                filteredItems.map(entity => (
+                  <button
+                    key={entity.id}
+                    onClick={() => setPeekedEntity(
+                      peekedEntity?.entity.id === entity.id ? null : { entity, type: ENTITY_TYPES[activeSection] }
+                    )}
+                    className={cn(
+                      'w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-surface-2 transition-colors flex items-center justify-between gap-2',
+                      peekedEntity?.entity.id === entity.id && 'bg-accent/5 border-l-2 border-l-accent'
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-ink truncate">{entity.name}</p>
+                      <p className="text-[10px] text-ink-muted truncate">
+                        {entity.role ?? entity.type ?? entity.difficulty ?? ''}
+                      </p>
+                    </div>
+                    <ChevronRight size={10} className="text-ink-muted shrink-0" />
+                  </button>
+                ))
+              )
+            }
           </div>
         </div>
 
@@ -413,6 +480,114 @@ export default function LiveSessionPage() {
             </div>
           )}
 
+          {/* Peeked PC panel */}
+          {peekedPC && (
+            <div className="absolute inset-0 z-10 bg-bg/95 backdrop-blur-sm flex flex-col overflow-hidden animate-fade-in">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+                <div className="flex items-center gap-2">
+                  <Shield size={14} className="text-accent" />
+                  <span className="text-sm font-semibold text-ink">{peekedPC.name}</span>
+                  {peekedPC.playerName && <span className="text-xs text-ink-muted">({peekedPC.playerName})</span>}
+                </div>
+                <button className="btn-ghost p-1" onClick={() => setPeekedPC(null)}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {/* Identity row */}
+                <div className="flex flex-wrap gap-2">
+                  {peekedPC.race && <span className="badge bg-surface-2 text-ink-muted text-xs">{peekedPC.race}</span>}
+                  {peekedPC.class && <span className="badge bg-surface-2 text-ink-muted text-xs">{peekedPC.subclass ? `${peekedPC.subclass} ${peekedPC.class}` : peekedPC.class}</span>}
+                  {peekedPC.level && <span className="badge bg-accent/10 text-accent text-xs">Level {peekedPC.level}</span>}
+                  {peekedPC.background && <span className="badge bg-surface-2 text-ink-muted text-xs">{peekedPC.background}</span>}
+                </div>
+
+                {/* Combat stats */}
+                {peekedPC.combatStats && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mb-2">Combat</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {peekedPC.combatStats.hp != null && (
+                        <div className="bg-surface-2 rounded-card p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 mb-0.5">
+                            <Heart size={10} className="text-red-400" />
+                            <span className="text-[10px] text-ink-muted">HP</span>
+                          </div>
+                          <p className="text-sm font-bold text-ink">
+                            {peekedPC.combatStats.hp}
+                            {peekedPC.combatStats.maxHp != null && <span className="text-ink-muted font-normal text-xs">/{peekedPC.combatStats.maxHp}</span>}
+                          </p>
+                        </div>
+                      )}
+                      {peekedPC.combatStats.ac != null && (
+                        <div className="bg-surface-2 rounded-card p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 mb-0.5">
+                            <Shield size={10} className="text-blue-400" />
+                            <span className="text-[10px] text-ink-muted">AC</span>
+                          </div>
+                          <p className="text-sm font-bold text-ink">{peekedPC.combatStats.ac}</p>
+                        </div>
+                      )}
+                      {peekedPC.combatStats.initiative != null && (
+                        <div className="bg-surface-2 rounded-card p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 mb-0.5">
+                            <Sword size={10} className="text-orange-400" />
+                            <span className="text-[10px] text-ink-muted">Init</span>
+                          </div>
+                          <p className="text-sm font-bold text-ink">
+                            {(peekedPC.combatStats.initiative ?? 0) >= 0 ? '+' : ''}{peekedPC.combatStats.initiative}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ability scores */}
+                {peekedPC.abilityScores && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mb-2">Ability Scores</p>
+                    <div className="grid grid-cols-6 gap-1">
+                      {(Object.entries(peekedPC.abilityScores) as [string, number | undefined][]).map(([stat, val]) => {
+                        const mod = val != null ? Math.floor((val - 10) / 2) : null
+                        return (
+                          <div key={stat} className="bg-surface-2 rounded p-1.5 text-center">
+                            <p className="text-[9px] text-ink-muted uppercase font-medium">{stat}</p>
+                            <p className="text-xs font-bold text-ink">{val ?? '—'}</p>
+                            {mod != null && <p className="text-[9px] text-ink-muted">{mod >= 0 ? `+${mod}` : mod}</p>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {peekedPC.notes && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mb-1">Notes</p>
+                    <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{peekedPC.notes}</p>
+                  </div>
+                )}
+
+                {/* Backstory */}
+                {peekedPC.backstory && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mb-1">Backstory</p>
+                    <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{peekedPC.backstory}</p>
+                  </div>
+                )}
+
+                <button
+                  className="btn-ghost text-xs w-full justify-center text-accent border border-border"
+                  onClick={() => navigate(`/campaign/${campaignId}/players`)}
+                >
+                  Open full character sheet
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Notes area */}
           <div className="flex-1 flex flex-col p-5 overflow-hidden">
             <div className="flex items-center justify-between mb-2 shrink-0">
@@ -428,18 +603,20 @@ export default function LiveSessionPage() {
                 </span>
               )}
             </div>
-            <textarea
-              className="textarea flex-1 resize-none text-sm font-mono leading-relaxed"
-              placeholder={`Write freely — NPC reactions, player choices, combat outcomes, anything notable.\n\nClaude will read these when you wrap the session to generate the recap and detect entity updates.`}
+            <MentionTextarea
+              campaignId={campaignId!}
               value={notes}
-              onChange={e => handleNotesChange(e.target.value)}
+              onChange={handleNotesChange}
+              className="textarea flex-1 resize-none text-sm font-mono leading-relaxed"
+              placeholder={`Write freely — NPC reactions, player choices, combat outcomes.\n\nType @ to tag a PC, NPC, location, item, or faction.\nClaude will read these when you wrap the session.`}
             />
           </div>
 
           {/* Bottom hint bar */}
           <div className="shrink-0 px-5 py-2 border-t border-border bg-surface flex items-center gap-4 text-[10px] text-ink-muted">
-            <span className="flex items-center gap-1"><AlertTriangle size={10} /> Click any entity on the left to peek its details</span>
-            <span className="flex items-center gap-1"><Save size={10} /> Notes auto-save every 2s</span>
+            <span className="flex items-center gap-1"><AlertTriangle size={10} /> Click any entity on the left to peek</span>
+            <span className="flex items-center gap-1"><AtSign size={10} /> Type @ to tag entities</span>
+            <span className="flex items-center gap-1"><Save size={10} /> Auto-saves every 2s</span>
           </div>
         </div>
 
