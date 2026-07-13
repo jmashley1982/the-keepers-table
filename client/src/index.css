@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 /* ── Candlelight / Tavern theme (dark, warm — default) ── */
-[data-theme="candlelight"],
-:root {
+:root,
+[data-theme="candlelight"] {
   --color-bg:        #0d0905;
   --color-surface:   #191108;
   --color-surface-2: #231a09;
@@ -144,52 +144,67 @@ body {
   }
 }
 
-/* ── Candlelight / dark theme overrides ── */
+/* ── Candlelight theme: component overrides ── */
 
-/* Gold color for all display-font elements in candlelight */
-[data-theme="candlelight"] .display-font,
-:root .display-font {
+/* Gold color for all display-font elements */
+[data-theme="candlelight"] .display-font {
   color: var(--color-accent);
 }
 
-/* Primary buttons: dark text on gold for max legibility + tavern look */
-[data-theme="candlelight"] .btn-primary,
-:root .btn-primary {
+/* Dark text on gold button for max contrast + tavern aesthetic */
+[data-theme="candlelight"] .btn-primary {
   color: #1a0e03;
 }
 
-/* Cards get a subtle inset highlight for depth */
-[data-theme="candlelight"] .card,
-:root .card {
+/* Cards get subtle inset highlight for depth */
+[data-theme="candlelight"] .card {
   box-shadow: inset 0 1px 0 rgba(201, 162, 39, 0.07), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
-/* Inputs: slightly warmer focus */
-[data-theme="candlelight"] .input:focus,
-:root .input:focus {
+/* Inputs: warmer focus ring */
+[data-theme="candlelight"] .input:focus {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 
-/* Logo — invert + warm gold tint for dark themes */
-[data-theme="candlelight"] .logo-theme,
-:root .logo-theme {
+/* Logo — invert + warm gold tint */
+[data-theme="candlelight"] .logo-theme {
   filter: invert(1) sepia(0.5) saturate(1.4) hue-rotate(5deg) brightness(0.82);
 }
 
-[data-theme="slate"] .logo-theme,
-[data-theme="high-contrast"] .logo-theme {
-  filter: invert(1) sepia(0.15) brightness(0.9);
-}
-
-/* ── Parchment-specific overrides (light theme keeps white buttons) ── */
-[data-theme="parchment"] .btn-primary {
-  color: #fff;
-}
+/* ── Parchment theme: keep headings ink-colored, white button text, no card shadow ── */
 [data-theme="parchment"] .display-font {
   color: var(--color-ink);
 }
+[data-theme="parchment"] .btn-primary {
+  color: #fff;
+}
 [data-theme="parchment"] .card {
   box-shadow: none;
+}
+[data-theme="parchment"] .logo-theme {
+  filter: none;
+}
+
+/* ── Slate theme ── */
+[data-theme="slate"] .display-font {
+  color: var(--color-ink);
+}
+[data-theme="slate"] .btn-primary {
+  color: #fff;
+}
+[data-theme="slate"] .logo-theme {
+  filter: invert(1) sepia(0.1) brightness(0.9);
+}
+
+/* ── High Contrast theme ── */
+[data-theme="high-contrast"] .display-font {
+  color: var(--color-ink);
+}
+[data-theme="high-contrast"] .btn-primary {
+  color: #000;
+}
+[data-theme="high-contrast"] .logo-theme {
+  filter: invert(1);
 }
 
 /* ── Animations ── */
