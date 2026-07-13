@@ -222,6 +222,7 @@ function PCCard({ pc, campaignId, onSelect, onDelete }: {
   pc: PlayerCharacter; campaignId: string
   onSelect: () => void; onDelete: () => void
 }) {
+  const qc = useQueryClient()
   return (
     <div
       className="card cursor-pointer hover:border-accent/40 transition-colors group"
@@ -240,7 +241,7 @@ function PCCard({ pc, campaignId, onSelect, onDelete }: {
             campaignId={campaignId}
             entityType="pc"
             currentAssetId={pc.portraitAssetId}
-            onGenerated={() => {}}
+            onGenerated={() => qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })}
           />
         </div>
         <div className="flex-1 min-w-0">
