@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useState, useRef } from 'react'
@@ -600,8 +600,9 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved }: {
 
 export default function PlayersPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
+  const [searchParams] = useSearchParams()
   const qc = useQueryClient()
-  const [selectedPcId, setSelectedPcId] = useState<string | null>(null)
+  const [selectedPcId, setSelectedPcId] = useState<string | null>(searchParams.get('pc'))
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [newPlayerName, setNewPlayerName] = useState('')

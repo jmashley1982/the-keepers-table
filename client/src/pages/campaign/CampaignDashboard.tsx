@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useState } from 'react'
-import { Plus, Play, BookOpen, Map, Scroll, CheckCircle, Loader, Volume2 } from 'lucide-react'
+import { Plus, Play, CheckCircle, Loader, Volume2, Users } from 'lucide-react'
 
 export default function CampaignDashboard() {
   const { campaignId } = useParams<{ campaignId: string }>()
@@ -20,6 +20,12 @@ export default function CampaignDashboard() {
   const { data: sessionsData } = useQuery({
     queryKey: ['sessions', campaignId],
     queryFn: () => api.get(`/api/campaigns/${campaignId}/sessions`).then(r => r.data),
+    enabled: !!campaignId,
+  })
+
+  const { data: pcData } = useQuery({
+    queryKey: ['player-characters', campaignId],
+    queryFn: () => api.get(`/api/campaigns/${campaignId}/player-characters`).then(r => r.data),
     enabled: !!campaignId,
   })
 
@@ -123,6 +129,9 @@ export default function CampaignDashboard() {
         ))}
       </div>
 
+      {/* Party snapshot */}
+      <PartySnapshot characters={pcData?.items ?? []} onNavigate={(pcId) => navigate(`/campaign/${campaignId}/players?pc=${pcId}`)} />
+
       {/* Prep suggestions */}
       <div className="card">
         <div className="flex items-center justify-between mb-3">
@@ -204,6 +213,10 @@ interface Session {
   id: string; sessionNumber: number; title?: string; status: string; recapRead: boolean;
   datePlayed?: string; generatedSummary?: string; keyEvents: string[]; hooksForNext: string[];
 }
+interface PC {
+  id: string; name: string; playerName: string; class: string; level: number;
+  portraitAssetId: string | null; portraitAsset?: { id: string; altText?: string | null } | null;
+}
 
 function ActionCard({ icon, label, onClick, loading }: { icon: string; label: string; onClick: () => void; loading?: boolean }) {
   return (
@@ -225,6 +238,58 @@ function StatusBadge({ status }: { status: string }) {
     complete: 'bg-green-500/10 text-green-500',
   }
   return <span className={`badge ${colors[status] ?? ''} capitalize text-xs`}>{status.replace('_', ' ')}</span>
+}
+
+function PartySnapshot({ characters, onNavigate }: { characters: PC[]; onNavigate: (pcId: string) => void }) {
+  if (characters.length === 0) return null
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="display-font text-lg font-bold text-ink flex items-center gap-2">
+          <Users size={18} className="text-accent" />
+          Party
+        </h2>
+        <span className="text-xs text-ink-muted">{characters.length} character{characters.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        {characters.map(pc => {
+          const assetId = pc.portraitAsset?.id ?? pc.portraitAssetId
+          return (
+            <button
+              key={pc.id}
+              className="flex flex-col items-center gap-2 p-3 rounded-card hover:bg-surface-2 cursor-pointer transition-colors group text-center"
+              onClick={() => onNavigate(pc.id)}
+            >
+              <div className="relative w-16 h-16 flex-shrink-0">
+                {assetId ? (
+                  <img
+                    src={`/api/assets/${assetId}?size=thumb`}
+                    alt={pc.portraitAsset?.altText ?? `${pc.name} portrait`}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-border group-hover:border-accent/50 transition-colors"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-surface-2 border-2 border-border group-hover:border-accent/50 transition-colors flex items-center justify-center text-2xl">
+                    🧙
+                  </div>
+                )}
+              </div>
+              <div className="w-full min-w-0">
+                <p className="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">{pc.name}</p>
+                {pc.playerName && (
+                  <p className="text-xs text-ink-muted truncate">{pc.playerName}</p>
+                )}
+                {(pc.class || pc.level) && (
+                  <span className="inline-block mt-1 badge bg-accent/10 text-accent text-xs">
+                    {[pc.class, pc.level ? `Lvl ${pc.level}` : null].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function RecapCard({ session, campaignId, onDismiss }: { session: Session; campaignId: string; onDismiss: () => void }) {

@@ -74,7 +74,6 @@ export default function App() {
         <Route path="campaign/:campaignId/generate/battle-map" element={<BattleMapGeneratorPage />} />
         <Route path="campaign/:campaignId/generate/world-map" element={<WorldMapGeneratorPage />} />
         <Route path="campaign/:campaignId/generate/:kind" element={<GeneratorPage />} />
-        <Route path="campaign/:campaignId/players" element={<PlayersPage />} />
         <Route path="campaign/:campaignId/settings" element={<CampaignSettingsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
