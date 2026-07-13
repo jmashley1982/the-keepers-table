@@ -15,6 +15,7 @@
   --color-gm-secret: #a78bfa;
   --color-border:    #2e1f0b;
   --radius-card:     0.375rem;
+  --font-display:    'Playfair Display', Georgia, serif;
   --texture-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
 }
 
@@ -30,6 +31,7 @@
   --color-gm-secret: #4c1d95;
   --color-border:    #d4c9b0;
   --radius-card:     0.5rem;
+  --font-display:    'Playfair Display', Georgia, serif;
   --texture-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
@@ -45,7 +47,8 @@
   --color-gm-secret: #a78bfa;
   --color-border:    #2e3145;
   --radius-card:     0.5rem;
-  --texture-bg: none;
+  --font-display:    'Playfair Display', Georgia, serif;
+  --texture-bg:      none;
 }
 
 /* ── High Contrast ── */
@@ -60,7 +63,72 @@
   --color-gm-secret: #cc99ff;
   --color-border:    #555555;
   --radius-card:     0.5rem;
-  --texture-bg: none;
+  --font-display:    'Playfair Display', Georgia, serif;
+  --texture-bg:      none;
+}
+
+/* ── Eldritch theme (Lovecraftian — deep void, R'lyeh teal) ── */
+[data-theme="eldritch"] {
+  --color-bg:        #0b0f10;
+  --color-surface:   #111618;
+  --color-surface-2: #1d2326;
+  --color-ink:       #e6efea;
+  --color-ink-muted: #7fa49a;
+  --color-accent:    #4b8f85;
+  --color-danger:    #922020;
+  --color-gm-secret: #6b4080;
+  --color-border:    #2c3a3a;
+  --radius-card:     0.25rem;
+  --font-display:    'Cormorant Garamond', Georgia, serif;
+  --texture-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+}
+
+/* ── Icarus theme (Sci-fi HUD — gunmetal, amber alert) ── */
+[data-theme="icarus"] {
+  --color-bg:        #141416;
+  --color-surface:   #1c1c20;
+  --color-surface-2: #242428;
+  --color-ink:       #d4d4d8;
+  --color-ink-muted: #71717a;
+  --color-accent:    #f59e0b;
+  --color-danger:    #ef4444;
+  --color-gm-secret: #818cf8;
+  --color-border:    #323238;
+  --radius-card:     0.125rem;
+  --font-display:    'Rajdhani', Inter, sans-serif;
+  --texture-bg:      none;
+}
+
+/* ── Neon theme (Cyberpunk — deep blue-black, fuchsia/cyan) ── */
+[data-theme="neon"] {
+  --color-bg:        #050814;
+  --color-surface:   #0a0f22;
+  --color-surface-2: #0f1630;
+  --color-ink:       #e0e8ff;
+  --color-ink-muted: #6875a8;
+  --color-accent:    #d946ef;
+  --color-danger:    #ef4444;
+  --color-gm-secret: #06b6d4;
+  --color-border:    #1e2a4a;
+  --radius-card:     0.125rem;
+  --font-display:    'Rajdhani', Inter, sans-serif;
+  --texture-bg:      none;
+}
+
+/* ── Frosthold theme (High Fantasy — midnight blue, ice crystal) ── */
+[data-theme="frosthold"] {
+  --color-bg:        #050f1f;
+  --color-surface:   #0c1a30;
+  --color-surface-2: #122240;
+  --color-ink:       #e8f4ff;
+  --color-ink-muted: #6b8faf;
+  --color-accent:    #60a5fa;
+  --color-danger:    #ef4444;
+  --color-gm-secret: #a855f7;
+  --color-border:    #1a304a;
+  --radius-card:     0.5rem;
+  --font-display:    'Playfair Display', Georgia, serif;
+  --texture-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
 /* ── Base styles ── */
@@ -136,7 +204,7 @@ body {
   }
 
   .display-font {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-display, 'Playfair Display', Georgia, serif);
   }
 
   .logo-theme {
@@ -144,34 +212,28 @@ body {
   }
 }
 
-/* ── Candlelight theme: component overrides ── */
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Per-theme component overrides                                               */
+/* ─────────────────────────────────────────────────────────────────────────── */
 
-/* Gold color for all display-font elements */
+/* ── Candlelight ── */
 [data-theme="candlelight"] .display-font {
   color: var(--color-accent);
 }
-
-/* Dark text on gold button for max contrast + tavern aesthetic */
 [data-theme="candlelight"] .btn-primary {
   color: #1a0e03;
 }
-
-/* Cards get subtle inset highlight for depth */
 [data-theme="candlelight"] .card {
   box-shadow: inset 0 1px 0 rgba(201, 162, 39, 0.07), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
-
-/* Inputs: warmer focus ring */
 [data-theme="candlelight"] .input:focus {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
-
-/* Logo — invert + warm gold tint */
 [data-theme="candlelight"] .logo-theme {
   filter: invert(1) sepia(0.5) saturate(1.4) hue-rotate(5deg) brightness(0.82);
 }
 
-/* ── Parchment theme: keep headings ink-colored, white button text, no card shadow ── */
+/* ── Parchment ── */
 [data-theme="parchment"] .display-font {
   color: var(--color-ink);
 }
@@ -185,7 +247,7 @@ body {
   filter: none;
 }
 
-/* ── Slate theme ── */
+/* ── Slate ── */
 [data-theme="slate"] .display-font {
   color: var(--color-ink);
 }
@@ -196,7 +258,7 @@ body {
   filter: invert(1) sepia(0.1) brightness(0.9);
 }
 
-/* ── High Contrast theme ── */
+/* ── High Contrast ── */
 [data-theme="high-contrast"] .display-font {
   color: var(--color-ink);
 }
@@ -205,6 +267,105 @@ body {
 }
 [data-theme="high-contrast"] .logo-theme {
   filter: invert(1);
+}
+
+/* ── Eldritch ── */
+[data-theme="eldritch"] .display-font {
+  color: #afcbc2;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+[data-theme="eldritch"] .btn-primary {
+  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+[data-theme="eldritch"] .card {
+  box-shadow: inset 0 1px 0 rgba(75, 143, 133, 0.06), 0 2px 8px rgba(0, 0, 0, 0.5);
+  border-color: #2c3a3a;
+}
+[data-theme="eldritch"] .input:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+[data-theme="eldritch"] .logo-theme {
+  filter: invert(1) sepia(0.5) saturate(1.2) hue-rotate(140deg) brightness(0.75);
+}
+
+/* ── Icarus ── */
+[data-theme="icarus"] .display-font {
+  color: var(--color-accent);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-theme="icarus"] .btn-primary {
+  color: #141416;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-theme="icarus"] .btn-secondary {
+  border-color: #444448;
+}
+[data-theme="icarus"] .card {
+  border-color: #323238;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.04), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+[data-theme="icarus"] .input:focus {
+  box-shadow: 0 0 0 1px var(--color-accent), 0 0 8px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+[data-theme="icarus"] .label {
+  font-family: 'Rajdhani', Inter, sans-serif;
+  letter-spacing: 0.12em;
+}
+[data-theme="icarus"] .logo-theme {
+  filter: invert(1) sepia(0.7) saturate(2.5) hue-rotate(10deg) brightness(0.85);
+}
+
+/* ── Neon ── */
+[data-theme="neon"] .display-font {
+  color: var(--color-accent);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 60%, transparent);
+}
+[data-theme="neon"] .btn-primary {
+  color: #fff;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+[data-theme="neon"] .btn-primary:hover {
+  box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 60%, transparent);
+}
+[data-theme="neon"] .card {
+  border-color: #1e2a4a;
+  box-shadow: inset 0 1px 0 rgba(217, 70, 239, 0.06), 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+[data-theme="neon"] .input:focus {
+  box-shadow: 0 0 0 1px var(--color-accent), 0 0 12px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+[data-theme="neon"] .logo-theme {
+  filter: invert(1) sepia(0.6) saturate(3) hue-rotate(260deg) brightness(0.9);
+}
+
+/* ── Frosthold ── */
+[data-theme="frosthold"] .display-font {
+  color: #bfdbfe;
+}
+[data-theme="frosthold"] .btn-primary {
+  color: #050f1f;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+[data-theme="frosthold"] .btn-primary:hover {
+  box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+[data-theme="frosthold"] .card {
+  box-shadow: inset 0 1px 0 rgba(96, 165, 250, 0.08), 0 2px 12px rgba(0, 0, 0, 0.5);
+  border-color: #1a304a;
+}
+[data-theme="frosthold"] .input:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+[data-theme="frosthold"] .logo-theme {
+  filter: invert(1) sepia(0.5) saturate(2) hue-rotate(195deg) brightness(0.95);
 }
 
 /* ── Animations ── */

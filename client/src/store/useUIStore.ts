@@ -9,7 +9,7 @@ interface ScratchItem {
 }
 
 interface UIState {
-  theme: 'parchment' | 'candlelight' | 'slate' | 'high-contrast'
+  theme: 'parchment' | 'candlelight' | 'slate' | 'high-contrast' | 'eldritch' | 'icarus' | 'neon' | 'frosthold'
   setTheme: (t: UIState['theme']) => void
 
   scratchTray: ScratchItem[]

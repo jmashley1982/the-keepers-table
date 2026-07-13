@@ -6,14 +6,18 @@ import { cn } from '../../lib/cn'
 import {
   LayoutDashboard, BookOpen, Map, Scroll,
   Settings, LogOut, ChevronDown, Zap, Users,
-  Sun, Moon, Contrast, Flame,
+  Sun, Moon, Contrast, Flame, Eye, Cpu, Wifi, Snowflake,
 } from 'lucide-react'
 import { useState } from 'react'
 
 const THEME_OPTIONS = [
   { id: 'candlelight', label: 'Candlelight', icon: Flame },
-  { id: 'parchment', label: 'Parchment', icon: Sun },
-  { id: 'slate', label: 'Slate', icon: Moon },
+  { id: 'eldritch',   label: 'Eldritch',    icon: Eye },
+  { id: 'icarus',     label: 'Icarus',       icon: Cpu },
+  { id: 'neon',       label: 'Neon',         icon: Wifi },
+  { id: 'frosthold',  label: 'Frosthold',    icon: Snowflake },
+  { id: 'parchment',  label: 'Parchment',    icon: Sun },
+  { id: 'slate',      label: 'Slate',        icon: Moon },
   { id: 'high-contrast', label: 'High Contrast', icon: Contrast },
 ] as const
 
@@ -135,15 +139,16 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
         </button>
         {themeOpen && (
           <div className="mt-1 card py-1 px-0 animate-fade-in">
-            {THEME_OPTIONS.map(({ id, label }) => (
+            {THEME_OPTIONS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => { setTheme(id); setThemeOpen(false) }}
                 className={cn(
-                  'w-full text-left px-3 py-1.5 text-xs rounded transition-colors',
+                  'w-full text-left px-3 py-1.5 text-xs rounded flex items-center gap-2 transition-colors',
                   theme === id ? 'text-accent font-semibold' : 'text-ink-muted hover:text-ink hover:bg-surface-2'
                 )}
               >
+                <Icon size={11} />
                 {label}
               </button>
             ))}
