@@ -45,7 +45,8 @@ export async function startWorker(): Promise<void> {
 
   boss = new PgBoss({
     connectionString: databaseUrl,
-    max: 8,
+    max: 4,
+    connectionTimeoutMillis: 10000,
   })
 
   boss.on('error', (err: unknown) => console.error('[pg-boss] error:', err))

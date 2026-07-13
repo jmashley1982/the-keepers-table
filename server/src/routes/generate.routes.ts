@@ -632,7 +632,15 @@ generateRouter.post('/image', async (req, res) => {
     },
   })
 
-  await getBoss().send('image.generate', { jobId: job.id })
+  try {
+    await getBoss().send('image.generate', { jobId: job.id })
+  } catch (enqueueErr) {
+    const msg = enqueueErr instanceof Error ? enqueueErr.message : 'Failed to enqueue job'
+    console.error('[generate/image] enqueue error:', msg)
+    await prisma.generationJob.update({ where: { id: job.id }, data: { status: 'failed', error: msg } })
+    res.status(503).json({ error: `Image queue unavailable: ${msg}` })
+    return
+  }
 
   res.json({ jobId: job.id })
 })
