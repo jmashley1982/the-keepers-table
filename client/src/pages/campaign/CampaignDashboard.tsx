@@ -3,11 +3,25 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useState } from 'react'
 import { Plus, Play, CheckCircle, Loader, Volume2, Users } from 'lucide-react'
+import { useUIStore } from '../../store/useUIStore'
+
+const CANDLELIGHT_ICONS = {
+  newSession:    '/icons/candlelight/new_sesh.webp',
+  generateNpc:   '/icons/candlelight/gen_npc.webp',
+  genEncounter:  '/icons/candlelight/gen_enc.webp',
+  genTreasure:   '/icons/candlelight/gen_treas.webp',
+  npcs:          '/icons/candlelight/NPCs.webp',
+  items:         '/icons/candlelight/items.webp',
+  locations:     '/icons/candlelight/locations.webp',
+  sessions:      '/icons/candlelight/sessions.webp',
+} as const
 
 export default function CampaignDashboard() {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const theme = useUIStore(s => s.theme)
+  const ci = theme === 'candlelight' ? CANDLELIGHT_ICONS : null
   const [prepLoading, setPrepLoading] = useState(false)
   const [prepSuggestions, setPrepSuggestions] = useState<PrepSuggestion[]>([])
 
@@ -100,29 +114,32 @@ export default function CampaignDashboard() {
       {/* Quick actions grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <ActionCard
-          icon="⚔️" label="New Session"
+          icon="⚔️" label="New Session" imageSrc={ci?.newSession}
           onClick={() => createSession.mutate()}
           loading={createSession.isPending}
         />
-        <ActionCard icon="🧙" label="Generate NPC" onClick={() => navigate(`/campaign/${campaignId}/generate/npc`)} />
-        <ActionCard icon="💀" label="Gen Encounter" onClick={() => navigate(`/campaign/${campaignId}/generate/encounter`)} />
-        <ActionCard icon="💎" label="Gen Treasure" onClick={() => navigate(`/campaign/${campaignId}/generate/treasure`)} />
+        <ActionCard icon="🧙" label="Generate NPC" imageSrc={ci?.generateNpc} onClick={() => navigate(`/campaign/${campaignId}/generate/npc`)} />
+        <ActionCard icon="💀" label="Gen Encounter" imageSrc={ci?.genEncounter} onClick={() => navigate(`/campaign/${campaignId}/generate/encounter`)} />
+        <ActionCard icon="💎" label="Gen Treasure" imageSrc={ci?.genTreasure} onClick={() => navigate(`/campaign/${campaignId}/generate/treasure`)} />
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: 'NPCs', count: campaign._count?.npcs ?? 0, icon: '🧙', tab: 'npcs' },
-          { label: 'Items', count: campaign._count?.items ?? 0, icon: '⚔️', tab: 'items' },
-          { label: 'Locations', count: campaign._count?.locations ?? 0, icon: '🗺️', tab: 'locations' },
-          { label: 'Sessions', count: campaign._count?.sessions ?? 0, icon: '📜', tab: null },
+          { label: 'NPCs',      count: campaign._count?.npcs ?? 0,      icon: '🧙', imageSrc: ci?.npcs,      tab: 'npcs' },
+          { label: 'Items',     count: campaign._count?.items ?? 0,     icon: '⚔️', imageSrc: ci?.items,     tab: 'items' },
+          { label: 'Locations', count: campaign._count?.locations ?? 0, icon: '🗺️', imageSrc: ci?.locations, tab: 'locations' },
+          { label: 'Sessions',  count: campaign._count?.sessions ?? 0,  icon: '📜', imageSrc: ci?.sessions,  tab: null },
         ].map(stat => (
           <div
             key={stat.label}
             className="card text-center cursor-pointer hover:border-accent/40 transition-colors"
             onClick={() => stat.tab ? navigate(`/campaign/${campaignId}/library/${stat.tab}`) : navigate(`/campaign/${campaignId}/log`)}
           >
-            <div className="text-2xl mb-1">{stat.icon}</div>
+            {stat.imageSrc
+              ? <img src={stat.imageSrc} alt={stat.label} className="w-14 h-14 mx-auto mb-1 object-contain" />
+              : <div className="text-2xl mb-1">{stat.icon}</div>
+            }
             <div className="display-font text-xl font-bold text-ink">{stat.count}</div>
             <div className="text-xs text-ink-muted">{stat.label}</div>
           </div>
@@ -218,14 +235,19 @@ interface PC {
   portraitAssetId: string | null; portraitAsset?: { id: string; altText?: string | null } | null;
 }
 
-function ActionCard({ icon, label, onClick, loading }: { icon: string; label: string; onClick: () => void; loading?: boolean }) {
+function ActionCard({ icon, label, onClick, loading, imageSrc }: { icon: string; label: string; onClick: () => void; loading?: boolean; imageSrc?: string }) {
   return (
     <button
       className="card text-center hover:border-accent/50 hover:bg-accent/5 transition-all cursor-pointer group"
       onClick={onClick}
       disabled={loading}
     >
-      <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">{loading ? '⏳' : icon}</div>
+      {loading
+        ? <div className="text-2xl mb-1">⏳</div>
+        : imageSrc
+          ? <img src={imageSrc} alt={label} className="w-14 h-14 mx-auto mb-1 object-contain group-hover:scale-110 transition-transform" />
+          : <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">{icon}</div>
+      }
       <div className="text-xs font-medium text-ink-muted group-hover:text-ink transition-colors">{label}</div>
     </button>
   )
