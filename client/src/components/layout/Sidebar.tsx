@@ -127,8 +127,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
       <div className="px-3 pb-2">
         <button
           onClick={() => setThemeOpen(v => !v)}
-          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-ink transition-colors"
-          style={{ hover: 'background: color-mix(in srgb, var(--color-accent) 5%, transparent)' }}
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors"
         >
           <Flame size={11} />
           <span className="capitalize">{theme}</span>
