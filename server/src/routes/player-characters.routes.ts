@@ -77,7 +77,7 @@ playerCharactersRouter.get('/:campaignId/player-characters', async (req, res) =>
 
   const items = await prisma.playerCharacter.findMany({
     where: { campaignId, deletedAt: null },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     include: {
       portraitAsset: { select: { id: true, altText: true } },
     },
@@ -98,10 +98,17 @@ playerCharactersRouter.post('/:campaignId/player-characters', async (req, res) =
 
   const { abilityScores, combatStats, skills, savingThrows, equipment, ...rest } = parsed.data
 
+  const maxOrder = await prisma.playerCharacter.aggregate({
+    where: { campaignId, deletedAt: null },
+    _max: { sortOrder: true },
+  })
+  const nextSortOrder = (maxOrder._max.sortOrder ?? -1) + 1
+
   const item = await prisma.playerCharacter.create({
     data: {
       ...rest,
       campaignId,
+      sortOrder: nextSortOrder,
       ...(abilityScores !== undefined ? { abilityScores: abilityScores as Prisma.InputJsonValue } : {}),
       ...(combatStats !== undefined ? { combatStats: combatStats as Prisma.InputJsonValue } : {}),
       ...(skills !== undefined ? { skills: skills as Prisma.InputJsonValue } : {}),
@@ -163,6 +170,29 @@ playerCharactersRouter.patch('/:campaignId/player-characters/:pcId', async (req,
     },
   })
   res.json({ item })
+})
+
+// ── PATCH reorder ─────────────────────────────────────────────────────────────
+
+playerCharactersRouter.patch('/:campaignId/player-characters-reorder', async (req, res) => {
+  const userId = res.locals.user.id
+  const campaignId = req.params.campaignId as string
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const parsed = z.object({ ids: z.array(z.string()) }).safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'ids must be an array of strings' }); return }
+
+  const { ids } = parsed.data
+  await prisma.$transaction(
+    ids.map((id, index) =>
+      prisma.playerCharacter.updateMany({
+        where: { id, campaignId, deletedAt: null },
+        data: { sortOrder: index },
+      })
+    )
+  )
+  res.json({ ok: true })
 })
 
 // ── DELETE (soft) ─────────────────────────────────────────────────────────────

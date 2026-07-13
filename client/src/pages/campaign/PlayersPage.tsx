@@ -5,7 +5,7 @@ import { useState, useRef } from 'react'
 import { cn } from '../../lib/cn'
 import {
   Plus, Trash2, Edit2, Save, X, Upload, Check,
-  ChevronDown, ChevronUp, Loader, Users,
+  ChevronDown, ChevronUp, Loader, Users, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { EntityAvatarWithArt } from '../../components/entity/GenerateArtButton'
 import GenerateArtButton from '../../components/entity/GenerateArtButton'
@@ -218,9 +218,11 @@ function SheetUploadButton({ campaignId, pcId, onExtracted }: {
 
 // ── PC Card (compact) ─────────────────────────────────────────────────────────
 
-function PCCard({ pc, campaignId, onSelect, onDelete }: {
+function PCCard({ pc, campaignId, onSelect, onDelete, onMoveUp, onMoveDown, isFirst, isLast }: {
   pc: PlayerCharacter; campaignId: string
   onSelect: () => void; onDelete: () => void
+  onMoveUp: () => void; onMoveDown: () => void
+  isFirst: boolean; isLast: boolean
 }) {
   const qc = useQueryClient()
   return (
@@ -257,13 +259,31 @@ function PCCard({ pc, campaignId, onSelect, onDelete }: {
             <span className="badge bg-surface-2 text-ink-muted text-[10px]">Lv {pc.level}</span>
           </div>
         </div>
-        <button
-          className="btn-ghost p-1 text-danger opacity-0 group-hover:opacity-100 shrink-0"
-          onClick={e => { e.stopPropagation(); onDelete() }}
-          title="Delete character"
-        >
-          <Trash2 size={13} />
-        </button>
+        <div className="flex flex-col gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+          <button
+            className="btn-ghost p-1 text-ink-muted disabled:opacity-30"
+            onClick={onMoveUp}
+            disabled={isFirst}
+            title="Move up"
+          >
+            <ArrowUp size={13} />
+          </button>
+          <button
+            className="btn-ghost p-1 text-ink-muted disabled:opacity-30"
+            onClick={onMoveDown}
+            disabled={isLast}
+            title="Move down"
+          >
+            <ArrowDown size={13} />
+          </button>
+          <button
+            className="btn-ghost p-1 text-danger"
+            onClick={onDelete}
+            title="Delete character"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -638,6 +658,22 @@ export default function PlayersPage() {
     },
   })
 
+  const reorderMutation = useMutation({
+    mutationFn: (ids: string[]) =>
+      api.patch(`/api/campaigns/${campaignId}/player-characters-reorder`, { ids }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
+    },
+  })
+
+  function moveCharacter(index: number, direction: -1 | 1) {
+    const newOrder = [...characters]
+    const swapIndex = index + direction
+    if (swapIndex < 0 || swapIndex >= newOrder.length) return
+    ;[newOrder[index], newOrder[swapIndex]] = [newOrder[swapIndex], newOrder[index]]
+    reorderMutation.mutate(newOrder.map(pc => pc.id))
+  }
+
   function handleCreate() {
     if (!newName.trim()) return
     createMutation.mutate({ name: newName.trim(), playerName: newPlayerName.trim() || undefined })
@@ -720,7 +756,7 @@ export default function PlayersPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {characters.map(pc => (
+            {characters.map((pc, index) => (
               <PCCard
                 key={pc.id}
                 pc={pc}
@@ -731,6 +767,10 @@ export default function PlayersPage() {
                     deleteMutation.mutate(pc.id)
                   }
                 }}
+                onMoveUp={() => moveCharacter(index, -1)}
+                onMoveDown={() => moveCharacter(index, 1)}
+                isFirst={index === 0}
+                isLast={index === characters.length - 1}
               />
             ))}
           </div>

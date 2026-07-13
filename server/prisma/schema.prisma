@@ -517,6 +517,7 @@ model PlayerCharacter {
   savingThrows    Json      @default("{}")
   equipment       Json      @default("[]")
   xp              Int       @default(0)
+  sortOrder       Int       @default(0)
   portraitAssetId String?
   sheetAssetId    String?
   createdAt       DateTime  @default(now())
