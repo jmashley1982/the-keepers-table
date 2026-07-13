@@ -4,15 +4,15 @@ import { api } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
 import {
-  LayoutDashboard, BookOpen, Map, Calendar, Scroll,
-  Settings, LogOut, ChevronDown, Sword, Zap, Users,
-  Sun, Moon, Contrast
+  LayoutDashboard, BookOpen, Map, Scroll,
+  Settings, LogOut, ChevronDown, Zap, Users,
+  Sun, Moon, Contrast, Flame,
 } from 'lucide-react'
 import { useState } from 'react'
 
 const THEME_OPTIONS = [
+  { id: 'candlelight', label: 'Candlelight', icon: Flame },
   { id: 'parchment', label: 'Parchment', icon: Sun },
-  { id: 'candlelight', label: 'Candlelight', icon: Moon },
   { id: 'slate', label: 'Slate', icon: Moon },
   { id: 'high-contrast', label: 'High Contrast', icon: Contrast },
 ] as const
@@ -45,14 +45,17 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
   const campaign = campaignData?.campaign
   const user = meData?.user
 
-  const navLink = (to: string, icon: React.ReactNode, label: string) => (
+  const navLink = (to: string, icon: React.ReactNode, label: string, end?: boolean) => (
     <NavLink
       to={to}
+      end={end}
       className={({ isActive }) =>
-        cn('flex items-center gap-2.5 px-3 py-2 rounded-card text-sm transition-colors',
+        cn(
+          'flex items-center gap-2.5 px-3 py-2 text-sm transition-all duration-150 rounded-card border-l-2',
           isActive
-            ? 'bg-accent text-white font-medium'
-            : 'text-ink-muted hover:text-ink hover:bg-surface-2')
+            ? 'border-accent bg-accent/10 text-accent font-semibold'
+            : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/5',
+        )
       }
     >
       {icon}
@@ -61,16 +64,18 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
   )
 
   return (
-    <aside className="w-56 flex flex-col bg-surface border-r border-border h-full overflow-y-auto flex-shrink-0">
+    <aside className="w-56 flex flex-col h-full overflow-y-auto flex-shrink-0"
+      style={{ background: 'linear-gradient(180deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-surface) 95%, var(--color-bg)) 100%)', borderRight: '1px solid var(--color-border)' }}
+    >
       {/* Logo */}
-      <div className="px-4 py-3 border-b border-border">
+      <div className="px-4 py-4 border-b border-border">
         <img
           src="/logo.png"
           alt="The Keeper's Table"
           className="h-[58px] w-auto logo-theme"
         />
         {user && (
-          <p className="text-xs text-ink-muted mt-1 truncate">{user.displayName}</p>
+          <p className="text-xs text-ink-muted mt-1.5 truncate">{user.displayName}</p>
         )}
       </div>
 
@@ -78,49 +83,56 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
       <div className="px-3 pt-3">
         <button
           onClick={() => setQuickGenerateOpen(true)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-card bg-accent/10 text-accent text-sm font-medium hover:bg-accent/20 transition-colors border border-accent/20"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-card text-sm font-semibold transition-colors"
+          style={{
+            background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)',
+            color: 'var(--color-accent)',
+            border: '1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)',
+          }}
         >
           <Zap size={14} />
           Quick Generate
-          <span className="ml-auto text-xs opacity-60">⌘K</span>
+          <span className="ml-auto text-xs opacity-50">⌘K</span>
         </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-3 flex flex-col gap-1">
-        {navLink('/campaigns', <LayoutDashboard size={16} />, 'Campaigns')}
+      <nav className="flex-1 px-3 py-3 flex flex-col gap-0.5">
+        {navLink('/campaigns', <LayoutDashboard size={15} />, 'Campaigns', true)}
 
         {campaign && (
           <>
-            <div className="pt-3 pb-1">
-              <p className="text-xs font-semibold text-ink-muted uppercase tracking-wider px-1 truncate" title={campaign.name}>
+            <div className="pt-4 pb-1.5 px-1">
+              <p className="display-font text-sm font-semibold truncate leading-tight" title={campaign.name}>
                 {campaign.name}
               </p>
+              <div className="mt-1 h-px" style={{ background: 'linear-gradient(to right, var(--color-accent), transparent)', opacity: 0.3 }} />
             </div>
-            {navLink(`/campaign/${campaignId}`, <LayoutDashboard size={16} />, 'Dashboard')}
-            {navLink(`/campaign/${campaignId}/library`, <BookOpen size={16} />, 'Library')}
-            {navLink(`/campaign/${campaignId}/players`, <Users size={16} />, 'Players')}
-            {navLink(`/campaign/${campaignId}/maps`, <Map size={16} />, 'Maps')}
-            {navLink(`/campaign/${campaignId}/log`, <Scroll size={16} />, 'Session Log')}
-            {navLink(`/campaign/${campaignId}/settings`, <Settings size={16} />, 'Campaign')}
+            {navLink(`/campaign/${campaignId}`, <LayoutDashboard size={15} />, 'Dashboard', true)}
+            {navLink(`/campaign/${campaignId}/library`, <BookOpen size={15} />, 'Library')}
+            {navLink(`/campaign/${campaignId}/players`, <Users size={15} />, 'Players')}
+            {navLink(`/campaign/${campaignId}/maps`, <Map size={15} />, 'Maps')}
+            {navLink(`/campaign/${campaignId}/log`, <Scroll size={15} />, 'Session Log')}
+            {navLink(`/campaign/${campaignId}/settings`, <Settings size={15} />, 'Campaign Settings')}
           </>
         )}
 
-        <div className="pt-3 pb-1">
-          <p className="text-xs font-semibold text-ink-muted uppercase tracking-wider px-1">Account</p>
+        <div className="pt-4 pb-1 px-1">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted opacity-60">Account</p>
         </div>
-        {navLink('/settings', <Settings size={16} />, 'Settings')}
+        {navLink('/settings', <Settings size={15} />, 'Settings', true)}
       </nav>
 
       {/* Theme picker */}
       <div className="px-3 pb-2">
         <button
           onClick={() => setThemeOpen(v => !v)}
-          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-ink transition-colors"
+          style={{ hover: 'background: color-mix(in srgb, var(--color-accent) 5%, transparent)' }}
         >
-          <Sun size={12} />
+          <Flame size={11} />
           <span className="capitalize">{theme}</span>
-          <ChevronDown size={12} className={cn('ml-auto transition-transform', themeOpen && 'rotate-180')} />
+          <ChevronDown size={11} className={cn('ml-auto transition-transform', themeOpen && 'rotate-180')} />
         </button>
         {themeOpen && (
           <div className="mt-1 card py-1 px-0 animate-fade-in">
@@ -129,8 +141,8 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
                 key={id}
                 onClick={() => { setTheme(id); setThemeOpen(false) }}
                 className={cn(
-                  'w-full text-left px-3 py-1.5 text-xs rounded hover:bg-surface-2 transition-colors',
-                  theme === id ? 'text-accent font-medium' : 'text-ink-muted'
+                  'w-full text-left px-3 py-1.5 text-xs rounded transition-colors',
+                  theme === id ? 'text-accent font-semibold' : 'text-ink-muted hover:text-ink hover:bg-surface-2'
                 )}
               >
                 {label}
@@ -144,9 +156,9 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
       <div className="px-3 pb-4">
         <button
           onClick={() => logout.mutate()}
-          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-danger hover:bg-surface-2 transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-danger transition-colors"
         >
-          <LogOut size={12} />
+          <LogOut size={11} />
           Sign out
         </button>
       </div>

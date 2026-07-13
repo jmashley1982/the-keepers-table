@@ -32,13 +32,29 @@ export default function LoginPage() {
   const busy = login.isPending || demo.isPending
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{
+        background: `radial-gradient(ellipse 80% 60% at 50% 40%,
+          color-mix(in srgb, var(--color-accent) 9%, var(--color-bg)) 0%,
+          var(--color-bg) 65%)`,
+      }}
+    >
+      {/* Subtle vignette corners */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%)',
+        }}
+      />
+
+      <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-8">
           <img
             src="/logo.png"
             alt="The Keeper's Table"
-            className="h-[154px] w-auto mx-auto mb-2 logo-theme"
+            className="h-[154px] w-auto mx-auto mb-3 logo-theme"
+            style={{ filter: 'drop-shadow(0 0 24px color-mix(in srgb, var(--color-accent) 30%, transparent))' }}
           />
           <p className="text-ink-muted text-sm">AI-powered campaign management for GMs</p>
         </div>
@@ -47,7 +63,14 @@ export default function LoginPage() {
         <button
           onClick={() => demo.mutate()}
           disabled={busy}
-          className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-card border-2 border-accent/40 bg-accent/5 text-accent font-medium text-sm hover:bg-accent/10 hover:border-accent/60 transition-all disabled:opacity-50"
+          className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 rounded-card font-semibold text-sm transition-all disabled:opacity-50"
+          style={{
+            background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)',
+            color: 'var(--color-accent)',
+            border: '2px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 20%, transparent)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 12%, transparent)')}
         >
           <FlaskConical size={16} />
           {demo.isPending ? 'Loading demo…' : 'Try the demo — no sign-up needed'}
@@ -59,8 +82,14 @@ export default function LoginPage() {
           <div className="flex-1 h-px bg-border" />
         </div>
 
-        <div className="card space-y-4">
-          <h2 className="text-lg font-semibold text-ink">Sign in</h2>
+        <div
+          className="rounded-card border border-border p-6 space-y-4"
+          style={{
+            background: 'var(--color-surface)',
+            boxShadow: '0 0 40px rgba(0,0,0,0.6), inset 0 1px 0 color-mix(in srgb, var(--color-accent) 8%, transparent)',
+          }}
+        >
+          <h2 className="display-font text-xl font-bold">Sign in</h2>
 
           {error && (
             <div className="rounded-card px-3 py-2 text-sm text-danger border border-danger/20"

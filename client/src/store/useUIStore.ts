@@ -28,7 +28,7 @@ interface UIState {
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
-      theme: 'parchment',
+      theme: 'candlelight',
       setTheme: (theme) => {
         set({ theme })
         document.documentElement.setAttribute('data-theme', theme)
