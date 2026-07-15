@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { FlaskConical } from 'lucide-react'
@@ -133,10 +133,6 @@ export default function LoginPage() {
             {login.isPending ? 'Signing in…' : 'Sign in'}
           </button>
 
-          <p className="text-center text-sm text-ink-muted">
-            No account?{' '}
-            <Link to="/signup" className="text-accent hover:underline">Create one</Link>
-          </p>
         </div>
       </div>
     </div>

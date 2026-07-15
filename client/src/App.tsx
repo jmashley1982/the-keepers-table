@@ -6,7 +6,6 @@ import { useEffect } from 'react'
 
 // Pages
 import LoginPage from './pages/auth/LoginPage'
-import SignupPage from './pages/auth/SignupPage'
 import OnboardingPage from './pages/auth/OnboardingPage'
 import CampaignsPage from './pages/campaigns/CampaignsPage'
 import CampaignDashboard from './pages/campaign/CampaignDashboard'
@@ -56,7 +55,7 @@ export default function App() {
     <Routes>
       {/* Public */}
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/signup" element={<Navigate to="/login" replace />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
 
       {/* Protected */}

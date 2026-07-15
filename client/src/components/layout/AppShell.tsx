@@ -49,16 +49,6 @@ export default function AppShell() {
             <FlaskConical size={14} />
             <span>Demo mode — data resets each visit. Your changes won't be saved permanently.</span>
           </div>
-          <button
-            onClick={() => navigate('/signup')}
-            className="ml-4 px-3 py-1 rounded-card text-xs font-semibold transition-all"
-            style={{
-              backgroundColor: 'var(--color-accent)',
-              color: '#fff',
-            }}
-          >
-            Create free account →
-          </button>
         </div>
       )}
 
