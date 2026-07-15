@@ -45,7 +45,7 @@ export default function FriendsLoginPage() {
               autoFocus
               required
             />
-            <p className="text-[11px] text-ink-muted mt-1">Letters, numbers, - and _ only</p>
+            <p className="text-[11px] text-ink-muted mt-1">Letters only</p>
           </div>
 
           <div>
