@@ -1,6 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from 'express'
 import { prisma } from '../lib/prisma.js'
-import { decrypt } from '../lib/crypto.js'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import '../lib/auth.js'
@@ -12,36 +11,18 @@ const IMAGE_QUOTA = 12
 const HAIKU_MODEL = 'claude-haiku-4-5'
 const ZIMAGE_MODEL = 'z-image-turbo'
 
-async function getOwnerClients(): Promise<{ anthropic: Anthropic | null; evolinkKey: string | null }> {
-  const ownerId = process.env.FRIENDS_OWNER_USER_ID
-  if (!ownerId) return { anthropic: null, evolinkKey: null }
+function getOwnerClients(): { anthropic: Anthropic | null; evolinkKey: string | null } {
+  const claudeKey = process.env.CLAUDE_API_KEY?.trim()
+  const evolinkKey = process.env.EVOLINK_API_KEY?.trim() ?? null
 
-  let anthropicClient: Anthropic | null = null
-  let evolinkKey: string | null = null
-
-  const [anthropicCred, evolinkCred] = await Promise.all([
-    prisma.apiCredential.findUnique({ where: { userId_provider: { userId: ownerId, provider: 'anthropic' } } }),
-    prisma.apiCredential.findUnique({ where: { userId_provider: { userId: ownerId, provider: 'evolink' } } }),
-  ])
-
-  if (anthropicCred?.encryptedKey) {
-    try {
-      const key = decrypt(anthropicCred.encryptedKey)
-      anthropicClient = new Anthropic({ apiKey: key })
-    } catch {}
+  let anthropic: Anthropic | null = null
+  if (claudeKey) {
+    anthropic = new Anthropic({ apiKey: claudeKey })
+  } else if (evolinkKey) {
+    anthropic = new Anthropic({ apiKey: evolinkKey, baseURL: 'https://api.evolink.ai/v1' })
   }
 
-  if (evolinkCred?.encryptedKey) {
-    try {
-      evolinkKey = decrypt(evolinkCred.encryptedKey).trim()
-    } catch {}
-  }
-
-  if (!anthropicClient && evolinkKey) {
-    anthropicClient = new Anthropic({ apiKey: evolinkKey, baseURL: 'https://api.evolink.ai/v1' })
-  }
-
-  return { anthropic: anthropicClient, evolinkKey }
+  return { anthropic, evolinkKey }
 }
 
 function requireFriend(req: Request, res: Response, next: NextFunction) {
