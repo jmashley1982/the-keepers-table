@@ -91,7 +91,7 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
 
   const imageStatus = useJobStatus(imageJobId)
 
-  useEffect(() => { inputRef.current?.focus() }, [])
+  useEffect(() => { if (campaignId) inputRef.current?.focus() }, [campaignId])
 
   function handleKindChange(k: Kind) {
     setKind(k)
@@ -202,7 +202,19 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative w-full max-w-xl mx-4 animate-fade-in">
-        <div className="card shadow-2xl border-border/80">
+        {/* No-campaign gate */}
+        {!campaignId && (
+          <div className="card shadow-2xl border-border/80 text-center py-8 px-6 space-y-3">
+            <p className="text-2xl">🗺️</p>
+            <p className="font-semibold text-ink">Open a campaign first</p>
+            <p className="text-sm text-ink-muted">
+              Quick Generate needs a campaign context to save output — open one from the sidebar, then try again.
+            </p>
+            <button className="btn-primary mt-2" onClick={onClose}>Got it</button>
+          </div>
+        )}
+
+        {campaignId && <div className="card shadow-2xl border-border/80">
 
           {/* Kind chips */}
           <div className="flex gap-1.5 mb-3 flex-wrap">
@@ -296,15 +308,13 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
                   <RefreshCw size={12} /> Regen
                 </button>
 
-                {campaignId && (
-                  <button
-                    className="btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5"
-                    onClick={addToSession}
-                    disabled={busy}
-                  >
-                    <BookOpen size={12} /> Add to Session
-                  </button>
-                )}
+                <button
+                  className="btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5"
+                  onClick={addToSession}
+                  disabled={busy}
+                >
+                  <BookOpen size={12} /> Add to Session
+                </button>
 
                 {sessionMsg && (
                   <span className={cn(
@@ -354,12 +364,7 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
             </div>
           )}
 
-          {!campaignId && (
-            <p className="text-xs text-ink-muted mt-2">
-              💡 Open a campaign to get context-aware generation{kind === 'image' ? ' and image gen' : ''}.
-            </p>
-          )}
-        </div>
+        </div>}
       </div>
     </div>
   )
