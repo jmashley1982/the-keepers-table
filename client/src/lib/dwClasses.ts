@@ -511,7 +511,7 @@ Alignments — Good: Defend those weaker than you. | Neutral: Defeat a worthy op
     looks: [
       ['Kind Eyes', 'Fiery Eyes', 'Glowing Eyes'],
       ['Helmet', 'Styled Hair', 'Bald'],
-      ['Worn Holy Symbol Fancy Holy Symbol'],
+      ['Worn Holy Symbol', 'Fancy Holy Symbol'],
       ['Fit Body', 'Bulky Body', 'Thin Body'],
     ],
     startingMoves: `LAY ON HANDS
@@ -699,7 +699,7 @@ Alignments — Chaotic: Free someone from literal or figurative bonds. | Good: E
       { name: 'Human', move: 'You are a professional. When you Spout Lore or Discern Realities about criminal activities, take +1.' },
     ],
     looks: [
-      ['Shifty Eyes Criminal Eyes'],
+      ['Shifty Eyes', 'Criminal Eyes'],
       ['Hooded Head', 'Messy Hair', 'Cropped Hair'],
       ['Dark Clothes', 'Fancy Clothes', 'Common Clothes'],
       ['Lithe Body', 'Knobby Body', 'Flabby Body'],
