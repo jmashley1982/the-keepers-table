@@ -8,6 +8,20 @@ import Anthropic from '@anthropic-ai/sdk'
 
 let boss: PgBoss | null = null
 
+const FRIEND_IMAGE_QUOTA = 12
+
+async function incrementFriendImageQuota(userId: string): Promise<void> {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
+    if (!user) return
+    if (!user.email.startsWith('friend_') || !user.email.endsWith('@keeper.internal')) return
+    const username = user.email.slice('friend_'.length, -'@keeper.internal'.length)
+    await prisma.friendUser.update({ where: { username }, data: { imageUsed: { increment: 1 } } })
+  } catch {
+    // best-effort
+  }
+}
+
 // Friendly model names (stored in prefs/UI) → actual EvoLink model IDs
 const EVOLINK_MODEL_MAP: Record<string, string> = {
   'gpt2':             'gpt-image-2',
@@ -333,10 +347,26 @@ Return ONLY valid JSON — no prose, no markdown:
     const evolinkCred = await prisma.apiCredential.findUnique({
       where: { userId_provider: { userId: genJob.userId, provider: 'evolink' } },
     })
-    if (!evolinkCred?.encryptedKey) throw new Error('No EvoLink API key configured')
-    const evolinkKey = decrypt(evolinkCred.encryptedKey).trim()
+    let evolinkKey: string
+    if (evolinkCred?.encryptedKey) {
+      evolinkKey = decrypt(evolinkCred.encryptedKey).trim()
+    } else {
+      const envKey = process.env.EVOLINK_API_KEY?.trim()
+      if (!envKey) throw new Error('No EvoLink API key configured')
+      evolinkKey = envKey
+    }
     if (!/^[\x21-\x7E]+$/.test(evolinkKey)) {
       throw new Error('Saved EvoLink key contains invalid characters — please re-copy it from the EvoLink dashboard and save it again in Settings')
+    }
+
+    // ── Friend quota check ────────────────────────────────────────────────
+    const friendUser2 = await prisma.user.findUnique({ where: { id: genJob.userId }, select: { email: true } })
+    if (friendUser2?.email.startsWith('friend_') && friendUser2.email.endsWith('@keeper.internal')) {
+      const friendUsername = friendUser2.email.slice('friend_'.length, -'@keeper.internal'.length)
+      const friendRow = await prisma.friendUser.findUnique({ where: { username: friendUsername } })
+      if (friendRow && friendRow.imageUsed >= FRIEND_IMAGE_QUOTA) {
+        throw new Error(`Image generation quota reached (${FRIEND_IMAGE_QUOTA} images). Thanks for trying the app!`)
+      }
     }
 
     // ── 5. Resolve model for entity category ──────────────────────────────
@@ -450,20 +480,26 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
     return
   }
 
-  // Re-decrypt EvoLink key from DB on each poll — never stored in queue payload
+  // Re-fetch EvoLink key from DB on each poll — never stored in queue payload
   const genJob = await prisma.generationJob.findUnique({ where: { id: jobId } })
   if (!genJob) return
 
   const evolinkCred = await prisma.apiCredential.findUnique({
     where: { userId_provider: { userId: genJob.userId, provider: 'evolink' } },
   })
-  if (!evolinkCred?.encryptedKey) {
-    const credMsg = 'EvoLink credential no longer available'
-    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: credMsg, outputRef: { rawError: credMsg } } })
-    await notifyJobUpdate(jobId, 'failed')
-    return
+  let evolinkKey: string
+  if (evolinkCred?.encryptedKey) {
+    evolinkKey = decrypt(evolinkCred.encryptedKey)
+  } else {
+    const envKey = process.env.EVOLINK_API_KEY?.trim()
+    if (!envKey) {
+      const credMsg = 'EvoLink credential no longer available'
+      await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: credMsg, outputRef: { rawError: credMsg } } })
+      await notifyJobUpdate(jobId, 'failed')
+      return
+    }
+    evolinkKey = envKey
   }
-  const evolinkKey = decrypt(evolinkCred.encryptedKey)
 
   const reenqueue = async () => {
     const delaySeconds = POLL_DELAYS[Math.min(pollCount, POLL_DELAYS.length - 1)]
@@ -648,6 +684,9 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
       where: { id: jobId },
       data: { status: 'succeeded', outputRef: { assetId } },
     })
+
+    const genJobForQuota = await prisma.generationJob.findUnique({ where: { id: jobId }, select: { userId: true } })
+    if (genJobForQuota) await incrementFriendImageQuota(genJobForQuota.userId)
 
     await notifyJobUpdate(jobId, 'succeeded', assetId)
     console.log(`[image.postprocess] Done — asset ${assetId}`)

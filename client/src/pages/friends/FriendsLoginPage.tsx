@@ -15,7 +15,7 @@ export default function FriendsLoginPage() {
     setLoading(true)
     try {
       await api.post('/api/friends/login', { username, password })
-      navigate('/friends/portal', { replace: true })
+      navigate('/campaigns', { replace: true })
     } catch (err: any) {
       setError(err.response?.data?.error ?? 'Something went wrong')
     } finally {
@@ -29,7 +29,7 @@ export default function FriendsLoginPage() {
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">🔮</div>
           <h1 className="text-2xl font-bold text-ink">Friends Only</h1>
-          <p className="text-ink-muted text-sm mt-1">Enter your name and the access code</p>
+          <p className="text-ink-muted text-sm mt-1">Enter your name and the access code to try the app</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card p-6 flex flex-col gap-4">

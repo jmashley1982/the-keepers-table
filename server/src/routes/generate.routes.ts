@@ -31,11 +31,64 @@ async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
       const key = decrypt(evolinkCred.encryptedKey)
       return new Anthropic({ apiKey: key, baseURL: 'https://api.evolink.ai/v1' })
     } catch {
-      return null
+      // fall through to env var
     }
   }
 
+  // Fallback: use owner's env-var keys (friend accounts have no stored credentials)
+  const envClaudeKey = process.env.CLAUDE_API_KEY?.trim()
+  if (envClaudeKey) return new Anthropic({ apiKey: envClaudeKey })
+
+  const envEvolinkKey = process.env.EVOLINK_API_KEY?.trim()
+  if (envEvolinkKey) return new Anthropic({ apiKey: envEvolinkKey, baseURL: 'https://api.evolink.ai/v1' })
+
   return null
+}
+
+// ── Friend-account quota helpers ──────────────────────────────────────────────
+
+const FRIEND_TEXT_QUOTA = 24
+const FRIEND_IMAGE_QUOTA = 12
+
+function extractFriendUsername(email: string): string | null {
+  if (email.startsWith('friend_') && email.endsWith('@keeper.internal')) {
+    return email.slice('friend_'.length, -'@keeper.internal'.length)
+  }
+  return null
+}
+
+async function checkFriendTextQuota(userId: string): Promise<{ allowed: boolean; error?: string }> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
+  if (!user) return { allowed: true }
+  const username = extractFriendUsername(user.email)
+  if (!username) return { allowed: true }
+  const friend = await prisma.friendUser.findUnique({ where: { username } })
+  if (!friend) return { allowed: true }
+  if (friend.claudeUsed >= FRIEND_TEXT_QUOTA) {
+    return { allowed: false, error: `You've reached the limit of ${FRIEND_TEXT_QUOTA} text generations. Thanks for trying the app!` }
+  }
+  return { allowed: true }
+}
+
+async function checkFriendImageQuota(userId: string): Promise<{ allowed: boolean; error?: string }> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
+  if (!user) return { allowed: true }
+  const username = extractFriendUsername(user.email)
+  if (!username) return { allowed: true }
+  const friend = await prisma.friendUser.findUnique({ where: { username } })
+  if (!friend) return { allowed: true }
+  if (friend.imageUsed >= FRIEND_IMAGE_QUOTA) {
+    return { allowed: false, error: `You've reached the limit of ${FRIEND_IMAGE_QUOTA} image generations. Thanks for trying the app!` }
+  }
+  return { allowed: true }
+}
+
+async function incrementFriendTextQuota(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
+  if (!user) return
+  const username = extractFriendUsername(user.email)
+  if (!username) return
+  await prisma.friendUser.update({ where: { username }, data: { claudeUsed: { increment: 1 } } }).catch(() => {})
 }
 
 async function buildCampaignContext(campaignId: string, query: string): Promise<string> {
@@ -271,6 +324,12 @@ async function handleTextGenerate(req: Request, res: Response): Promise<void> {
     return
   }
 
+  const textQuota = await checkFriendTextQuota(userId)
+  if (!textQuota.allowed) {
+    res.status(429).json({ error: textQuota.error })
+    return
+  }
+
   const { kind, campaignId, prompt, sessionId, npcId, stream, model } = parsed.data
   const userPref = await prisma.userPreference.findUnique({ where: { userId } })
   const taskModelMap = (userPref?.textModelByTask ?? {}) as Record<string, string>
@@ -380,6 +439,7 @@ REQUEST: ${prompt}`
           outputRef: JSON.parse(JSON.stringify({ result: streamResult })),
         },
       })
+      await incrementFriendTextQuota(userId)
       res.write(`data: ${JSON.stringify({ result: streamResult, jobId: job.id })}\n\n`)
       res.write(`data: ${JSON.stringify({ done: true, jobId: job.id })}\n\n`)
       res.end()
@@ -415,7 +475,7 @@ REQUEST: ${prompt}`
           outputRef: JSON.parse(JSON.stringify({ result })),
         },
       })
-
+      await incrementFriendTextQuota(userId)
       res.json({ result, jobId: job.id })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Generation failed'
@@ -722,6 +782,12 @@ generateRouter.post('/image', async (req, res) => {
   } else if (entityType === 'map') {
     const ent = await prisma.mapAsset.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'Map not found in this campaign' }); return }
+  }
+
+  const imageQuota = await checkFriendImageQuota(userId)
+  if (!imageQuota.allowed) {
+    res.status(429).json({ error: imageQuota.error })
+    return
   }
 
   // ── Cost estimate + soft-cap confirm ──────────────────────────────────────
