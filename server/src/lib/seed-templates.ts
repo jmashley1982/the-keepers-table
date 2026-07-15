@@ -168,60 +168,52 @@ export async function seedEnemies(): Promise<void> {
   const all5e = srd5eEnemies as SrdEnemy[]
   const allDw = srdDwEnemies as SrdEnemy[]
 
-  // Check existing builtins
-  const existing = await prisma.enemy.findMany({
-    where: { isBuiltin: true },
-    select: { id: true },
-  })
-  const existingIds = new Set(existing.map(e => e.id))
+  let upserted5e = 0
+  let upsertedDw = 0
 
-  const toSeed5e = all5e.filter(e => !existingIds.has(e.id))
-  const toSeedDw = allDw.filter(e => !existingIds.has(e.id))
-
-  if (toSeed5e.length === 0 && toSeedDw.length === 0) return
-
-  for (const e of toSeed5e) {
+  for (const e of all5e) {
+    const data = {
+      name: e.name,
+      description: e.description ?? '',
+      enemyType: e.enemyType ?? '',
+      size: e.size ?? '',
+      cr: e.cr ?? null,
+      statBlock: (e.statBlock ?? {}) as Prisma.InputJsonValue,
+      tags: e.tags ?? [],
+      source: 'srd',
+      isBuiltin: true,
+      systemTemplateId: 'builtin-d-d-5e',
+    }
     await prisma.enemy.upsert({
       where: { id: e.id },
-      update: {},
-      create: {
-        id: e.id,
-        name: e.name,
-        description: e.description ?? '',
-        enemyType: e.enemyType ?? '',
-        size: e.size ?? '',
-        cr: e.cr ?? null,
-        statBlock: (e.statBlock ?? {}) as Prisma.InputJsonValue,
-        tags: e.tags ?? [],
-        source: 'srd',
-        isBuiltin: true,
-        systemTemplateId: 'builtin-d-d-5e',
-      },
+      update: data,
+      create: { id: e.id, ...data },
     })
+    upserted5e++
   }
 
-  for (const e of toSeedDw) {
+  for (const e of allDw) {
+    const data = {
+      name: e.name,
+      description: e.description ?? '',
+      enemyType: e.enemyType ?? '',
+      size: e.size ?? '',
+      cr: null,
+      statBlock: (e.statBlock ?? {}) as Prisma.InputJsonValue,
+      tags: e.tags ?? [],
+      source: 'srd',
+      isBuiltin: true,
+      systemTemplateId: 'builtin-dungeon-world',
+    }
     await prisma.enemy.upsert({
       where: { id: e.id },
-      update: {},
-      create: {
-        id: e.id,
-        name: e.name,
-        description: e.description ?? '',
-        enemyType: e.enemyType ?? '',
-        size: e.size ?? '',
-        cr: null,
-        statBlock: (e.statBlock ?? {}) as Prisma.InputJsonValue,
-        tags: e.tags ?? [],
-        source: 'srd',
-        isBuiltin: true,
-        systemTemplateId: 'builtin-dungeon-world',
-      },
+      update: data,
+      create: { id: e.id, ...data },
     })
+    upsertedDw++
   }
 
-  const total = toSeed5e.length + toSeedDw.length
-  console.log(`⚔️  Seeded ${total} SRD enemies (${toSeed5e.length} 5e, ${toSeedDw.length} DW)`)
+  console.log(`⚔️  Synced ${upserted5e + upsertedDw} SRD enemies (${upserted5e} 5e, ${upsertedDw} DW)`)
 }
 
 export async function seedSystemTemplates(): Promise<void> {
