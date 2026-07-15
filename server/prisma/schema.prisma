@@ -224,6 +224,8 @@ model NPC {
   factionId          String?
   firstSessionId     String?
   lastSeenSessionId  String?
+  bestiaryEntityId   String?
+  bestiaryEntityName String?
   sortOrder          Int       @default(0)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt

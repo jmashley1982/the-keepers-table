@@ -23,6 +23,7 @@ interface Enemy {
 
 const TYPE_FILTERS = [
   { id: 'all', label: 'All' },
+  { id: 'custom', label: 'Custom' },
   { id: 'beast', label: 'Beast' },
   { id: 'humanoid', label: 'Humanoid' },
   { id: 'undead', label: 'Undead' },
@@ -267,7 +268,7 @@ export default function EnemiesPage() {
     queryFn: () => api.get(`/api/campaigns/${campaignId}/enemies`, {
       params: {
         ...(search ? { q: search } : {}),
-        ...(typeFilter !== 'all' ? { type: typeFilter } : {}),
+        ...(typeFilter === 'custom' ? { source: 'custom' } : typeFilter !== 'all' ? { type: typeFilter } : {}),
       },
     }).then(r => r.data),
     enabled: !!campaignId,

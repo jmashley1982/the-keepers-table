@@ -118,6 +118,8 @@ const npcCreate = z.object({
   imageUrl: z.string().optional(),
   portraitUrl: z.string().optional(),
   portraitAssetId: z.string().nullable().optional(),
+  bestiaryEntityId: z.string().nullable().optional(),
+  bestiaryEntityName: z.string().nullable().optional(),
 })
 // Custom list for NPCs — includes portraitAsset.altText for accessible img alt text
 entitiesRouter.get('/:campaignId/npcs', async (req, res) => {

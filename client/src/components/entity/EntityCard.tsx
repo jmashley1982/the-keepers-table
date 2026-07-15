@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import GenerateArtButton, { EntityAvatarWithArt } from './GenerateArtButton'
 import ItemLookupPanel from '../dnd5e/ItemLookupPanel'
+import BestiaryPicker from './BestiaryPicker'
 
 export interface EntityCardData {
   id: string
@@ -32,6 +33,8 @@ export interface EntityCardData {
   secrets?: string
   voiceNotes?: string
   statBlock?: Record<string, unknown>
+  bestiaryEntityId?: string | null
+  bestiaryEntityName?: string | null
   // Item
   rarity?: string
   category?: string
@@ -147,6 +150,21 @@ export default function EntityCard({
   const [draft, setDraft] = useState(entity)
   const [itemLookupOpen, setItemLookupOpen] = useState(false)
 
+  function handleBestiarySelect(creature: { id: string; name: string; statBlock: Record<string, unknown>; enemyType?: string; tags?: string[] }) {
+    setDraft(d => ({
+      ...d,
+      bestiaryEntityId: creature.id,
+      bestiaryEntityName: creature.name,
+      statBlock: { ...(creature.statBlock ?? {}) },
+      tags: d.tags && d.tags.length > 0 ? d.tags : (creature.tags ?? []),
+    }))
+    setExpanded(true)
+  }
+
+  function handleBestiaryClear() {
+    setDraft(d => ({ ...d, bestiaryEntityId: null, bestiaryEntityName: null }))
+  }
+
   const { data: campaignData } = useQuery({
     queryKey: ['campaign', campaignId],
     queryFn: () => api.get(`/api/campaigns/${campaignId}`).then(r => r.data),
@@ -258,6 +276,13 @@ export default function EntityCard({
               ))}
             </div>
           )}
+          {entityType === 'npc' && entity.bestiaryEntityName && !editing && (
+            <div className="flex items-center gap-1 mt-1">
+              <span className="badge bg-accent/10 text-accent text-[10px] flex items-center gap-0.5">
+                <span>⚔</span> {entity.bestiaryEntityName}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -343,10 +368,29 @@ export default function EntityCard({
             <Field label="Twist" value={entity.twist} editing={editing} onChange={v => setDraft(d => ({ ...d, twist: v }))} draft={draft.twist} />
           )}
 
-          {entity.statBlock && Object.keys(entity.statBlock).length > 0 && (
+          {entityType === 'npc' && (editing || entity.bestiaryEntityId) && (
             <div>
-              <span className="label">Stat Block</span>
-              <StatBlock statBlock={entity.statBlock} />
+              <span className="label">Bestiary Link</span>
+              {editing ? (
+                <BestiaryPicker
+                  campaignId={campaignId}
+                  linkedId={draft.bestiaryEntityId}
+                  linkedName={draft.bestiaryEntityName}
+                  onSelect={handleBestiarySelect}
+                  onClear={handleBestiaryClear}
+                />
+              ) : (
+                <p className="text-xs text-ink-muted">
+                  Based on <span className="font-medium text-ink">{entity.bestiaryEntityName ?? entity.bestiaryEntityId}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {(editing ? (draft.statBlock && Object.keys(draft.statBlock).length > 0) : (entity.statBlock && Object.keys(entity.statBlock).length > 0)) && (
+            <div>
+              <span className="label">Stat Block {editing && draft.bestiaryEntityId && <span className="text-[10px] text-accent font-normal ml-1">(from {draft.bestiaryEntityName})</span>}</span>
+              <StatBlock statBlock={editing ? (draft.statBlock ?? {}) : entity.statBlock!} />
             </div>
           )}
 
