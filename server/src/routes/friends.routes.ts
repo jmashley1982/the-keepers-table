@@ -8,6 +8,23 @@ export const friendsRouter = Router()
 
 const CLAUDE_QUOTA = 24
 const IMAGE_QUOTA = 12
+
+const TEXT_RATE_MS = 10_000
+const IMAGE_RATE_MS = 30_000
+
+const lastTextRequest = new Map<string, number>()
+const lastImageRequest = new Map<string, number>()
+
+function checkRateLimit(map: Map<string, number>, username: string, windowMs: number): number {
+  const now = Date.now()
+  const last = map.get(username) ?? 0
+  const elapsed = now - last
+  if (elapsed < windowMs) {
+    return Math.ceil((windowMs - elapsed) / 1000)
+  }
+  map.set(username, now)
+  return 0
+}
 const HAIKU_MODEL = 'claude-haiku-4-5'
 const ZIMAGE_MODEL = 'z-image-turbo'
 
@@ -100,6 +117,12 @@ friendsRouter.post('/generate/text', requireFriend, async (req, res) => {
     return
   }
 
+  const textWait = checkRateLimit(lastTextRequest, username, TEXT_RATE_MS)
+  if (textWait > 0) {
+    res.status(429).json({ error: `Slow down! Please wait ${textWait} second${textWait === 1 ? '' : 's'} before generating text again.`, retryAfter: textWait })
+    return
+  }
+
   const { anthropic } = await getOwnerClients()
   if (!anthropic) {
     res.status(503).json({ error: 'Text generation is not configured on this server.' })
@@ -141,6 +164,12 @@ friendsRouter.post('/generate/image', requireFriend, async (req, res) => {
   }
   if (friend.imageUsed >= IMAGE_QUOTA) {
     res.status(429).json({ error: `You've used all ${IMAGE_QUOTA} image generations.` })
+    return
+  }
+
+  const imageWait = checkRateLimit(lastImageRequest, username, IMAGE_RATE_MS)
+  if (imageWait > 0) {
+    res.status(429).json({ error: `Slow down! Please wait ${imageWait} second${imageWait === 1 ? '' : 's'} before generating an image again.`, retryAfter: imageWait })
     return
   }
 
