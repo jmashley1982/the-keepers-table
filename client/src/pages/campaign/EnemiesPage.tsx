@@ -312,7 +312,7 @@ export default function EnemiesPage() {
               Bestiary
             </h1>
             <p className="text-ink-muted text-sm mt-0.5">
-              {srdEnemies.length} system monsters · {customEnemies.length} campaign enemies
+              {srdEnemies.length} system monsters · {customEnemies.length} custom creatures
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -328,7 +328,7 @@ export default function EnemiesPage() {
               className="btn-primary"
               onClick={() => navigate(`/campaign/${campaignId}/generate/enemy`)}
             >
-              <Plus size={16} /> Generate Enemy
+              <Plus size={16} /> Generate Foe
             </button>
           </div>
         </div>
@@ -345,7 +345,7 @@ export default function EnemiesPage() {
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
             <input
               className="input pl-8 text-sm w-full"
-              placeholder="Search enemies…"
+              placeholder="Search bestiary…"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
             />
@@ -389,11 +389,11 @@ export default function EnemiesPage() {
           </div>
         ) : (
           <>
-            {/* Campaign Enemies */}
+            {/* Custom Creatures */}
             {customEnemies.length > 0 && (
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <h2 className="display-font text-lg font-bold text-ink">Campaign Enemies</h2>
+                  <h2 className="display-font text-lg font-bold text-ink">Custom Creatures</h2>
                   <span className="px-2 py-0.5 rounded-full text-xs bg-accent/10 text-accent font-medium">{customEnemies.length}</span>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -410,7 +410,7 @@ export default function EnemiesPage() {
               </section>
             )}
 
-            {/* SRD Enemies */}
+            {/* SRD Bestiary */}
             {srdEnemies.length > 0 && (
               <section>
                 <div className="flex items-center gap-2 mb-3">
@@ -434,17 +434,17 @@ export default function EnemiesPage() {
             {srdEnemies.length === 0 && customEnemies.length === 0 && (
               <div className="text-center py-20">
                 <div className="text-5xl mb-4">⚔️</div>
-                <h2 className="display-font text-xl text-ink mb-2">No enemies found</h2>
+                <h2 className="display-font text-xl text-ink mb-2">No creatures found</h2>
                 <p className="text-ink-muted text-sm mb-4">
                   {search
-                    ? `No enemies match "${search}"`
-                    : 'Generate enemies with AI or switch to a system with a built-in bestiary.'}
+                    ? `No creatures match "${search}"`
+                    : 'Generate creatures with AI or switch to a system with a built-in bestiary.'}
                 </p>
                 <button
                   className="btn-primary"
                   onClick={() => navigate(`/campaign/${campaignId}/generate/enemy`)}
                 >
-                  <Plus size={16} /> Generate Enemy
+                  <Plus size={16} /> Generate Foe
                 </button>
               </div>
             )}

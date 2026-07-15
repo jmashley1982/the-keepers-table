@@ -315,16 +315,16 @@ export default function EnemyGeneratorPage() {
       <div className="mb-6">
         <h1 className="display-font text-3xl font-bold text-ink flex items-center gap-3">
           <Swords size={28} className="text-accent" />
-          Enemy Generator
+          Foe Generator
         </h1>
-        <p className="text-ink-muted text-sm mt-1">Create enemies tailored to your campaign's system and setting.</p>
+        <p className="text-ink-muted text-sm mt-1">Create creatures tailored to your campaign's system and setting.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form */}
         <div className="card space-y-4">
           <div>
-            <label className="label">Describe this enemy</label>
+            <label className="label">Describe this creature</label>
             <textarea
               className="textarea h-28"
               placeholder="A skeletal knight serving an ancient lich, bound by cursed armor that won't let it rest…"
@@ -357,7 +357,7 @@ export default function EnemyGeneratorPage() {
           >
             {streaming
               ? <><Loader size={16} className="animate-spin" /> Generating…</>
-              : <><Zap size={16} /> Generate Enemy</>
+              : <><Zap size={16} /> Generate Foe</>
             }
           </button>
         </div>
@@ -387,7 +387,7 @@ export default function EnemyGeneratorPage() {
           {streaming && !streamText && (
             <div className="card text-center py-12">
               <Loader size={32} className="animate-spin mx-auto text-accent mb-3" />
-              <p className="text-ink-muted text-sm">Claude is crafting your enemy…</p>
+              <p className="text-ink-muted text-sm">Claude is crafting your creature…</p>
             </div>
           )}
 
