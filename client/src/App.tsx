@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from './lib/api'
 import { useUIStore } from './store/useUIStore'
@@ -27,7 +27,6 @@ import EnemyGeneratorPage from './pages/campaign/EnemyGeneratorPage'
 import AppShell from './components/layout/AppShell'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const location = useLocation()
   const { data, isLoading } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.get('/auth/me').then(r => r.data),
@@ -45,10 +44,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!data?.user) {
-    if (location.pathname === '/') return <SplashPage />
-    return <Navigate to="/login" replace />
-  }
+  if (!data?.user) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
@@ -64,30 +60,32 @@ export default function App() {
       {/* Friends login */}
       <Route path="/friends" element={<FriendsLoginPage />} />
 
+      {/* Splash — public, handles both auth states internally */}
+      <Route path="/" element={<SplashPage />} />
+
       {/* Public auth */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<Navigate to="/login" replace />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
 
-      {/* All app routes — RequireAuth shows SplashPage at "/" when logged out */}
-      <Route path="/" element={<RequireAuth><AppShell /></RequireAuth>}>
-        <Route index element={<Navigate to="/campaigns" replace />} />
-        <Route path="campaigns" element={<CampaignsPage />} />
-        <Route path="campaign/:campaignId" element={<CampaignDashboard />} />
-        <Route path="campaign/:campaignId/session/:sessionId" element={<LiveSessionPage />} />
-        <Route path="campaign/:campaignId/log" element={<SessionLogPage />} />
-        <Route path="campaign/:campaignId/library" element={<LibraryPage />} />
-        <Route path="campaign/:campaignId/library/:tab" element={<LibraryPage />} />
-        <Route path="campaign/:campaignId/library/:tab/:entityId" element={<EntityDetailPage />} />
-        <Route path="campaign/:campaignId/players" element={<PlayersPage />} />
-        <Route path="campaign/:campaignId/maps" element={<MapsPage />} />
-        <Route path="campaign/:campaignId/enemies" element={<EnemiesPage />} />
-        <Route path="campaign/:campaignId/generate/enemy" element={<EnemyGeneratorPage />} />
-        <Route path="campaign/:campaignId/generate/battle-map" element={<BattleMapGeneratorPage />} />
-        <Route path="campaign/:campaignId/generate/world-map" element={<WorldMapGeneratorPage />} />
-        <Route path="campaign/:campaignId/generate/:kind" element={<GeneratorPage />} />
-        <Route path="campaign/:campaignId/settings" element={<CampaignSettingsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+      {/* Protected — pathless layout route so "/" is never contested */}
+      <Route element={<RequireAuth><AppShell /></RequireAuth>}>
+        <Route path="/campaigns" element={<CampaignsPage />} />
+        <Route path="/campaign/:campaignId" element={<CampaignDashboard />} />
+        <Route path="/campaign/:campaignId/session/:sessionId" element={<LiveSessionPage />} />
+        <Route path="/campaign/:campaignId/log" element={<SessionLogPage />} />
+        <Route path="/campaign/:campaignId/library" element={<LibraryPage />} />
+        <Route path="/campaign/:campaignId/library/:tab" element={<LibraryPage />} />
+        <Route path="/campaign/:campaignId/library/:tab/:entityId" element={<EntityDetailPage />} />
+        <Route path="/campaign/:campaignId/players" element={<PlayersPage />} />
+        <Route path="/campaign/:campaignId/maps" element={<MapsPage />} />
+        <Route path="/campaign/:campaignId/enemies" element={<EnemiesPage />} />
+        <Route path="/campaign/:campaignId/generate/enemy" element={<EnemyGeneratorPage />} />
+        <Route path="/campaign/:campaignId/generate/battle-map" element={<BattleMapGeneratorPage />} />
+        <Route path="/campaign/:campaignId/generate/world-map" element={<WorldMapGeneratorPage />} />
+        <Route path="/campaign/:campaignId/generate/:kind" element={<GeneratorPage />} />
+        <Route path="/campaign/:campaignId/settings" element={<CampaignSettingsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

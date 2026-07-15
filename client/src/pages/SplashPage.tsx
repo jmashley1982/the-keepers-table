@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../lib/api'
 import { useUIStore } from '../store/useUIStore'
 import { themeLogo } from '../lib/themeLogo'
-import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn } from 'lucide-react'
+import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn, LayoutDashboard } from 'lucide-react'
 
 const FEATURES = [
   {
@@ -32,6 +32,14 @@ export default function SplashPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const theme = useUIStore(s => s.theme)
+
+  const { data: authData, isLoading: authLoading } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get('/auth/me').then(r => r.data),
+    retry: false,
+  })
+
+  const loggedIn = !authLoading && !!authData?.user
 
   const demo = useMutation({
     mutationFn: () => api.post('/auth/demo/login'),
@@ -68,13 +76,23 @@ export default function SplashPage() {
           alt="The Keeper's Table"
           className="h-8 w-auto logo-theme opacity-80"
         />
-        <button
-          className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
-          onClick={() => navigate('/login')}
-        >
-          <LogIn size={15} />
-          Sign in
-        </button>
+        {loggedIn ? (
+          <button
+            className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
+            onClick={() => navigate('/campaigns')}
+          >
+            <LayoutDashboard size={15} />
+            My Campaigns
+          </button>
+        ) : (
+          <button
+            className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
+            onClick={() => navigate('/login')}
+          >
+            <LogIn size={15} />
+            Sign in
+          </button>
+        )}
       </header>
 
       {/* Hero */}
@@ -102,36 +120,55 @@ export default function SplashPage() {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center gap-3 mb-20">
-          <button
-            onClick={() => demo.mutate()}
-            disabled={demo.isPending}
-            className="flex items-center gap-2 px-6 py-3 rounded-card font-semibold text-sm transition-all disabled:opacity-50 min-w-[220px] justify-center"
-            style={{
-              background: 'var(--color-accent)',
-              color: '#fff',
-              boxShadow: '0 0 24px color-mix(in srgb, var(--color-accent) 40%, transparent)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
-            onMouseLeave={e => (e.currentTarget.style.filter = '')}
-          >
-            <FlaskConical size={16} />
-            {demo.isPending ? 'Loading demo…' : 'Try the demo — no sign‑up needed'}
-          </button>
+          {loggedIn ? (
+            <button
+              onClick={() => navigate('/campaigns')}
+              className="flex items-center gap-2 px-6 py-3 rounded-card font-semibold text-sm transition-all min-w-[220px] justify-center"
+              style={{
+                background: 'var(--color-accent)',
+                color: '#fff',
+                boxShadow: '0 0 24px color-mix(in srgb, var(--color-accent) 40%, transparent)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
+              onMouseLeave={e => (e.currentTarget.style.filter = '')}
+            >
+              <LayoutDashboard size={16} />
+              Go to my campaigns
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => demo.mutate()}
+                disabled={demo.isPending}
+                className="flex items-center gap-2 px-6 py-3 rounded-card font-semibold text-sm transition-all disabled:opacity-50 min-w-[220px] justify-center"
+                style={{
+                  background: 'var(--color-accent)',
+                  color: '#fff',
+                  boxShadow: '0 0 24px color-mix(in srgb, var(--color-accent) 40%, transparent)',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
+                onMouseLeave={e => (e.currentTarget.style.filter = '')}
+              >
+                <FlaskConical size={16} />
+                {demo.isPending ? 'Loading demo…' : 'Try the demo — no sign‑up needed'}
+              </button>
 
-          <button
-            onClick={() => navigate('/login')}
-            className="flex items-center gap-2 px-6 py-3 rounded-card font-semibold text-sm transition-all min-w-[160px] justify-center"
-            style={{
-              background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)',
-              color: 'var(--color-accent)',
-              border: '1.5px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 18%, transparent)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 10%, transparent)')}
-          >
-            <LogIn size={15} />
-            Sign in
-          </button>
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-2 px-6 py-3 rounded-card font-semibold text-sm transition-all min-w-[160px] justify-center"
+                style={{
+                  background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)',
+                  color: 'var(--color-accent)',
+                  border: '1.5px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 18%, transparent)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 10%, transparent)')}
+              >
+                <LogIn size={15} />
+                Sign in
+              </button>
+            </>
+          )}
         </div>
 
         {demo.isError && (
