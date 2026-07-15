@@ -35,22 +35,6 @@
   --texture-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
-/* ── Slate theme (dark, neutral) ── */
-[data-theme="slate"] {
-  --color-bg:        #0f1117;
-  --color-surface:   #1a1d27;
-  --color-surface-2: #232636;
-  --color-ink:       #e8eaf0;
-  --color-ink-muted: #8b90a0;
-  --color-accent:    #4a9edd;
-  --color-danger:    #ef4444;
-  --color-gm-secret: #a78bfa;
-  --color-border:    #2e3145;
-  --radius-card:     0.5rem;
-  --font-display:    'Playfair Display', Georgia, serif;
-  --texture-bg:      none;
-}
-
 /* ── High Contrast ── */
 [data-theme="high-contrast"] {
   --color-bg:        #000000;
@@ -113,22 +97,6 @@
   --radius-card:     0.125rem;
   --font-display:    'Rajdhani', Inter, sans-serif;
   --texture-bg:      none;
-}
-
-/* ── Frosthold theme (High Fantasy — midnight blue, ice crystal) ── */
-[data-theme="frosthold"] {
-  --color-bg:        #050f1f;
-  --color-surface:   #0c1a30;
-  --color-surface-2: #122240;
-  --color-ink:       #e8f4ff;
-  --color-ink-muted: #6b8faf;
-  --color-accent:    #8fa8f5;
-  --color-danger:    #ef4444;
-  --color-gm-secret: #a855f7;
-  --color-border:    #1a304a;
-  --radius-card:     0.5rem;
-  --font-display:    'Playfair Display', Georgia, serif;
-  --texture-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
 /* ── Base styles ── */
@@ -247,18 +215,6 @@ body {
   filter: none;
 }
 
-/* ── Slate ── */
-[data-theme="slate"] .display-font {
-  color: var(--color-ink);
-}
-[data-theme="slate"] .btn-primary {
-  color: #0f1117;
-  font-weight: 600;
-}
-[data-theme="slate"] .logo-theme {
-  filter: none;
-}
-
 /* ── High Contrast ── */
 [data-theme="high-contrast"] .display-font {
   color: var(--color-ink);
@@ -346,28 +302,6 @@ body {
   box-shadow: 0 0 0 1px var(--color-accent), 0 0 12px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 [data-theme="neon"] .logo-theme {
-  filter: none;
-}
-
-/* ── Frosthold ── */
-[data-theme="frosthold"] .display-font {
-  color: #bfdbfe;
-}
-[data-theme="frosthold"] .btn-primary {
-  color: #050f1f;
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 30%, transparent);
-}
-[data-theme="frosthold"] .btn-primary:hover {
-  box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 50%, transparent);
-}
-[data-theme="frosthold"] .card {
-  box-shadow: inset 0 1px 0 rgba(96, 165, 250, 0.08), 0 2px 12px rgba(0, 0, 0, 0.5);
-  border-color: #1a304a;
-}
-[data-theme="frosthold"] .input:focus {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 35%, transparent);
-}
-[data-theme="frosthold"] .logo-theme {
   filter: none;
 }
 

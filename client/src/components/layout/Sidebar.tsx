@@ -6,7 +6,7 @@ import { cn } from '../../lib/cn'
 import {
   LayoutDashboard, BookOpen, Map, Scroll,
   Settings, LogOut, ChevronDown, Zap, Users,
-  Contrast, Flame, Skull, Rocket, Terminal, Wand2, Crosshair, Swords,
+  Contrast, Flame, Skull, Rocket, Terminal, Swords,
 } from 'lucide-react'
 import { useState } from 'react'
 import { themeLogo } from '../../lib/themeLogo'
@@ -16,9 +16,7 @@ const THEME_OPTIONS = [
   { id: 'eldritch',    label: 'Eldritch',       icon: Skull },
   { id: 'icarus',      label: 'Icarus',         icon: Rocket },
   { id: 'neon',        label: 'Neon',           icon: Terminal },
-  { id: 'frosthold',   label: 'Frosthold',      icon: Wand2 },
   { id: 'parchment',   label: 'Parchment',      icon: Scroll },
-  { id: 'slate',       label: 'Slate',          icon: Crosshair },
   { id: 'high-contrast', label: 'High Contrast', icon: Contrast },
 ] as const
 
