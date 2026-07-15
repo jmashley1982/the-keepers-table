@@ -1,6 +1,5 @@
-import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../lib/api'
 import { useUIStore } from '../store/useUIStore'
 import { themeLogo } from '../lib/themeLogo'
@@ -34,18 +33,6 @@ export default function SplashPage() {
   const qc = useQueryClient()
   const theme = useUIStore(s => s.theme)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => api.get('/auth/me').then(r => r.data),
-    retry: false,
-  })
-
-  useEffect(() => {
-    if (!isLoading && data?.user) {
-      navigate('/campaigns', { replace: true })
-    }
-  }, [data, isLoading, navigate])
-
   const demo = useMutation({
     mutationFn: () => api.post('/auth/demo/login'),
     onSuccess: (res) => {
@@ -53,14 +40,6 @@ export default function SplashPage() {
       navigate(`/campaigns/${res.data.campaignId}`)
     },
   })
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-bg">
-        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
 
   return (
     <div
@@ -156,7 +135,7 @@ export default function SplashPage() {
         </div>
 
         {demo.isError && (
-          <p className="text-danger text-sm mb-4">{apiError(demo.error)}</p>
+          <p className="text-danger text-sm -mt-16 mb-4">{apiError(demo.error)}</p>
         )}
 
         {/* Feature grid */}

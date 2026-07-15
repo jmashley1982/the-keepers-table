@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from './lib/api'
 import { useUIStore } from './store/useUIStore'
@@ -27,6 +27,7 @@ import EnemyGeneratorPage from './pages/campaign/EnemyGeneratorPage'
 import AppShell from './components/layout/AppShell'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
   const { data, isLoading } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.get('/auth/me').then(r => r.data),
@@ -44,7 +45,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!data?.user) return <Navigate to="/login" replace />
+  if (!data?.user) {
+    if (location.pathname === '/') return <SplashPage />
+    return <Navigate to="/login" replace />
+  }
   return <>{children}</>
 }
 
@@ -60,15 +64,12 @@ export default function App() {
       {/* Friends login */}
       <Route path="/friends" element={<FriendsLoginPage />} />
 
-      {/* Splash / landing */}
-      <Route path="/" element={<SplashPage />} />
-
       {/* Public auth */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<Navigate to="/login" replace />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
 
-      {/* Protected */}
+      {/* All app routes — RequireAuth shows SplashPage at "/" when logged out */}
       <Route path="/" element={<RequireAuth><AppShell /></RequireAuth>}>
         <Route index element={<Navigate to="/campaigns" replace />} />
         <Route path="campaigns" element={<CampaignsPage />} />
