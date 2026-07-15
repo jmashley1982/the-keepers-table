@@ -336,8 +336,8 @@ function PCCard({ pc, campaignId, onSelect, onDelete, onMoveUp, onMoveDown, isFi
 
 // ── PC Sheet Editor ───────────────────────────────────────────────────────────
 
-function PCSheetEditor({ pc, campaignId, onClose, onSaved }: {
-  pc: PlayerCharacter; campaignId: string; onClose: () => void; onSaved: () => void
+function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld }: {
+  pc: PlayerCharacter; campaignId: string; onClose: () => void; onSaved: () => void; isDungeonWorld: boolean
 }) {
   const qc = useQueryClient()
   const [templateOpen, setTemplateOpen] = useState(false)
@@ -432,43 +432,45 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved }: {
             {pc.name || 'Character Sheet'}
           </h2>
           <div className="flex items-center gap-2">
-            {/* DW Class Template picker */}
-            <div className="relative">
-              <button
-                className="btn-secondary text-xs py-1.5 flex items-center gap-1.5"
-                onClick={() => setTemplateOpen(v => !v)}
-                title="Load a Dungeon World class template"
-              >
-                <BookOpen size={12} /> DW Template
-              </button>
-              {templateOpen && (
-                <div className="absolute right-0 top-full mt-1 z-50 bg-surface border border-border rounded-card shadow-xl w-52 py-1 max-h-80 overflow-y-auto">
-                  <p className="px-3 py-1.5 text-[10px] font-semibold text-ink-muted uppercase tracking-wide border-b border-border mb-1">
-                    Dungeon World Classes
-                  </p>
-                  {DW_CLASSES.map(cls => (
-                    <button
-                      key={cls.name}
-                      className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-surface-2 transition-colors flex items-center justify-between"
-                      onClick={() => {
-                        const t = applyDWTemplate(cls)
-                        applyExtracted({
-                          class: t.class,
-                          features: t.features,
-                          notes: t.notes,
-                          equipment: t.equipment,
-                          combatStats: { ...draft.combatStats, ...t.combatStats },
-                        })
-                        setTemplateOpen(false)
-                      }}
-                    >
-                      <span>{cls.name}</span>
-                      <span className="text-ink-muted text-[10px]">{cls.damageDie} | {cls.hpBase}+CON HP</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* DW Class Template picker — only for Dungeon World campaigns */}
+            {isDungeonWorld && (
+              <div className="relative">
+                <button
+                  className="btn-secondary text-xs py-1.5 flex items-center gap-1.5"
+                  onClick={() => setTemplateOpen(v => !v)}
+                  title="Load a Dungeon World class template"
+                >
+                  <BookOpen size={12} /> DW Template
+                </button>
+                {templateOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-surface border border-border rounded-card shadow-xl w-52 py-1 max-h-80 overflow-y-auto">
+                    <p className="px-3 py-1.5 text-[10px] font-semibold text-ink-muted uppercase tracking-wide border-b border-border mb-1">
+                      Dungeon World Classes
+                    </p>
+                    {DW_CLASSES.map(cls => (
+                      <button
+                        key={cls.name}
+                        className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-surface-2 transition-colors flex items-center justify-between"
+                        onClick={() => {
+                          const t = applyDWTemplate(cls)
+                          applyExtracted({
+                            class: t.class,
+                            features: t.features,
+                            notes: t.notes,
+                            equipment: t.equipment,
+                            combatStats: { ...draft.combatStats, ...t.combatStats },
+                          })
+                          setTemplateOpen(false)
+                        }}
+                      >
+                        <span>{cls.name}</span>
+                        <span className="text-ink-muted text-[10px]">{cls.damageDie} | {cls.hpBase}+CON HP</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <SheetUploadButton campaignId={campaignId} pcId={pc.id} onExtracted={applyExtracted} />
             <button
               className="btn-primary text-sm py-1.5 flex items-center gap-1"
@@ -712,6 +714,14 @@ export default function PlayersPage() {
   const [newPlayerName, setNewPlayerName] = useState('')
   const [newClass, setNewClass] = useState('')
 
+  const { data: campaignData } = useQuery({
+    queryKey: ['campaign', campaignId],
+    queryFn: () => api.get(`/api/campaigns/${campaignId}`).then(r => r.data),
+    enabled: !!campaignId,
+  })
+
+  const isDungeonWorld = campaignData?.campaign?.systemTemplate?.name === 'Dungeon World'
+
   const { data, isLoading } = useQuery({
     queryKey: ['player-characters', campaignId],
     queryFn: () => api.get(`/api/campaigns/${campaignId}/player-characters`).then(r => r.data),
@@ -834,23 +844,25 @@ export default function PlayersPage() {
                 onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
               />
             </div>
-            <div className="min-w-40">
-              <label className="label flex items-center gap-1">
-                <BookOpen size={11} className="text-accent" /> DW Class Template
-              </label>
-              <select
-                className="input text-sm"
-                value={newClass}
-                onChange={e => setNewClass(e.target.value)}
-              >
-                <option value="">— Blank sheet —</option>
-                {DW_CLASSES.map(cls => (
-                  <option key={cls.name} value={cls.name}>
-                    {cls.name} ({cls.damageDie}, {cls.hpBase}+CON HP)
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isDungeonWorld && (
+              <div className="min-w-40">
+                <label className="label flex items-center gap-1">
+                  <BookOpen size={11} className="text-accent" /> DW Class Template
+                </label>
+                <select
+                  className="input text-sm"
+                  value={newClass}
+                  onChange={e => setNewClass(e.target.value)}
+                >
+                  <option value="">— Blank sheet —</option>
+                  {DW_CLASSES.map(cls => (
+                    <option key={cls.name} value={cls.name}>
+                      {cls.name} ({cls.damageDie}, {cls.hpBase}+CON HP)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <button
               className="btn-primary py-2 flex items-center gap-1"
               onClick={handleCreate}
@@ -919,6 +931,7 @@ export default function PlayersPage() {
         <PCSheetEditor
           pc={selectedPc}
           campaignId={campaignId!}
+          isDungeonWorld={isDungeonWorld}
           onClose={() => setSelectedPcId(null)}
           onSaved={() => {
             qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })
