@@ -169,6 +169,57 @@ const PLOT_THREAD_SCHEMA = `{
   "status": "active|dormant|resolved|unknown"
 }`
 
+// ── Enemy Generator ───────────────────────────────────────────────────────────
+
+const ENEMY_SCHEMA = `{
+  "name": "string — creature name",
+  "description": "string — 1-2 sentences of appearance and typical behavior",
+  "enemyType": "string — creature type (beast, undead, humanoid, fiend, construct, dragon, etc.)",
+  "size": "string — tiny|small|medium|large|huge|gargantuan (omit if system doesn't use this)",
+  "cr": "string — challenge rating (5e) or rough power level; omit if system doesn't use CR",
+  "tags": ["string — relevant tags e.g. undead, flying, spellcaster, horde, regeneration"],
+  "statBlock": {}
+}`
+
+const ENEMY_SCHEMA_5E = `{
+  "name": "string",
+  "description": "string — 1-2 sentences",
+  "enemyType": "string — e.g. humanoid (goblinoid), undead, beast, fiend (devil)",
+  "size": "tiny|small|medium|large|huge|gargantuan",
+  "cr": "string — e.g. 1/4, 1, 5, 17",
+  "tags": ["string"],
+  "statBlock": {
+    "str": "number", "dex": "number", "con": "number",
+    "int": "number", "wis": "number", "cha": "number",
+    "ac": "number",
+    "hp": "string — dice notation e.g. '5d8+10 (32)'",
+    "speed": "string — e.g. '30 ft., fly 60 ft.'",
+    "saves": "string — e.g. 'Dex +4, Wis +2'",
+    "skills": "string — e.g. 'Stealth +5, Perception +3'",
+    "senses": "string — e.g. 'Darkvision 60 ft., passive Perception 13'",
+    "languages": "string",
+    "traits": "string — special traits, each on its own line",
+    "actions": "string — attack actions and special abilities, each on its own line"
+  }
+}`
+
+const ENEMY_SCHEMA_DW = `{
+  "name": "string",
+  "description": "string — 1-2 sentences",
+  "enemyType": "string — broad type e.g. beast, humanoid, undead, construct",
+  "size": "string — optional size descriptor",
+  "cr": null,
+  "tags": ["string"],
+  "statBlock": {
+    "hp": "number",
+    "armor": "number — 0 to 4",
+    "damage": "string — dice notation e.g. 'd6', 'd8+1', '2d6'",
+    "instinct": "string — what drives the creature without thinking",
+    "moves": "string — 2-5 GM-triggered moves, each on its own line",
+    "tags": "string — Dungeon World tags e.g. Horde, Group, Solitary, Stealthy, Magical, Terrifying"
+  }
+}`
+
 // ── Session Wrap ──────────────────────────────────────────────────────────────
 
 const SESSION_WRAP_SCHEMA = `{
@@ -191,6 +242,7 @@ const KIND_SCHEMAS: Record<string, string> = {
   faction: FACTION_SCHEMA,
   plot_thread: PLOT_THREAD_SCHEMA,
   session_wrap: SESSION_WRAP_SCHEMA,
+  enemy: ENEMY_SCHEMA,
 }
 
 // ── Text generation ───────────────────────────────────────────────────────────
@@ -198,7 +250,7 @@ const KIND_SCHEMAS: Record<string, string> = {
 generateRouter.post('/text', async (req, res) => {
   const userId = res.locals.user.id
   const schema = z.object({
-    kind: z.enum(['npc', 'encounter', 'treasure', 'dialogue', 'faction', 'plot_thread', 'session_wrap', 'quick', 'prep_suggestions']),
+    kind: z.enum(['npc', 'encounter', 'treasure', 'dialogue', 'faction', 'plot_thread', 'session_wrap', 'quick', 'prep_suggestions', 'enemy']),
     campaignId: z.string().optional(),
     prompt: z.string(),
     sessionId: z.string().optional(),
@@ -249,7 +301,19 @@ generateRouter.post('/text', async (req, res) => {
     }
   }
 
-  const outputSchema = KIND_SCHEMAS[kind]
+  // For enemy generation, pick a system-specific schema
+  let outputSchema = KIND_SCHEMAS[kind]
+  if (kind === 'enemy' && campaignId) {
+    const campaignForSystem = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { systemTemplateId: true },
+    })
+    if (campaignForSystem?.systemTemplateId === 'builtin-d-d-5e') {
+      outputSchema = ENEMY_SCHEMA_5E
+    } else if (campaignForSystem?.systemTemplateId === 'builtin-dungeon-world') {
+      outputSchema = ENEMY_SCHEMA_DW
+    }
+  }
   const contentRating = userPref?.contentRating ?? 'standard'
 
   const systemPrompt = `You are an AI assistant for a tabletop RPG Game Master. You help generate campaign content that integrates seamlessly with existing campaign state.

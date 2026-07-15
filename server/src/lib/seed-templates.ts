@@ -147,6 +147,82 @@ function makeId(name: string): string {
   return `builtin-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
 }
 
+// ── Enemy SRD seeding ────────────────────────────────────────────────────────
+
+import srd5eEnemies from '../data/srd-5e-enemies.json' with { type: 'json' }
+import srdDwEnemies from '../data/srd-dw-enemies.json' with { type: 'json' }
+
+type SrdEnemy = {
+  id: string
+  name: string
+  description: string
+  enemyType: string
+  size?: string
+  cr?: string
+  tags: string[]
+  statBlock: Record<string, unknown>
+}
+
+export async function seedEnemies(): Promise<void> {
+  const all5e = srd5eEnemies as SrdEnemy[]
+  const allDw = srdDwEnemies as SrdEnemy[]
+
+  // Check existing builtins
+  const existing = await prisma.enemy.findMany({
+    where: { isBuiltin: true },
+    select: { id: true },
+  })
+  const existingIds = new Set(existing.map(e => e.id))
+
+  const toSeed5e = all5e.filter(e => !existingIds.has(e.id))
+  const toSeedDw = allDw.filter(e => !existingIds.has(e.id))
+
+  if (toSeed5e.length === 0 && toSeedDw.length === 0) return
+
+  for (const e of toSeed5e) {
+    await prisma.enemy.upsert({
+      where: { id: e.id },
+      update: {},
+      create: {
+        id: e.id,
+        name: e.name,
+        description: e.description ?? '',
+        enemyType: e.enemyType ?? '',
+        size: e.size ?? '',
+        cr: e.cr ?? null,
+        statBlock: e.statBlock ?? {},
+        tags: e.tags ?? [],
+        source: 'srd',
+        isBuiltin: true,
+        systemTemplateId: 'builtin-d-d-5e',
+      },
+    })
+  }
+
+  for (const e of toSeedDw) {
+    await prisma.enemy.upsert({
+      where: { id: e.id },
+      update: {},
+      create: {
+        id: e.id,
+        name: e.name,
+        description: e.description ?? '',
+        enemyType: e.enemyType ?? '',
+        size: e.size ?? '',
+        cr: null,
+        statBlock: (e.statBlock as Record<string, unknown>) ?? {},
+        tags: e.tags ?? [],
+        source: 'srd',
+        isBuiltin: true,
+        systemTemplateId: 'builtin-dungeon-world',
+      },
+    })
+  }
+
+  const total = toSeed5e.length + toSeedDw.length
+  console.log(`⚔️  Seeded ${total} SRD enemies (${toSeed5e.length} 5e, ${toSeedDw.length} DW)`)
+}
+
 export async function seedSystemTemplates(): Promise<void> {
   const existingIds = await prisma.systemTemplate.findMany({
     where: { isBuiltin: true },

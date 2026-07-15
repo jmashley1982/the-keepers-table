@@ -1,0 +1,1785 @@
+[
+  {
+    "id": "srd5e-bandit",
+    "name": "Bandit",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "1/8",
+    "description": "Bandits rove in gangs and are sometimes led by thugs, veterans, or spellcasters. Not all bandits are evil—poverty, desperation, or circumstance drives many to criminality.",
+    "tags": ["humanoid", "common"],
+    "statBlock": {
+      "str": 11, "dex": 12, "con": 12, "int": 10, "wis": 10, "cha": 10,
+      "ac": 12, "hp": "2d8+2 (11)", "speed": "30 ft.",
+      "saves": "", "skills": "",
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)",
+      "traits": "",
+      "actions": "Scimitar: +3 to hit, reach 5 ft., 1d6+1 slashing. Light Crossbow: +3 to hit, range 80/320 ft., 1d8+1 piercing."
+    }
+  },
+  {
+    "id": "srd5e-bandit-captain",
+    "name": "Bandit Captain",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "2",
+    "description": "It takes a strong personality, ruthless cunning, and a silver tongue to keep a gang of bandits in line. The bandit captain has these in spades.",
+    "tags": ["humanoid", "leader"],
+    "statBlock": {
+      "str": 15, "dex": 16, "con": 14, "int": 14, "wis": 11, "cha": 14,
+      "ac": 15, "hp": "10d8+20 (65)", "speed": "30 ft.",
+      "saves": "Str +4, Dex +5, Wis +2",
+      "skills": "Athletics +4, Deception +4",
+      "senses": "passive Perception 10",
+      "languages": "any two languages",
+      "traits": "Multiattack: 3 attacks; 2 with scimitar and 1 with dagger.",
+      "actions": "Scimitar: +5 to hit, 1d6+3 slashing. Dagger (melee): +5 to hit, 1d4+3 piercing. Dagger (ranged): +5 to hit, range 20/60 ft., 1d4+3 piercing. Parry (reaction): +2 to AC against one melee attack."
+    }
+  },
+  {
+    "id": "srd5e-berserker",
+    "name": "Berserker",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "2",
+    "description": "Hailing from uncivilized lands, berserkers are warriors who channel their rage into vicious fighting styles.",
+    "tags": ["humanoid", "warrior"],
+    "statBlock": {
+      "str": 16, "dex": 12, "con": 17, "int": 9, "wis": 11, "cha": 9,
+      "ac": 13, "hp": "9d8+27 (67)", "speed": "30 ft.",
+      "saves": "", "skills": "",
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)",
+      "traits": "Reckless: At the start of its turn, the berserker can gain advantage on all melee weapon attack rolls during that turn, but attack rolls against it have advantage until the start of its next turn.",
+      "actions": "Greataxe: +5 to hit, reach 5 ft., 1d12+3 slashing."
+    }
+  },
+  {
+    "id": "srd5e-commoner",
+    "name": "Commoner",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "0",
+    "description": "Commoners include peasants, serfs, slaves, servants, pilgrims, merchants, artisans, and hermits.",
+    "tags": ["humanoid", "common"],
+    "statBlock": {
+      "str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10,
+      "ac": 10, "hp": "1d8 (4)", "speed": "30 ft.",
+      "saves": "", "skills": "",
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)",
+      "traits": "",
+      "actions": "Club: +2 to hit, reach 5 ft., 1d4 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-cult-fanatic",
+    "name": "Cult Fanatic",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "2",
+    "description": "Fanatics are often part of a cult's leadership, enjoying a higher status than regular cultists. They wield divine magic in service to their deity or patron.",
+    "tags": ["humanoid", "spellcaster", "religious"],
+    "statBlock": {
+      "str": 11, "dex": 14, "con": 12, "int": 10, "wis": 13, "cha": 14,
+      "ac": 13, "hp": "6d8+6 (33)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Deception +4, Persuasion +4, Religion +2",
+      "senses": "passive Perception 11",
+      "languages": "any one language (usually Common)",
+      "traits": "Dark Devotion: The fanatic has advantage on saving throws against being charmed or frightened. Spellcasting (Wis, save DC 11): 1st (4 slots): command, inflict wounds, shield of faith; 2nd (2 slots): hold person, spiritual weapon.",
+      "actions": "Multiattack: 2 attacks. Dagger: +4 to hit, 1d4+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-cultist",
+    "name": "Cultist",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "1/8",
+    "description": "Cultists swear allegiance to dark powers such as elemental princes, demon lords, or archdevils.",
+    "tags": ["humanoid", "religious"],
+    "statBlock": {
+      "str": 11, "dex": 12, "con": 10, "int": 10, "wis": 11, "cha": 10,
+      "ac": 12, "hp": "2d8 (9)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Deception +2, Religion +2",
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)",
+      "traits": "Dark Devotion: The cultist has advantage on saving throws against being charmed or frightened.",
+      "actions": "Scimitar: +3 to hit, reach 5 ft., 1d6+1 slashing."
+    }
+  },
+  {
+    "id": "srd5e-guard",
+    "name": "Guard",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "1/8",
+    "description": "Guards include members of a city watch, sentinels in a citadel or fortified town, and the bodyguards of merchants and nobles.",
+    "tags": ["humanoid", "soldier"],
+    "statBlock": {
+      "str": 13, "dex": 12, "con": 12, "int": 10, "wis": 11, "cha": 10,
+      "ac": 16, "hp": "2d8+2 (11)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Perception +2",
+      "senses": "passive Perception 12",
+      "languages": "any one language (usually Common)",
+      "traits": "",
+      "actions": "Spear: +3 to hit, reach 5 ft. or range 20/60 ft., 1d6+1 or 1d8+1 piercing."
+    }
+  },
+  {
+    "id": "srd5e-knight",
+    "name": "Knight",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "3",
+    "description": "Knights are warriors who pledge service to rulers, religious orders, and noble causes.",
+    "tags": ["humanoid", "soldier", "leader"],
+    "statBlock": {
+      "str": 16, "dex": 11, "con": 14, "int": 11, "wis": 11, "cha": 15,
+      "ac": 18, "hp": "8d8+16 (52)", "speed": "30 ft.",
+      "saves": "Con +4, Wis +2",
+      "skills": "",
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)",
+      "traits": "Brave: The knight has advantage on saving throws against being frightened. Multiattack: 2 attacks.",
+      "actions": "Greatsword: +5 to hit, 2d6+3 slashing. Heavy Crossbow: +2 to hit, range 100/400 ft., 1d10 piercing. Leadership (recharge 5–6): For 1 minute, allies within 30 ft. can add 1d4 to attack rolls or saving throws. Parry (reaction): +2 to AC against one melee attack."
+    }
+  },
+  {
+    "id": "srd5e-mage",
+    "name": "Mage",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "6",
+    "description": "Mages spend their lives in the study of magic, learning ever more potent spells to serve their ambitions.",
+    "tags": ["humanoid", "spellcaster"],
+    "statBlock": {
+      "str": 9, "dex": 14, "con": 11, "int": 17, "wis": 12, "cha": 11,
+      "ac": 12, "hp": "9d8 (40)", "speed": "30 ft.",
+      "saves": "Int +6, Wis +4",
+      "skills": "Arcana +6, History +6",
+      "senses": "passive Perception 11",
+      "languages": "any four languages",
+      "traits": "Spellcasting (Int, save DC 14, +6 to hit): Cantrips: fire bolt, light, mage hand, prestidigitation; 1st (4 slots): detect magic, mage armor, magic missile, shield; 2nd (3 slots): misty step, suggestion; 3rd (3 slots): counterspell, fireball, fly; 4th (3 slots): greater invisibility, ice storm; 5th (1 slot): cone of cold.",
+      "actions": "Dagger: +5 to hit, 1d4+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-priest",
+    "name": "Priest",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "2",
+    "description": "Priests bring the teachings of their gods to the common folk. They are called to their gods through signs and miracles.",
+    "tags": ["humanoid", "spellcaster", "religious"],
+    "statBlock": {
+      "str": 10, "dex": 10, "con": 12, "int": 13, "wis": 16, "cha": 13,
+      "ac": 13, "hp": "5d8+5 (27)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Medicine +7, Persuasion +3, Religion +4",
+      "senses": "passive Perception 13",
+      "languages": "any two languages",
+      "traits": "Divine Eminence: As a bonus action, the priest can expend a spell slot to cause its melee weapon attacks to deal +10d6 radiant on a hit. Spellcasting (Wis, save DC 13): Cantrips: light, sacred flame, thaumaturgy; 1st (4 slots): cure wounds, guiding bolt, sanctuary; 2nd (3 slots): lesser restoration, spiritual weapon; 3rd (2 slots): dispel magic, spirit guardians.",
+      "actions": "Mace: +2 to hit, reach 5 ft., 1d6 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-scout",
+    "name": "Scout",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "1/2",
+    "description": "Scouts are skilled hunters and trackers who offer their services for a fee.",
+    "tags": ["humanoid", "ranger"],
+    "statBlock": {
+      "str": 11, "dex": 14, "con": 12, "int": 11, "wis": 13, "cha": 11,
+      "ac": 13, "hp": "3d8+3 (16)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Nature +4, Perception +5, Stealth +6, Survival +5",
+      "senses": "passive Perception 15",
+      "languages": "any one language (usually Common)",
+      "traits": "Keen Hearing and Sight: Advantage on Perception checks relying on hearing or sight. Multiattack: 2 attacks.",
+      "actions": "Shortsword: +4 to hit, 1d6+2 piercing. Longbow: +4 to hit, range 150/600 ft., 1d8+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-spy",
+    "name": "Spy",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "1",
+    "description": "Rulers, nobles, merchants, guildmasters, and other wealthy individuals use spies to gain the upper hand in a world of cutthroat politics.",
+    "tags": ["humanoid", "rogue"],
+    "statBlock": {
+      "str": 10, "dex": 15, "con": 10, "int": 12, "wis": 14, "cha": 16,
+      "ac": 12, "hp": "6d8 (27)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Deception +5, Insight +4, Investigation +5, Perception +6, Persuasion +5, Sleight of Hand +4, Stealth +4",
+      "senses": "passive Perception 16",
+      "languages": "any two languages",
+      "traits": "Cunning Action: Can Dash, Disengage, or Hide as a bonus action. Sneak Attack (1/turn): +2d6 damage with advantage or when ally is adjacent to target. Multiattack: 2 attacks.",
+      "actions": "Shortsword: +4 to hit, 1d6+2 piercing. Hand Crossbow: +4 to hit, range 30/120 ft., 1d6+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-thug",
+    "name": "Thug",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "1/2",
+    "description": "Thugs are ruthless enforcers skilled at intimidation and violence. They work for money and have little interest in ethics.",
+    "tags": ["humanoid", "fighter"],
+    "statBlock": {
+      "str": 15, "dex": 11, "con": 14, "int": 10, "wis": 10, "cha": 11,
+      "ac": 11, "hp": "5d8+10 (32)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Intimidation +2",
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)",
+      "traits": "Pack Tactics: Advantage on attack rolls when an ally is adjacent to target. Multiattack: 2 attacks.",
+      "actions": "Mace: +4 to hit, reach 5 ft., 1d6+2 bludgeoning. Heavy Crossbow: +2 to hit, range 100/400 ft., 1d10 piercing."
+    }
+  },
+  {
+    "id": "srd5e-veteran",
+    "name": "Veteran",
+    "size": "medium",
+    "enemyType": "humanoid (any race)",
+    "cr": "3",
+    "description": "Veterans are professional fighters that take up arms for pay or to protect something they believe in or value.",
+    "tags": ["humanoid", "soldier"],
+    "statBlock": {
+      "str": 16, "dex": 13, "con": 14, "int": 10, "wis": 11, "cha": 10,
+      "ac": 17, "hp": "9d8+18 (58)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Athletics +5, Perception +2",
+      "senses": "passive Perception 12",
+      "languages": "any one language (usually Common)",
+      "traits": "Multiattack: 2 longsword attacks; if available, 1 shortsword attack.",
+      "actions": "Longsword: +5 to hit, 1d8+3 or 1d10+3 slashing. Shortsword: +5 to hit, 1d6+3 piercing. Heavy Crossbow: +3 to hit, range 100/400 ft., 1d10+1 piercing."
+    }
+  },
+  {
+    "id": "srd5e-goblin",
+    "name": "Goblin",
+    "size": "small",
+    "enemyType": "humanoid (goblinoid)",
+    "cr": "1/4",
+    "description": "Goblins are small, black-hearted humanoids that lair in caves, abandoned mines, and dismal settings.",
+    "tags": ["goblinoid", "small"],
+    "statBlock": {
+      "str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8,
+      "ac": 15, "hp": "2d6 (7)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Stealth +6",
+      "senses": "Darkvision 60 ft., passive Perception 9",
+      "languages": "Common, Goblin",
+      "traits": "Nimble Escape: Can Disengage or Hide as a bonus action each turn.",
+      "actions": "Scimitar: +4 to hit, 1d6+2 slashing. Shortbow: +4 to hit, range 80/320 ft., 1d6+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-hobgoblin",
+    "name": "Hobgoblin",
+    "size": "medium",
+    "enemyType": "humanoid (goblinoid)",
+    "cr": "1/2",
+    "description": "War is the lifeblood of hobgoblins. Militaristic to the core, hobgoblins live for battle.",
+    "tags": ["goblinoid", "soldier"],
+    "statBlock": {
+      "str": 13, "dex": 12, "con": 12, "int": 10, "wis": 10, "cha": 9,
+      "ac": 18, "hp": "2d8+2 (11)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Common, Goblin",
+      "traits": "Martial Advantage (1/turn): +2d6 damage when an ally is adjacent to the target.",
+      "actions": "Longsword: +3 to hit, 1d8+1 or 1d10+1 slashing. Longbow: +3 to hit, range 150/600 ft., 1d8+1 piercing."
+    }
+  },
+  {
+    "id": "srd5e-bugbear",
+    "name": "Bugbear",
+    "size": "medium",
+    "enemyType": "humanoid (goblinoid)",
+    "cr": "1",
+    "description": "Bugbears are hulking, hairy goblinoids who live for the thrill of the hunt and the rush of sudden attacks.",
+    "tags": ["goblinoid", "large"],
+    "statBlock": {
+      "str": 15, "dex": 14, "con": 13, "int": 8, "wis": 11, "cha": 9,
+      "ac": 16, "hp": "5d8+5 (27)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Stealth +6, Survival +2",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Common, Goblin",
+      "traits": "Brute: Deals +1 die on melee attacks (included). Surprise Attack: +2d6 damage on first hit against a creature that hasn't acted yet.",
+      "actions": "Morningstar: +4 to hit, 2d8+2 piercing. Javelin: +4 to hit, range 30/120 ft., 2d6+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-orc",
+    "name": "Orc",
+    "size": "medium",
+    "enemyType": "humanoid (orc)",
+    "cr": "1/2",
+    "description": "Orcs are savage raiders and pillagers with stooped postures, low foreheads, and piggish faces with prominent lower canines.",
+    "tags": ["humanoid", "warrior"],
+    "statBlock": {
+      "str": 16, "dex": 12, "con": 16, "int": 7, "wis": 11, "cha": 10,
+      "ac": 13, "hp": "2d8+6 (15)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Intimidation +2",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Common, Orc",
+      "traits": "Aggressive: As a bonus action, can move up to its speed toward a hostile creature.",
+      "actions": "Greataxe: +5 to hit, 1d12+3 slashing. Javelin: +5 to hit, range 30/120 ft., 1d6+3 piercing."
+    }
+  },
+  {
+    "id": "srd5e-kobold",
+    "name": "Kobold",
+    "size": "small",
+    "enemyType": "humanoid (kobold)",
+    "cr": "1/8",
+    "description": "Kobolds are craven reptilian humanoids that worship evil dragons as demigods.",
+    "tags": ["humanoid", "reptilian", "small"],
+    "statBlock": {
+      "str": 7, "dex": 15, "con": 9, "int": 8, "wis": 7, "cha": 8,
+      "ac": 12, "hp": "2d6-2 (5)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 8",
+      "languages": "Common, Draconic",
+      "traits": "Pack Tactics: Advantage on attacks when an ally is adjacent to target. Sunlight Sensitivity: Disadvantage on attacks and Perception in sunlight.",
+      "actions": "Dagger: +4 to hit, 1d4+2 piercing. Sling: +4 to hit, range 30/120 ft., 1d4+2 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-gnoll",
+    "name": "Gnoll",
+    "size": "medium",
+    "enemyType": "humanoid (gnoll)",
+    "cr": "1/2",
+    "description": "Gnolls are hyena-headed humanoids that rampage across the land, driven by insatiable hunger.",
+    "tags": ["humanoid", "fiend-touched"],
+    "statBlock": {
+      "str": 14, "dex": 12, "con": 11, "int": 6, "wis": 10, "cha": 7,
+      "ac": 15, "hp": "5d8 (22)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Gnoll",
+      "traits": "Rampage: When the gnoll reduces a creature to 0 HP, it can move up to half its speed and make a bite attack.",
+      "actions": "Bite: +4 to hit, 1d4+2 piercing. Spear: +4 to hit, reach 5 ft. or range 20/60 ft., 1d6+2 or 1d8+2 piercing. Longbow: +3 to hit, range 150/600 ft., 1d8+1 piercing."
+    }
+  },
+  {
+    "id": "srd5e-troll",
+    "name": "Troll",
+    "size": "large",
+    "enemyType": "giant",
+    "cr": "5",
+    "description": "Trolls are ravenous, hunched giants whose voracious appetite is matched only by their extraordinary ability to regenerate.",
+    "tags": ["giant", "regeneration"],
+    "statBlock": {
+      "str": 18, "dex": 13, "con": 20, "int": 7, "wis": 9, "cha": 7,
+      "ac": 15, "hp": "8d10+40 (84)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Perception +2",
+      "senses": "Darkvision 60 ft., passive Perception 12",
+      "languages": "Giant",
+      "traits": "Keen Smell: Advantage on Perception checks using smell. Regeneration: Regains 10 HP at the start of its turn. Fire and acid damage prevents regeneration this turn. The troll dies only if at 0 HP and can't regenerate. Multiattack: 1 bite, 2 claws.",
+      "actions": "Bite: +7 to hit, 1d6+4 piercing. Claw: +7 to hit, 2d6+4 slashing."
+    }
+  },
+  {
+    "id": "srd5e-ogre",
+    "name": "Ogre",
+    "size": "large",
+    "enemyType": "giant",
+    "cr": "2",
+    "description": "Ogres are hulking, simple-minded creatures that live to feed and breed.",
+    "tags": ["giant"],
+    "statBlock": {
+      "str": 19, "dex": 8, "con": 16, "int": 5, "wis": 7, "cha": 7,
+      "ac": 11, "hp": "7d10+21 (59)", "speed": "40 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 8",
+      "languages": "Common, Giant",
+      "traits": "",
+      "actions": "Greatclub: +6 to hit, 2d8+4 bludgeoning. Javelin: +6 to hit, range 30/120 ft., 2d6+4 piercing."
+    }
+  },
+  {
+    "id": "srd5e-hill-giant",
+    "name": "Hill Giant",
+    "size": "huge",
+    "enemyType": "giant",
+    "cr": "5",
+    "description": "Hill giants are selfish, dim-witted giants that raid farmsteads and villages for food.",
+    "tags": ["giant", "huge"],
+    "statBlock": {
+      "str": 21, "dex": 8, "con": 19, "int": 5, "wis": 9, "cha": 6,
+      "ac": 13, "hp": "10d12+40 (105)", "speed": "40 ft.",
+      "saves": "",
+      "skills": "Perception +2",
+      "senses": "passive Perception 12",
+      "languages": "Giant",
+      "traits": "Multiattack: 2 greatclub attacks.",
+      "actions": "Greatclub: +8 to hit, 3d8+5 bludgeoning. Rock: +8 to hit, range 60/240 ft., 3d10+5 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-frost-giant",
+    "name": "Frost Giant",
+    "size": "huge",
+    "enemyType": "giant",
+    "cr": "8",
+    "description": "Frost giants are brutal, primitive raiders who live for conquest and plunder.",
+    "tags": ["giant", "huge", "cold"],
+    "statBlock": {
+      "str": 23, "dex": 9, "con": 21, "int": 9, "wis": 10, "cha": 12,
+      "ac": 15, "hp": "14d12+70 (161)", "speed": "40 ft.",
+      "saves": "Con +8, Wis +3, Cha +4",
+      "skills": "Athletics +9, Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "Giant",
+      "traits": "Cold Immunity. Multiattack: 2 greataxe attacks.",
+      "actions": "Greataxe: +9 to hit, 3d12+6 slashing. Rock: +9 to hit, range 60/240 ft., 4d10+6 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-fire-giant",
+    "name": "Fire Giant",
+    "size": "huge",
+    "enemyType": "giant",
+    "cr": "9",
+    "description": "Fire giants are militaristic tyrants that dwell among volcanoes and in deep, fiery dungeons.",
+    "tags": ["giant", "huge", "fire"],
+    "statBlock": {
+      "str": 25, "dex": 9, "con": 23, "int": 10, "wis": 14, "cha": 13,
+      "ac": 18, "hp": "18d12+108 (225)", "speed": "30 ft.",
+      "saves": "Dex +2, Con +9, Cha +4",
+      "skills": "Athletics +10, Perception +5",
+      "senses": "passive Perception 15",
+      "languages": "Giant",
+      "traits": "Fire Immunity. Multiattack: 2 greatsword attacks.",
+      "actions": "Greatsword: +10 to hit, 6d6+7 slashing. Rock: +10 to hit, range 60/240 ft., 4d10+7 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-skeleton",
+    "name": "Skeleton",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "1/4",
+    "description": "Skeletons arise when animated by dark magic. They most commonly serve as guards or soldiers in service to their creator.",
+    "tags": ["undead"],
+    "statBlock": {
+      "str": 10, "dex": 14, "con": 15, "int": 6, "wis": 8, "cha": 5,
+      "ac": 13, "hp": "2d8+4 (13)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 9",
+      "languages": "understands all languages it knew in life but can't speak",
+      "traits": "Vulnerabilities: bludgeoning. Immunities: poison, exhaustion; poisoned condition.",
+      "actions": "Shortsword: +4 to hit, 1d6+2 piercing. Shortbow: +4 to hit, range 80/320 ft., 1d6+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-zombie",
+    "name": "Zombie",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "1/4",
+    "description": "Zombies are animated corpses driven by the magic of necromancers. They follow simple orders and attack living creatures.",
+    "tags": ["undead"],
+    "statBlock": {
+      "str": 13, "dex": 6, "con": 16, "int": 3, "wis": 6, "cha": 5,
+      "ac": 8, "hp": "3d8+9 (22)", "speed": "20 ft.",
+      "saves": "Wis +0",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 8",
+      "languages": "understands the languages it knew in life but can't speak",
+      "traits": "Undead Fortitude: If damage reduces zombie to 0 HP, it makes a Con saving throw DC 5 + damage taken. On a success, the zombie drops to 1 HP. Immunities: poison; poisoned condition.",
+      "actions": "Slam: +3 to hit, reach 5 ft., 1d6+1 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-ghoul",
+    "name": "Ghoul",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "1",
+    "description": "Ghouls are undead that roam in packs, hungrily seeking the dead to devour.",
+    "tags": ["undead", "paralyzing"],
+    "statBlock": {
+      "str": 13, "dex": 15, "con": 10, "int": 7, "wis": 10, "cha": 6,
+      "ac": 12, "hp": "5d8 (22)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Common",
+      "traits": "Immunities: poison, charmed, exhaustion; poisoned, unconscious conditions.",
+      "actions": "Bite: +2 to hit, 2d6+2 piercing. Claws: +4 to hit, 2d4+2 slashing. On claw hit, target makes DC 10 Con save or is paralyzed until end of its next turn (elves immune)."
+    }
+  },
+  {
+    "id": "srd5e-wight",
+    "name": "Wight",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "3",
+    "description": "A wight is a spirit of evil given undead form by dark magic or the will of a demon lord.",
+    "tags": ["undead", "life-drain"],
+    "statBlock": {
+      "str": 15, "dex": 14, "con": 16, "int": 10, "wis": 13, "cha": 15,
+      "ac": 14, "hp": "9d8+27 (45)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Perception +3, Stealth +4",
+      "senses": "Darkvision 60 ft., passive Perception 13",
+      "languages": "the languages it knew in life",
+      "traits": "Sunlight Sensitivity. Resistances: necrotic; bludgeoning, piercing, slashing from nonmagical weapons that aren't silvered. Immunities: poison; exhaustion, poisoned. Multiattack: 1 life drain + 1 longsword, or 2 longbow.",
+      "actions": "Life Drain: +4 to hit, 1d6+2 necrotic. Max HP reduced by damage dealt. Longsword: +4 to hit, 1d8+2 or 1d10+2 slashing. Longbow: +4 to hit, range 150/600 ft., 1d8+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-wraith",
+    "name": "Wraith",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "5",
+    "description": "A wraith is the undead spirit of a hateful or evil humanoid who died violently.",
+    "tags": ["undead", "incorporeal"],
+    "statBlock": {
+      "str": 6, "dex": 16, "con": 16, "int": 12, "wis": 14, "cha": 15,
+      "ac": 13, "hp": "9d8+27 (67)", "speed": "0 ft., fly 60 ft. (hover)",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 12",
+      "languages": "the languages it knew in life",
+      "traits": "Incorporeal Movement: Can move through objects; takes 1d10 force if ends in object. Sunlight Sensitivity. Resistances: acid, cold, fire, lightning, thunder; nonmagical B/P/S. Immunities: cold, necrotic, poison; charmed, exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained.",
+      "actions": "Life Drain: +6 to hit, 4d8+3 necrotic, max HP reduced. Create Specter: Humanoid killed can become a specter under wraith's control."
+    }
+  },
+  {
+    "id": "srd5e-vampire-spawn",
+    "name": "Vampire Spawn",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "5",
+    "description": "Vampire spawn are undead creatures that subsist on the blood of the living. They serve their vampire masters with fearful devotion.",
+    "tags": ["undead", "vampire"],
+    "statBlock": {
+      "str": 16, "dex": 16, "con": 16, "int": 11, "wis": 10, "cha": 12,
+      "ac": 15, "hp": "11d8+33 (82)", "speed": "30 ft.",
+      "saves": "Dex +6, Wis +3",
+      "skills": "Perception +3, Stealth +6",
+      "senses": "Darkvision 60 ft., passive Perception 13",
+      "languages": "the languages it knew in life",
+      "traits": "Regeneration: Regains 10 HP/turn; not in sunlight or running water. Spider Climb. Vampire Weaknesses: sunlight, holy water, stake through heart, etc. Resistances: necrotic, nonmagical B/P/S. Multiattack: 2 attacks; only 1 can be a bite.",
+      "actions": "Claws: +6 to hit, 2d4+3 slashing, grapple on hit. Bite: +6 to hit, grappled/incapacitated target only, 1d6+3 piercing + 2d6 necrotic; max HP reduced; regains HP equal to necrotic damage."
+    }
+  },
+  {
+    "id": "srd5e-vampire",
+    "name": "Vampire",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "13",
+    "description": "Vampires are undead beings of tremendous evil power who feast on the blood of the living.",
+    "tags": ["undead", "shapechanger", "legendary"],
+    "statBlock": {
+      "str": 18, "dex": 18, "con": 18, "int": 17, "wis": 15, "cha": 18,
+      "ac": 16, "hp": "17d8+68 (144)", "speed": "30 ft.",
+      "saves": "Dex +9, Wis +7, Cha +9",
+      "skills": "Perception +7, Stealth +9",
+      "senses": "Darkvision 120 ft., passive Perception 17",
+      "languages": "the languages it knew in life",
+      "traits": "Shapechanger: Bat or mist form. Legendary Actions (3/round). Regeneration: 20 HP/turn unless sunlight/running water. Spider Climb. Resistances/Immunities. Multiattack: 2 attacks.",
+      "actions": "Unarmed: +9 to hit, 1d8+4 bludgeoning + grapple. Bite: +9 to hit, grappled target, 1d6+4 + 3d6 necrotic; target's max HP reduced. Charm: DC 17 Wis save or charmed for 24 hours. Children of the Night: Summons swarms of bats/rats or wolves."
+    }
+  },
+  {
+    "id": "srd5e-lich",
+    "name": "Lich",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "21",
+    "description": "A lich is a spellcaster who has willingly undergone a terrible ritual to become an undead creature of immense power.",
+    "tags": ["undead", "spellcaster", "legendary", "boss"],
+    "statBlock": {
+      "str": 11, "dex": 16, "con": 16, "int": 20, "wis": 14, "cha": 16,
+      "ac": 17, "hp": "18d8+54 (135)", "speed": "30 ft.",
+      "saves": "Con +10, Int +12, Wis +9",
+      "skills": "Arcana +18, History +12, Insight +9, Perception +9",
+      "senses": "Truesight 120 ft., passive Perception 19",
+      "languages": "Common plus up to five other languages",
+      "traits": "Legendary Resistance (3/Day). Rejuvenation: Returns after 1d10 days if phylactery intact. Spellcasting (Int, save DC 20, +12 to hit): Cantrips: mage hand, prestidigitation, ray of frost; plus many high-level spells through 9th level. Turn Resistance: Advantage on saves against turn undead. Immunities: cold, electricity, necrotic, poison; charmed, exhaustion, frightened, paralyzed, poisoned. Legendary Actions (3/round).",
+      "actions": "Paralyzing Touch: +12 to hit, 3d6 cold, DC 18 Con or paralyzed for 1 minute."
+    }
+  },
+  {
+    "id": "srd5e-ghost",
+    "name": "Ghost",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "4",
+    "description": "Ghosts are undead spirits of the dead that linger in the world due to unfinished business.",
+    "tags": ["undead", "incorporeal"],
+    "statBlock": {
+      "str": 7, "dex": 13, "con": 10, "int": 10, "wis": 12, "cha": 17,
+      "ac": 11, "hp": "10d8 (45)", "speed": "0 ft., fly 40 ft. (hover)",
+      "saves": "",
+      "skills": "Perception +3, Stealth +3",
+      "senses": "Darkvision 60 ft., passive Perception 13",
+      "languages": "any languages it knew in life",
+      "traits": "Ethereal Sight: Can see 60 ft. into the Ethereal Plane. Incorporeal Movement. Resistances: acid, fire, lightning, thunder; nonmagical B/P/S. Immunities: cold, necrotic, poison; charmed, exhaustion, frightened, grappled, paralyzed, petrified, poisoned, prone, restrained.",
+      "actions": "Withering Touch: +5 to hit, 4d6+3 necrotic. Etherealness: Enter or exit Ethereal Plane. Horrifying Visage: Creatures within 60 ft., DC 13 Wis or frightened for 1 minute. Possession (recharge 6): Humanoid within 5 ft. makes DC 13 Cha save or possessed."
+    }
+  },
+  {
+    "id": "srd5e-shadow",
+    "name": "Shadow",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "1/2",
+    "description": "A shadow is undead darkness that drains strength from the living. A humanoid slain by it rises as a shadow.",
+    "tags": ["undead", "incorporeal", "strength-drain"],
+    "statBlock": {
+      "str": 6, "dex": 14, "con": 13, "int": 6, "wis": 10, "cha": 8,
+      "ac": 12, "hp": "3d8+3 (16)", "speed": "40 ft.",
+      "saves": "",
+      "skills": "Stealth +4",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "",
+      "traits": "Amorphous. Shadow Stealth: Hide as bonus action in dim light or darkness. Sunlight Weakness. Vulnerabilities: radiant. Immunities: cold, necrotic, poison; exhaustion, frightened, grappled, paralyzed, petrified, poisoned, prone, restrained. Resistances: acid, fire, lightning, thunder; nonmagical B/P/S.",
+      "actions": "Strength Drain: +4 to hit, 2d6+2 necrotic; target's STR reduced by 1d4. If STR reaches 0, target dies and rises as a shadow."
+    }
+  },
+  {
+    "id": "srd5e-mummy",
+    "name": "Mummy",
+    "size": "medium",
+    "enemyType": "undead",
+    "cr": "3",
+    "description": "Mummies are ancient corpses preserved through embalming and dark magic, awakened to wreak vengeance on tomb robbers.",
+    "tags": ["undead", "curse"],
+    "statBlock": {
+      "str": 16, "dex": 8, "con": 15, "int": 6, "wis": 10, "cha": 12,
+      "ac": 11, "hp": "9d8+18 (58)", "speed": "20 ft.",
+      "saves": "Wis +2",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "the languages it knew in life",
+      "traits": "Vulnerabilities: fire. Resistances: nonmagical B/P/S. Immunities: necrotic, poison; charmed, exhaustion, frightened, paralyzed, poisoned. Multiattack: 1 rotting fist + 1 dreadful glare.",
+      "actions": "Rotting Fist: +5 to hit, 2d6+3 bludgeoning + 3d6 necrotic; cursed on hit, disadvantage on saves. Dreadful Glare: DC 11 Wis save or frightened until end of next turn."
+    }
+  },
+  {
+    "id": "srd5e-imp",
+    "name": "Imp",
+    "size": "tiny",
+    "enemyType": "fiend (devil)",
+    "cr": "1",
+    "description": "Imps are the least of all devils, sent to the mortal realm to corrupt mortals and serve as scouts or spies.",
+    "tags": ["fiend", "devil", "shapechanger", "tiny"],
+    "statBlock": {
+      "str": 6, "dex": 17, "con": 13, "int": 11, "wis": 12, "cha": 14,
+      "ac": 13, "hp": "3d4+3 (10)", "speed": "20 ft., fly 40 ft.",
+      "saves": "",
+      "skills": "Deception +4, Insight +3, Persuasion +4, Stealth +5",
+      "senses": "Darkvision 120 ft., passive Perception 11",
+      "languages": "Infernal, Common",
+      "traits": "Shapechanger: Rat, raven, or spider form. Devil's Sight: Magical darkness. Magic Resistance. Resistances: cold, nonmagical B/P/S from non-silvered. Immunities: fire, poison; poisoned.",
+      "actions": "Sting (true form): +5 to hit, 1d4+3 piercing + 3d4 poison. Invisibility."
+    }
+  },
+  {
+    "id": "srd5e-incubus",
+    "name": "Incubus / Succubus",
+    "size": "medium",
+    "enemyType": "fiend (shapechanger)",
+    "cr": "4",
+    "description": "Succubi and incubi are fiends that feed on the desires of mortals. They assume humanoid guise to seduce and drain their victims.",
+    "tags": ["fiend", "shapechanger"],
+    "statBlock": {
+      "str": 8, "dex": 17, "con": 13, "int": 15, "wis": 12, "cha": 20,
+      "ac": 13, "hp": "9d8+9 (66)", "speed": "30 ft., fly 60 ft.",
+      "saves": "",
+      "skills": "Deception +9, Insight +5, Perception +5, Persuasion +9, Stealth +7",
+      "senses": "Darkvision 60 ft., passive Perception 15",
+      "languages": "Abyssal, Common, Infernal, telepathy 60 ft.",
+      "traits": "Telepathic Bond. Shapechanger. Magic Resistance. Resistances: cold, fire, lightning, poison; nonmagical B/P/S. Immunities: poison; poisoned.",
+      "actions": "Claw (fiend form): +5 to hit, 1d6+3 slashing + 2d6 psychic. Charm: DC 15 Wis save or charmed for 1 day, takes 5d10 psychic on a failed save. Draining Kiss: sleeping/willing target, 5d12 psychic, max HP reduced. Etherealness."
+    }
+  },
+  {
+    "id": "srd5e-pit-fiend",
+    "name": "Pit Fiend",
+    "size": "large",
+    "enemyType": "fiend (devil)",
+    "cr": "20",
+    "description": "Pit fiends are the most powerful devils that serve as generals and commanders in the Nine Hells.",
+    "tags": ["fiend", "devil", "legendary", "boss"],
+    "statBlock": {
+      "str": 26, "dex": 14, "con": 24, "int": 22, "wis": 18, "cha": 24,
+      "ac": 19, "hp": "24d10+168 (300)", "speed": "30 ft., fly 60 ft.",
+      "saves": "Dex +8, Con +13, Int +12, Wis +10",
+      "skills": "",
+      "senses": "Truesight 120 ft., passive Perception 14",
+      "languages": "Infernal, telepathy 120 ft.",
+      "traits": "Aura of Fear: 20-ft. radius, DC 21 Wis or frightened on start of turn. Legendary Resistance (3/day). Magic Resistance. Spellcasting (Cha, save DC 21): detect magic, fireball, hold monster, wall of fire. Immunities: fire, poison; poisoned. Resistances: cold, nonmagical B/P/S. Multiattack: 4 attacks.",
+      "actions": "Bite: +14 to hit, 4d6+8 piercing + 3d6 poison + DC 21 Con or poisoned for 1 minute. Claw: +14 to hit, 2d8+8 slashing. Mace: +14 to hit, 2d6+8 + 2d6 fire. Tail: +14 to hit, 2d8+8 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-balor",
+    "name": "Balor",
+    "size": "huge",
+    "enemyType": "fiend (demon)",
+    "cr": "19",
+    "description": "Balors are terrifying demon lords who rule layers of the Abyss with flame and whip.",
+    "tags": ["fiend", "demon", "legendary", "boss", "huge"],
+    "statBlock": {
+      "str": 26, "dex": 15, "con": 22, "int": 20, "wis": 16, "cha": 22,
+      "ac": 19, "hp": "21d12+126 (262)", "speed": "40 ft., fly 80 ft.",
+      "saves": "Str +14, Con +12, Wis +9, Cha +12",
+      "skills": "",
+      "senses": "Truesight 120 ft., passive Perception 13",
+      "languages": "Abyssal, telepathy 120 ft.",
+      "traits": "Death Throes: Explodes on death, 20-ft. radius, DC 20 Dex or 70 fire. Legendary Resistance (3/day). Magic Resistance. Fire Aura: 5 ft., 3d6 fire. Immunities: fire, poison; poisoned. Resistances: cold, lightning; nonmagical B/P/S. Multiattack: 2 attacks.",
+      "actions": "Longsword: +14 to hit, 3d8+8 slashing + 4d6 lightning. Whip: +14 to hit, 2d6+8 slashing; on hit target makes DC 20 Str save or pulled adjacent and restrained."
+    }
+  },
+  {
+    "id": "srd5e-vrock",
+    "name": "Vrock",
+    "size": "large",
+    "enemyType": "fiend (demon)",
+    "cr": "6",
+    "description": "Vrocks are vulture-headed demons that screech horribly and shower foes with spores from their filthy feathers.",
+    "tags": ["fiend", "demon"],
+    "statBlock": {
+      "str": 17, "dex": 15, "con": 18, "int": 8, "wis": 13, "cha": 8,
+      "ac": 15, "hp": "11d10+44 (104)", "speed": "40 ft., fly 60 ft.",
+      "saves": "Dex +5, Wis +4, Cha +2",
+      "skills": "Perception +4",
+      "senses": "Darkvision 120 ft., passive Perception 14",
+      "languages": "Abyssal, telepathy 120 ft.",
+      "traits": "Magic Resistance. Resistances: cold, fire, lightning; nonmagical B/P/S. Immunities: poison; poisoned. Multiattack: 1 beak + 2 talons.",
+      "actions": "Beak: +6 to hit, 2d6+3 piercing. Talon: +6 to hit, 2d10+3 slashing. Spores (recharge 6): 15-ft. radius, DC 14 Con or 5d8 poison; spores burst 1d4 rounds later for additional damage. Stunning Screech (1/day): creatures within 20 ft., DC 14 Con or stunned."
+    }
+  },
+  {
+    "id": "srd5e-beholder",
+    "name": "Beholder",
+    "size": "large",
+    "enemyType": "aberration",
+    "cr": "13",
+    "description": "A beholder is a floating mass of madness with a central eye and ten eyestalks, each capable of terrible magical attacks.",
+    "tags": ["aberration", "legendary", "boss"],
+    "statBlock": {
+      "str": 10, "dex": 14, "con": 18, "int": 17, "wis": 15, "cha": 17,
+      "ac": 18, "hp": "19d10+76 (180)", "speed": "0 ft., fly 20 ft. (hover)",
+      "saves": "Int +8, Wis +7, Cha +8",
+      "skills": "Perception +12",
+      "senses": "Darkvision 120 ft., passive Perception 22",
+      "languages": "Deep Speech, Undercommon",
+      "traits": "Antimagic Cone: 150-ft. cone in front; magic suppressed inside. Legendary Resistance (3/day). Legendary Actions (3/round). Immunities: prone.",
+      "actions": "Bite: +5 to hit, 4d6 piercing. Eye Rays (3/round): 10 random rays, range 120 ft.; includes charm, paralyzing, fear, slowing, enervating, telekinetic, sleep, petrification, disintegration, death rays."
+    }
+  },
+  {
+    "id": "srd5e-mind-flayer",
+    "name": "Mind Flayer",
+    "size": "medium",
+    "enemyType": "aberration",
+    "cr": "7",
+    "description": "Mind flayers are evil aberrations that eat brains and use their psionic powers to dominate others.",
+    "tags": ["aberration", "psionic"],
+    "statBlock": {
+      "str": 11, "dex": 12, "con": 12, "int": 19, "wis": 17, "cha": 17,
+      "ac": 15, "hp": "13d8+13 (71)", "speed": "30 ft.",
+      "saves": "Int +7, Wis +6, Cha +6",
+      "skills": "Arcana +7, Deception +6, Insight +6, Perception +6, Persuasion +6, Stealth +4",
+      "senses": "Darkvision 120 ft., truesight 5 ft., passive Perception 16",
+      "languages": "Deep Speech, Undercommon, telepathy 120 ft.",
+      "traits": "Magic Resistance. Spellcasting (Int, save DC 15): detect thoughts, levitate; dominate monster (1/day), plane shift (1/day).",
+      "actions": "Tentacles: +7 to hit, 2d10+4 psychic; DC 15 Int or stunned. Extract Brain: stunned target, +7 to hit, 10d10 piercing, instant kill on 0 HP. Mind Blast (recharge 5–6): 60-ft. cone, DC 15 Int or 4d8+4 psychic and stunned."
+    }
+  },
+  {
+    "id": "srd5e-owlbear",
+    "name": "Owlbear",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "3",
+    "description": "An owlbear is a ferocious beast that resembles a bear with the head of an owl. These creatures are aggressive hunters.",
+    "tags": ["monstrosity", "beast"],
+    "statBlock": {
+      "str": 20, "dex": 12, "con": 17, "int": 3, "wis": 12, "cha": 7,
+      "ac": 13, "hp": "7d10+21 (59)", "speed": "40 ft.",
+      "saves": "",
+      "skills": "Perception +3",
+      "senses": "Darkvision 60 ft., passive Perception 13",
+      "languages": "",
+      "traits": "Keen Sight and Smell: Advantage on Perception relying on sight or smell. Multiattack: 1 beak + 1 claws.",
+      "actions": "Beak: +7 to hit, 1d10+5 piercing. Claws: +7 to hit, 2d8+5 slashing."
+    }
+  },
+  {
+    "id": "srd5e-basilisk",
+    "name": "Basilisk",
+    "size": "medium",
+    "enemyType": "monstrosity",
+    "cr": "3",
+    "description": "A basilisk is a fearsome reptile that turns living creatures to stone with its terrible gaze.",
+    "tags": ["monstrosity", "petrification"],
+    "statBlock": {
+      "str": 16, "dex": 8, "con": 15, "int": 2, "wis": 8, "cha": 7,
+      "ac": 15, "hp": "8d8+16 (52)", "speed": "20 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 9",
+      "languages": "",
+      "traits": "Petrifying Gaze: At start of turn, if creature within 30 ft. can see the basilisk's eyes, DC 12 Con save or restrained; another save next turn or petrified.",
+      "actions": "Bite: +5 to hit, 2d6+3 piercing + 2d6 poison."
+    }
+  },
+  {
+    "id": "srd5e-mimic",
+    "name": "Mimic",
+    "size": "medium",
+    "enemyType": "monstrosity (shapechanger)",
+    "cr": "2",
+    "description": "A mimic is a shapeshifting creature that can take the form of inanimate objects to lure in prey.",
+    "tags": ["monstrosity", "shapechanger", "trap"],
+    "statBlock": {
+      "str": 17, "dex": 12, "con": 15, "int": 5, "wis": 13, "cha": 8,
+      "ac": 12, "hp": "9d8+18 (58)", "speed": "15 ft.",
+      "saves": "",
+      "skills": "Stealth +5",
+      "senses": "Darkvision 60 ft., passive Perception 11",
+      "languages": "",
+      "traits": "Shapechanger: Assume object form. Adhesive (object form): Grapple on hit; DC 13 Str to escape. False Appearance: Indistinguishable from object when motionless. Grappler: Advantage on attack rolls against creatures it has grappled. Immunities: acid, prone.",
+      "actions": "Pseudopod: +5 to hit, 1d8+3 bludgeoning. Bite: +5 to hit, 1d8+3 piercing + 1d8 acid."
+    }
+  },
+  {
+    "id": "srd5e-minotaur",
+    "name": "Minotaur",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "3",
+    "description": "Minotaurs are savage creatures that roam labyrinths and wild places, goring and trampling everything in their path.",
+    "tags": ["monstrosity"],
+    "statBlock": {
+      "str": 18, "dex": 11, "con": 16, "int": 6, "wis": 16, "cha": 9,
+      "ac": 14, "hp": "9d10+27 (76)", "speed": "40 ft.",
+      "saves": "",
+      "skills": "Perception +7",
+      "senses": "Darkvision 60 ft., passive Perception 17",
+      "languages": "Abyssal",
+      "traits": "Charge: If moves 10 ft. toward target and hits with gore, +2d8 piercing damage and DC 14 Str save or knocked prone. Labyrinthine Recall: Perfect memory for any path traveled. Reckless: See Berserker trait. Multiattack: 1 gore + 1 greataxe.",
+      "actions": "Greataxe: +6 to hit, 2d12+4 slashing. Gore: +6 to hit, 2d8+4 piercing."
+    }
+  },
+  {
+    "id": "srd5e-harpy",
+    "name": "Harpy",
+    "size": "medium",
+    "enemyType": "monstrosity",
+    "cr": "1",
+    "description": "Harpies are winged creatures with female humanoid torsos who lure prey with enchanting song.",
+    "tags": ["monstrosity", "flying"],
+    "statBlock": {
+      "str": 12, "dex": 13, "con": 12, "int": 7, "wis": 10, "cha": 13,
+      "ac": 11, "hp": "7d8+7 (38)", "speed": "20 ft., fly 40 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "passive Perception 10",
+      "languages": "Common",
+      "traits": "Multiattack: 2 claws.",
+      "actions": "Claws: +3 to hit, 2d4+1 slashing. Luring Song: All creatures within 300 ft. that hear the song, DC 11 Wis save or charmed and incapacitated, movement toward harpy on their turn."
+    }
+  },
+  {
+    "id": "srd5e-gargoyle",
+    "name": "Gargoyle",
+    "size": "medium",
+    "enemyType": "elemental",
+    "cr": "2",
+    "description": "Gargoyles are magical statues that perch on buildings and guard treasures with stone-cold menace.",
+    "tags": ["elemental", "construct"],
+    "statBlock": {
+      "str": 15, "dex": 11, "con": 16, "int": 6, "wis": 11, "cha": 7,
+      "ac": 15, "hp": "7d8+21 (52)", "speed": "30 ft., fly 60 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Terran",
+      "traits": "False Appearance: Indistinguishable from a statue when motionless. Resistances: B/P/S from nonmagical non-adamantine. Immunities: poison, psychic; exhaustion, petrified, poisoned. Multiattack: 2 attacks.",
+      "actions": "Claws: +4 to hit, 2d6+2 slashing. Bite: +4 to hit, 1d6+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-worg",
+    "name": "Worg",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "1/2",
+    "description": "Worgs are evil, intelligent predators that delight in hunting and killing. They are often ridden by goblins.",
+    "tags": ["monstrosity", "mount"],
+    "statBlock": {
+      "str": 16, "dex": 13, "con": 13, "int": 7, "wis": 11, "cha": 8,
+      "ac": 13, "hp": "4d10+4 (26)", "speed": "50 ft.",
+      "saves": "",
+      "skills": "Perception +4",
+      "senses": "Darkvision 60 ft., passive Perception 14",
+      "languages": "Goblin, Worg",
+      "traits": "Keen Hearing and Smell: Advantage on Perception using hearing or smell.",
+      "actions": "Bite: +5 to hit, 2d6+3 piercing; DC 13 Str save or knocked prone."
+    }
+  },
+  {
+    "id": "srd5e-phase-spider",
+    "name": "Phase Spider",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "3",
+    "description": "A phase spider can shift between the Material Plane and the Ethereal Plane, making it a terrifying ambush predator.",
+    "tags": ["monstrosity", "spider"],
+    "statBlock": {
+      "str": 15, "dex": 15, "con": 12, "int": 6, "wis": 10, "cha": 6,
+      "ac": 13, "hp": "8d10+8 (52)", "speed": "30 ft., climb 30 ft.",
+      "saves": "",
+      "skills": "Stealth +6",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "",
+      "traits": "Ethereal Jaunt: Bonus action to shift between Material and Ethereal Plane. Spider Climb. Web Walker.",
+      "actions": "Bite: +4 to hit, 1d10+2 piercing + 4d8 poison (DC 11 Con for half)."
+    }
+  },
+  {
+    "id": "srd5e-rust-monster",
+    "name": "Rust Monster",
+    "size": "medium",
+    "enemyType": "monstrosity",
+    "cr": "1/2",
+    "description": "A rust monster can corrode and destroy metal equipment with its feathered antennae.",
+    "tags": ["monstrosity", "equipment-destroyer"],
+    "statBlock": {
+      "str": 13, "dex": 12, "con": 13, "int": 2, "wis": 13, "cha": 6,
+      "ac": 14, "hp": "5d8+5 (27)", "speed": "40 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 11",
+      "languages": "",
+      "traits": "Iron Scent: Can pinpoint metal within 30 ft. Rust Metal: Metal weapons used against it permanently lose 1 AC.",
+      "actions": "Bite: +3 to hit, 1d8+1 piercing. Antennae: Touch corrodes metal; if magical item, DC 11 Dex or object takes permanent -1 penalty."
+    }
+  },
+  {
+    "id": "srd5e-cockatrice",
+    "name": "Cockatrice",
+    "size": "small",
+    "enemyType": "monstrosity",
+    "cr": "1/2",
+    "description": "The cockatrice is a savage but senseless creature. Its bite can turn creatures to stone.",
+    "tags": ["monstrosity", "petrification", "small"],
+    "statBlock": {
+      "str": 6, "dex": 12, "con": 12, "int": 2, "wis": 13, "cha": 5,
+      "ac": 11, "hp": "6d6+6 (27)", "speed": "20 ft., fly 40 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 11",
+      "languages": "",
+      "traits": "",
+      "actions": "Bite: +3 to hit, 1d4+1 piercing + DC 11 Con save or restrained; fail again next turn or petrified for 24 hours."
+    }
+  },
+  {
+    "id": "srd5e-griffon",
+    "name": "Griffon",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "2",
+    "description": "Griffons are fierce avian predators with the body of a lion and the head, wings, and forelegs of an eagle.",
+    "tags": ["monstrosity", "flying", "mount"],
+    "statBlock": {
+      "str": 18, "dex": 15, "con": 16, "int": 2, "wis": 13, "cha": 8,
+      "ac": 12, "hp": "7d10+21 (59)", "speed": "30 ft., fly 80 ft.",
+      "saves": "",
+      "skills": "Perception +5",
+      "senses": "Darkvision 60 ft., passive Perception 15",
+      "languages": "",
+      "traits": "Keen Sight: Advantage on Perception using sight. Multiattack: 1 beak + 2 claws.",
+      "actions": "Beak: +6 to hit, 1d8+4 piercing. Claws: +6 to hit, 2d6+4 slashing."
+    }
+  },
+  {
+    "id": "srd5e-hell-hound",
+    "name": "Hell Hound",
+    "size": "medium",
+    "enemyType": "fiend",
+    "cr": "3",
+    "description": "Hell hounds are vicious pack hunters that roam the Nine Hells and serve powerful devils.",
+    "tags": ["fiend", "fire"],
+    "statBlock": {
+      "str": 17, "dex": 12, "con": 14, "int": 6, "wis": 13, "cha": 6,
+      "ac": 15, "hp": "7d8+14 (45)", "speed": "50 ft.",
+      "saves": "",
+      "skills": "Perception +5",
+      "senses": "Darkvision 60 ft., passive Perception 15",
+      "languages": "understands Infernal but can't speak",
+      "traits": "Keen Hearing and Smell. Pack Tactics. Immunities: fire.",
+      "actions": "Bite: +5 to hit, 1d8+3 piercing + 2d6 fire. Fire Breath (recharge 5–6): 15-ft. cone, DC 12 Dex or 6d6 fire (half on save)."
+    }
+  },
+  {
+    "id": "srd5e-gelatinous-cube",
+    "name": "Gelatinous Cube",
+    "size": "large",
+    "enemyType": "ooze",
+    "cr": "2",
+    "description": "The gelatinous cube slowly moves through dungeon corridors, digesting anything that touches it.",
+    "tags": ["ooze"],
+    "statBlock": {
+      "str": 14, "dex": 3, "con": 20, "int": 1, "wis": 6, "cha": 1,
+      "ac": 6, "hp": "8d10+40 (84)", "speed": "15 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Blindsight 60 ft., passive Perception 8",
+      "languages": "",
+      "traits": "Ooze Cube: Occupies full 10-ft. cube. Transparent: DC 15 Perception to notice. Immunities: cold; blinded, charmed, deafened, exhaustion, frightened, prone.",
+      "actions": "Pseudopod: +4 to hit, 3d6+2 acid. Engulf: DC 12 Dex or engulfed; restrained, blinded, 6d6 acid at start of each turn; DC 12 Str to escape."
+    }
+  },
+  {
+    "id": "srd5e-black-pudding",
+    "name": "Black Pudding",
+    "size": "large",
+    "enemyType": "ooze",
+    "cr": "4",
+    "description": "Black puddings are pools of mindless, oozing hungers that dissolve flesh and metal alike.",
+    "tags": ["ooze", "acid"],
+    "statBlock": {
+      "str": 16, "dex": 5, "con": 16, "int": 1, "wis": 6, "cha": 1,
+      "ac": 7, "hp": "10d10+30 (85)", "speed": "20 ft., climb 20 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Blindsight 60 ft., passive Perception 8",
+      "languages": "",
+      "traits": "Amorphous. Corrosive Form: Metal or organic weapons take -1 penalty on hit; nonmagical weapon destroyed on 5 penalties. Spider Climb. Immunities: acid, cold, lightning, slashing; blinded, charmed, deafened, exhaustion, frightened, prone. Split: When lightning/slashing does damage, splits into two identical puddings.",
+      "actions": "Pseudopod: +5 to hit, 1d8+3 bludgeoning + 4d8 acid; wood or metal armor/weapons are damaged."
+    }
+  },
+  {
+    "id": "srd5e-air-elemental",
+    "name": "Air Elemental",
+    "size": "large",
+    "enemyType": "elemental",
+    "cr": "5",
+    "description": "An air elemental is a vortex of swirling winds that hisses across the world.",
+    "tags": ["elemental", "air"],
+    "statBlock": {
+      "str": 14, "dex": 20, "con": 14, "int": 6, "wis": 10, "cha": 6,
+      "ac": 15, "hp": "12d10+24 (90)", "speed": "0 ft., fly 90 ft. (hover)",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Auran",
+      "traits": "Air Form: Can move through spaces 1 inch wide without squeezing. Resistances: lightning, thunder; nonmagical B/P/S. Immunities: poison; exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained, unconscious. Multiattack: 2 slams.",
+      "actions": "Slam: +8 to hit, 2d8+5 bludgeoning. Whirlwind (recharge 4–6): 10-ft. radius, 15-ft. cylinder; DC 13 Str or 3d8+5 bludgeoning and flung 20 ft. up."
+    }
+  },
+  {
+    "id": "srd5e-fire-elemental",
+    "name": "Fire Elemental",
+    "size": "large",
+    "enemyType": "elemental",
+    "cr": "5",
+    "description": "A fire elemental is a flame brought to terrible life.",
+    "tags": ["elemental", "fire"],
+    "statBlock": {
+      "str": 10, "dex": 17, "con": 16, "int": 6, "wis": 10, "cha": 7,
+      "ac": 13, "hp": "12d10+36 (102)", "speed": "50 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Ignan",
+      "traits": "Fire Form: Can move through 1-inch spaces. Illumination: Sheds bright light 30 ft., dim 30 ft. more. Resistances: B/P/S from nonmagical. Immunities: fire, poison; exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained, unconscious. Water Susceptibility: 1 cold per gallon of water. Multiattack: 2 touches.",
+      "actions": "Touch: +6 to hit, 2d6+3 fire. Ignites flammable objects. Ignite (1/turn): Flaming creature takes 1d10 fire."
+    }
+  },
+  {
+    "id": "srd5e-earth-elemental",
+    "name": "Earth Elemental",
+    "size": "large",
+    "enemyType": "elemental",
+    "cr": "5",
+    "description": "An earth elemental rises from the earth itself, a rumbling column of stone and earth.",
+    "tags": ["elemental", "earth"],
+    "statBlock": {
+      "str": 20, "dex": 8, "con": 20, "int": 5, "wis": 10, "cha": 5,
+      "ac": 17, "hp": "12d10+60 (126)", "speed": "30 ft., burrow 30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., tremorsense 60 ft., passive Perception 10",
+      "languages": "Terran",
+      "traits": "Earth Glide: Through nonmagical earth/stone without disturbing it. Siege Monster: Double damage to structures. Vulnerabilities: thunder. Resistances: nonmagical B/P/S. Immunities: poison; exhaustion, paralyzed, petrified, poisoned, unconscious. Multiattack: 2 slams.",
+      "actions": "Slam: +8 to hit, 2d8+5 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-water-elemental",
+    "name": "Water Elemental",
+    "size": "large",
+    "enemyType": "elemental",
+    "cr": "5",
+    "description": "A water elemental flows and surges over land and through water, drowning all in its path.",
+    "tags": ["elemental", "water"],
+    "statBlock": {
+      "str": 18, "dex": 14, "con": 18, "int": 5, "wis": 10, "cha": 8,
+      "ac": 14, "hp": "12d10+48 (114)", "speed": "30 ft., swim 90 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Aquan",
+      "traits": "Freeze: If takes cold damage, speed reduced by 20 ft. until end of next turn. Water Form: Through 1-inch spaces. Resistances: acid; nonmagical B/P/S. Immunities: poison; exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained, unconscious. Multiattack: 2 slams.",
+      "actions": "Slam: +7 to hit, 2d8+4 bludgeoning. Whelm (recharge 4–6): 10-ft. radius; DC 15 Str or grappled, restrained, and unable to breathe. Can hold up to 2 creatures."
+    }
+  },
+  {
+    "id": "srd5e-wolf",
+    "name": "Wolf",
+    "size": "medium",
+    "enemyType": "beast",
+    "cr": "1/4",
+    "description": "Wolves are pack predators that work together to bring down prey far larger than themselves.",
+    "tags": ["beast", "pack"],
+    "statBlock": {
+      "str": 12, "dex": 15, "con": 12, "int": 3, "wis": 12, "cha": 6,
+      "ac": 13, "hp": "2d8+2 (11)", "speed": "40 ft.",
+      "saves": "",
+      "skills": "Perception +3, Stealth +4",
+      "senses": "passive Perception 13",
+      "languages": "",
+      "traits": "Keen Hearing and Smell. Pack Tactics.",
+      "actions": "Bite: +4 to hit, 2d4+2 piercing; DC 11 Str save or knocked prone."
+    }
+  },
+  {
+    "id": "srd5e-dire-wolf",
+    "name": "Dire Wolf",
+    "size": "large",
+    "enemyType": "beast",
+    "cr": "1",
+    "description": "Dire wolves are enormous predatory wolves found in wild regions.",
+    "tags": ["beast", "pack"],
+    "statBlock": {
+      "str": 17, "dex": 15, "con": 15, "int": 3, "wis": 12, "cha": 7,
+      "ac": 14, "hp": "5d10+10 (37)", "speed": "50 ft.",
+      "saves": "",
+      "skills": "Perception +3, Stealth +4",
+      "senses": "passive Perception 13",
+      "languages": "",
+      "traits": "Keen Hearing and Smell. Pack Tactics.",
+      "actions": "Bite: +5 to hit, 2d6+3 piercing; DC 13 Str save or knocked prone."
+    }
+  },
+  {
+    "id": "srd5e-brown-bear",
+    "name": "Brown Bear",
+    "size": "large",
+    "enemyType": "beast",
+    "cr": "1",
+    "description": "Brown bears are powerful omnivores that defend their territory aggressively.",
+    "tags": ["beast"],
+    "statBlock": {
+      "str": 19, "dex": 10, "con": 16, "int": 2, "wis": 13, "cha": 7,
+      "ac": 11, "hp": "4d10+12 (34)", "speed": "40 ft., climb 30 ft.",
+      "saves": "",
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "",
+      "traits": "Keen Smell: Advantage on Perception using smell. Multiattack: 1 bite + 2 claws.",
+      "actions": "Bite: +6 to hit, 1d8+4 piercing. Claw: +6 to hit, 2d6+4 slashing."
+    }
+  },
+  {
+    "id": "srd5e-giant-spider",
+    "name": "Giant Spider",
+    "size": "large",
+    "enemyType": "beast",
+    "cr": "1",
+    "description": "Giant spiders lurk in webs strung between tree trunks or in dungeon crannies.",
+    "tags": ["beast", "spider", "poison"],
+    "statBlock": {
+      "str": 14, "dex": 16, "con": 12, "int": 2, "wis": 11, "cha": 4,
+      "ac": 14, "hp": "4d10+4 (26)", "speed": "30 ft., climb 30 ft.",
+      "saves": "",
+      "skills": "Stealth +7",
+      "senses": "Blindsight 10 ft., Darkvision 60 ft., passive Perception 10",
+      "languages": "",
+      "traits": "Spider Climb. Web Sense (tremorsense on webs). Web Walker.",
+      "actions": "Bite: +5 to hit, 1d8+3 piercing + 2d8 poison (DC 11 Con, half on save). Web (recharge 5–6): +5 to hit, range 30/60 ft.; restrained, DC 12 Str to escape."
+    }
+  },
+  {
+    "id": "srd5e-giant-rat",
+    "name": "Giant Rat",
+    "size": "small",
+    "enemyType": "beast",
+    "cr": "1/8",
+    "description": "Giant rats swarm through sewers and ruins, spreading disease and gnawing at everything.",
+    "tags": ["beast", "small", "horde"],
+    "statBlock": {
+      "str": 7, "dex": 15, "con": 11, "int": 2, "wis": 10, "cha": 4,
+      "ac": 12, "hp": "2d6 (7)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "",
+      "traits": "Keen Smell. Pack Tactics.",
+      "actions": "Bite: +4 to hit, 1d4+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-crocodile",
+    "name": "Crocodile",
+    "size": "large",
+    "enemyType": "beast",
+    "cr": "1/2",
+    "description": "Crocodiles are ferocious reptilian predators that lurk in rivers and swamps.",
+    "tags": ["beast"],
+    "statBlock": {
+      "str": 15, "dex": 10, "con": 13, "int": 2, "wis": 10, "cha": 5,
+      "ac": 12, "hp": "3d10+3 (19)", "speed": "20 ft., swim 30 ft.",
+      "saves": "",
+      "skills": "Stealth +2",
+      "senses": "passive Perception 10",
+      "languages": "",
+      "traits": "Hold Breath: 15 minutes.",
+      "actions": "Bite: +4 to hit, 1d10+2 piercing; DC 12 Str or restrained (escape DC 12)."
+    }
+  },
+  {
+    "id": "srd5e-giant-eagle",
+    "name": "Giant Eagle",
+    "size": "large",
+    "enemyType": "beast",
+    "cr": "1",
+    "description": "Giant eagles are noble predators that rule the open skies.",
+    "tags": ["beast", "flying", "noble"],
+    "statBlock": {
+      "str": 16, "dex": 17, "con": 13, "int": 8, "wis": 14, "cha": 10,
+      "ac": 13, "hp": "4d10+4 (26)", "speed": "10 ft., fly 80 ft.",
+      "saves": "",
+      "skills": "Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "Giant Eagle, understands Common/Auran but can't speak",
+      "traits": "Keen Sight. Multiattack: 2 attacks.",
+      "actions": "Beak: +5 to hit, 1d6+3 piercing. Talons: +5 to hit, 2d6+3 slashing."
+    }
+  },
+  {
+    "id": "srd5e-wyvern",
+    "name": "Wyvern",
+    "size": "large",
+    "enemyType": "dragon",
+    "cr": "6",
+    "description": "Wyverns are lesser cousins of true dragons. They have powerful wings, a barbed tail, and deadly poison.",
+    "tags": ["dragon", "flying", "poison"],
+    "statBlock": {
+      "str": 19, "dex": 10, "con": 16, "int": 5, "wis": 12, "cha": 6,
+      "ac": 13, "hp": "13d10+39 (110)", "speed": "20 ft., fly 80 ft.",
+      "saves": "",
+      "skills": "Perception +4",
+      "senses": "Darkvision 60 ft., passive Perception 14",
+      "languages": "",
+      "traits": "Multiattack: 1 bite + 1 stinger.",
+      "actions": "Bite: +7 to hit, 2d6+4 piercing. Claws: +7 to hit, 2d8+4 slashing. Stinger: +7 to hit, 2d6+4 piercing + 7d6 poison (DC 15 Con, half on save)."
+    }
+  },
+  {
+    "id": "srd5e-young-red-dragon",
+    "name": "Young Red Dragon",
+    "size": "large",
+    "enemyType": "dragon",
+    "cr": "10",
+    "description": "Red dragons are the most powerful and destructive of the chromatic dragons. Even young ones are devastating.",
+    "tags": ["dragon", "fire", "chromatic"],
+    "statBlock": {
+      "str": 23, "dex": 10, "con": 21, "int": 14, "wis": 11, "cha": 19,
+      "ac": 18, "hp": "17d10+85 (178)", "speed": "40 ft., climb 40 ft., fly 80 ft.",
+      "saves": "Dex +4, Con +9, Wis +4, Cha +8",
+      "skills": "Perception +8, Stealth +4",
+      "senses": "Blindsight 30 ft., Darkvision 120 ft., passive Perception 18",
+      "languages": "Common, Draconic",
+      "traits": "Immunities: fire. Multiattack: 1 bite + 2 claws.",
+      "actions": "Bite: +10 to hit, 2d10+6 piercing + 1d6 fire. Claw: +10 to hit, 2d6+6 slashing. Fire Breath (recharge 5–6): 30-ft. cone, DC 17 Dex or 16d6 fire (half on save)."
+    }
+  },
+  {
+    "id": "srd5e-adult-red-dragon",
+    "name": "Adult Red Dragon",
+    "size": "huge",
+    "enemyType": "dragon",
+    "cr": "17",
+    "description": "An adult red dragon is a catastrophic force of destruction. Its very breath can melt steel.",
+    "tags": ["dragon", "fire", "chromatic", "legendary", "boss"],
+    "statBlock": {
+      "str": 27, "dex": 10, "con": 25, "int": 16, "wis": 13, "cha": 21,
+      "ac": 19, "hp": "19d12+133 (256)", "speed": "40 ft., climb 40 ft., fly 80 ft.",
+      "saves": "Dex +6, Con +13, Wis +7, Cha +11",
+      "skills": "Perception +13, Stealth +6",
+      "senses": "Blindsight 60 ft., Darkvision 120 ft., passive Perception 23",
+      "languages": "Common, Draconic",
+      "traits": "Legendary Resistance (3/day). Immunities: fire. Multiattack: 1 bite + 2 claws or 3 Legendary Actions.",
+      "actions": "Bite: +14 to hit, 2d10+8 piercing + 4d6 fire. Claw: +14 to hit, 2d6+8 slashing. Tail: +14 to hit, 2d8+8 bludgeoning. Frightful Presence: 120-ft. radius, DC 19 Wis or frightened. Fire Breath (recharge 5–6): 60-ft. cone, DC 21 Dex or 26d6 fire."
+    }
+  },
+  {
+    "id": "srd5e-young-black-dragon",
+    "name": "Young Black Dragon",
+    "size": "large",
+    "enemyType": "dragon",
+    "cr": "7",
+    "description": "Cruel and capricious, black dragons delight in inflicting pain on their enemies with acid.",
+    "tags": ["dragon", "acid", "chromatic"],
+    "statBlock": {
+      "str": 19, "dex": 14, "con": 17, "int": 12, "wis": 11, "cha": 15,
+      "ac": 18, "hp": "15d10+45 (127)", "speed": "40 ft., fly 80 ft., swim 40 ft.",
+      "saves": "Dex +5, Con +6, Wis +3, Cha +5",
+      "skills": "Perception +6, Stealth +5",
+      "senses": "Blindsight 30 ft., Darkvision 120 ft., passive Perception 16",
+      "languages": "Common, Draconic",
+      "traits": "Amphibious. Immunities: acid. Multiattack: 1 bite + 2 claws.",
+      "actions": "Bite: +7 to hit, 2d10+4 piercing + 2d4 acid. Claw: +7 to hit, 2d6+4 slashing. Acid Breath (recharge 5–6): 30-ft. line, DC 14 Dex or 11d8 acid (half on save)."
+    }
+  },
+  {
+    "id": "srd5e-young-green-dragon",
+    "name": "Young Green Dragon",
+    "size": "large",
+    "enemyType": "dragon",
+    "cr": "8",
+    "description": "The most cunning and duplicitous of the chromatic dragons, green dragons delight in corrupting others.",
+    "tags": ["dragon", "poison", "chromatic"],
+    "statBlock": {
+      "str": 19, "dex": 12, "con": 17, "int": 16, "wis": 13, "cha": 15,
+      "ac": 18, "hp": "16d10+48 (136)", "speed": "40 ft., fly 80 ft., swim 40 ft.",
+      "saves": "Dex +4, Con +6, Wis +4, Cha +5",
+      "skills": "Deception +5, Perception +7, Stealth +4",
+      "senses": "Blindsight 30 ft., Darkvision 120 ft., passive Perception 17",
+      "languages": "Common, Draconic",
+      "traits": "Amphibious. Immunities: poison. Multiattack: 1 bite + 2 claws.",
+      "actions": "Bite: +7 to hit, 2d10+4 piercing + 2d6 poison. Claw: +7 to hit, 2d6+4 slashing. Poison Breath (recharge 5–6): 30-ft. cone, DC 14 Con or 12d6 poison (half on save)."
+    }
+  },
+  {
+    "id": "srd5e-hydra",
+    "name": "Hydra",
+    "size": "huge",
+    "enemyType": "monstrosity",
+    "cr": "8",
+    "description": "A hydra is a reptilian horror with multiple heads that regrow when severed.",
+    "tags": ["monstrosity", "regeneration", "huge"],
+    "statBlock": {
+      "str": 20, "dex": 12, "con": 20, "int": 2, "wis": 10, "cha": 7,
+      "ac": 15, "hp": "15d12+75 (172)", "speed": "30 ft., swim 30 ft.",
+      "saves": "",
+      "skills": "Perception +6",
+      "senses": "Darkvision 60 ft., passive Perception 16",
+      "languages": "",
+      "traits": "Hold Breath: 1 hour. Multiple Heads (5): Advantage on saves against knocked out/blinded/deafened. Reactive Heads: Extra reaction per head beyond one. Regeneration: Regrows 2 heads at start of turn if at 1+ HP; new heads stopped by fire/acid.",
+      "actions": "Multiattack: 1 bite per head (5 default). Bite: +8 to hit, 1d10+5 piercing."
+    }
+  },
+  {
+    "id": "srd5e-roper",
+    "name": "Roper",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "5",
+    "description": "A roper disguises itself as a rocky stalagmite while shooting sticky tendrils to reel in prey.",
+    "tags": ["monstrosity", "ambush"],
+    "statBlock": {
+      "str": 18, "dex": 8, "con": 20, "int": 7, "wis": 16, "cha": 6,
+      "ac": 20, "hp": "10d10+50 (104)", "speed": "10 ft., climb 10 ft.",
+      "saves": "",
+      "skills": "Perception +6, Stealth +5",
+      "senses": "Darkvision 60 ft., passive Perception 16",
+      "languages": "",
+      "traits": "False Appearance: Resembles stalagmite. Grasping Tendrils (6): +7 to hit, reach 50 ft., restrained (DC 15 Str to escape). Reeling: Pull restrained target up to 25 ft. toward roper.",
+      "actions": "Multiattack: 4 tendrils + 1 bite. Tendril: +7 to hit, 2d6+4, restrained. Bite: +7 to hit, 4d8+4 piercing."
+    }
+  },
+  {
+    "id": "srd5e-doppelganger",
+    "name": "Doppelganger",
+    "size": "medium",
+    "enemyType": "monstrosity (shapechanger)",
+    "cr": "3",
+    "description": "A doppelganger can assume the form of any humanoid it has studied, replacing the original.",
+    "tags": ["monstrosity", "shapechanger", "infiltrator"],
+    "statBlock": {
+      "str": 11, "dex": 18, "con": 14, "int": 11, "wis": 12, "cha": 14,
+      "ac": 14, "hp": "8d8+16 (52)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Deception +6, Insight +3",
+      "senses": "Darkvision 60 ft., passive Perception 11",
+      "languages": "Common",
+      "traits": "Shapechanger: Humanoid form only. Ambusher: Advantage on attacks in first combat round; +3d6 damage if surprised target. Surprise Attack: +3d6 on surprise hit. Immunities: charmed. Multiattack: 2 slams.",
+      "actions": "Slam: +6 to hit, 1d6+4 bludgeoning. Read Thoughts: DC 13 Wis or read surface thoughts within 60 ft."
+    }
+  },
+  {
+    "id": "srd5e-ettercap",
+    "name": "Ettercap",
+    "size": "medium",
+    "enemyType": "monstrosity",
+    "cr": "2",
+    "description": "Ettercaps are spider-like humanoids that dwell in forests, spinning webs to trap prey.",
+    "tags": ["monstrosity", "spider"],
+    "statBlock": {
+      "str": 14, "dex": 15, "con": 13, "int": 7, "wis": 12, "cha": 8,
+      "ac": 13, "hp": "8d8+8 (44)", "speed": "30 ft., climb 30 ft.",
+      "saves": "",
+      "skills": "Perception +3, Stealth +4, Survival +3",
+      "senses": "Darkvision 60 ft., passive Perception 13",
+      "languages": "",
+      "traits": "Spider Climb. Web Sense. Web Walker. Multiattack: 1 bite + 1 claws.",
+      "actions": "Bite: +4 to hit, 1d8+2 piercing + 1d8 poison (DC 11 Con or poisoned). Claws: +4 to hit, 2d4+2 slashing. Web (recharge 5–6): +4 to hit, range 30/60 ft.; restrained, DC 11 Str to escape."
+    }
+  },
+  {
+    "id": "srd5e-centaur",
+    "name": "Centaur",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "2",
+    "description": "Centaurs are proud, warlike creatures that roam wild lands, attacking those who threaten their territory.",
+    "tags": ["monstrosity"],
+    "statBlock": {
+      "str": 18, "dex": 14, "con": 14, "int": 9, "wis": 13, "cha": 11,
+      "ac": 12, "hp": "8d10+16 (60)", "speed": "50 ft.",
+      "saves": "",
+      "skills": "Athletics +6, Perception +3, Survival +3",
+      "senses": "passive Perception 13",
+      "languages": "Elvish, Sylvan",
+      "traits": "Charge: If moves 30 ft. toward target and hits with pike, +3d6 piercing. Multiattack: 2 attacks.",
+      "actions": "Pike: +6 to hit, 1d10+4 piercing. Hooves: +6 to hit, 2d6+4 bludgeoning. Longbow: +4 to hit, range 150/600 ft., 1d8+2 piercing."
+    }
+  },
+  {
+    "id": "srd5e-merrow",
+    "name": "Merrow",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "2",
+    "description": "Merrow are merfolk who were corrupted by a demon lord and now serve Demogorgon as brutal hunters.",
+    "tags": ["monstrosity", "aquatic"],
+    "statBlock": {
+      "str": 18, "dex": 10, "con": 15, "int": 8, "wis": 10, "cha": 9,
+      "ac": 13, "hp": "7d10+14 (52)", "speed": "10 ft., swim 40 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Abyssal, Aquan",
+      "traits": "Amphibious. Multiattack: 1 bite + 2 claws.",
+      "actions": "Bite: +6 to hit, 1d8+4 piercing. Claws: +6 to hit, 2d4+4 slashing. Harpoon: +6 to hit, range 20/60 ft., 2d6+4 piercing; DC 14 Str or pulled 20 ft. toward merrow."
+    }
+  },
+  {
+    "id": "srd5e-lamia",
+    "name": "Lamia",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "4",
+    "description": "Lamias are monstrous shapeshifters with lion-like lower bodies and humanoid upper bodies who curse their victims.",
+    "tags": ["monstrosity", "curse"],
+    "statBlock": {
+      "str": 16, "dex": 13, "con": 15, "int": 14, "wis": 15, "cha": 16,
+      "ac": 13, "hp": "13d10+26 (97)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Deception +7, Insight +4, Stealth +3",
+      "senses": "Darkvision 60 ft., passive Perception 12",
+      "languages": "Abyssal, Common",
+      "traits": "Spellcasting (Cha, save DC 13): At will: disguise self (any humanoid); 3/day: charm person, mirror image; 1/day: geas, major image, suggestion. Multiattack: 2 attacks.",
+      "actions": "Claws: +5 to hit, 2d10+3 slashing. Dagger: +5 to hit, 1d4+3 piercing. Intoxicating Touch: touch, DC 13 Wis or under short-term madness for 1 hour; cannot benefit from short rests."
+    }
+  },
+  {
+    "id": "srd5e-naga-guardian",
+    "name": "Guardian Naga",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "10",
+    "description": "Guardian nagas are noble snakelike creatures that guard sacred sites with spells and fang.",
+    "tags": ["monstrosity", "spellcaster", "serpent"],
+    "statBlock": {
+      "str": 19, "dex": 18, "con": 16, "int": 16, "wis": 19, "cha": 18,
+      "ac": 18, "hp": "15d10+45 (127)", "speed": "40 ft.",
+      "saves": "Dex +8, Con +7, Int +7, Wis +8, Cha +8",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 14",
+      "languages": "Celestial, Common",
+      "traits": "Rejuvenation: Reforms 1d6 days after death. Spellcasting (Wis, save DC 16): at will: detect thoughts, sacred flame; 3/day: cure wounds, command, hold person; 1/day: flame strike, geas. Immunities: poison; charmed, poisoned. Multiattack: 1 bite + spells.",
+      "actions": "Bite: +8 to hit, 1d8+4 piercing + 4d10 poison (DC 15 Con, half on save). Spit Poison: +8 to hit, range 15/30 ft., 4d10 poison (DC 15 Con, half on save)."
+    }
+  },
+  {
+    "id": "srd5e-dryad",
+    "name": "Dryad",
+    "size": "medium",
+    "enemyType": "fey",
+    "cr": "1",
+    "description": "Dryads are tree spirits who guard their forest domains with magic and deception.",
+    "tags": ["fey", "nature"],
+    "statBlock": {
+      "str": 10, "dex": 12, "con": 11, "int": 14, "wis": 15, "cha": 18,
+      "ac": 11, "hp": "5d8 (22)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Nature +4, Perception +4, Stealth +5",
+      "senses": "Darkvision 60 ft., passive Perception 14",
+      "languages": "Elvish, Sylvan",
+      "traits": "Innate Spellcasting (Cha, save DC 14): at will: druidcraft, guidance; 3/day: entangle, goodberry, speak with animals, speak with plants; 1/day: barkskin, pass without trace, shillelagh. Magic Resistance. Speak with Beasts and Plants.",
+      "actions": "Club: +2 to hit (or +6 with shillelagh), 1d4 bludgeoning. Fey Charm: DC 14 Wis or charmed for 24 hours; one person and one beast at a time."
+    }
+  },
+  {
+    "id": "srd5e-satyr",
+    "name": "Satyr",
+    "size": "medium",
+    "enemyType": "fey",
+    "cr": "1/2",
+    "description": "Satyrs are merry wanderers of the Feywild. Their enchanting music lures travelers to revelry.",
+    "tags": ["fey"],
+    "statBlock": {
+      "str": 12, "dex": 16, "con": 11, "int": 12, "wis": 10, "cha": 14,
+      "ac": 14, "hp": "7d8 (31)", "speed": "40 ft.",
+      "saves": "",
+      "skills": "Perception +2, Performance +6, Stealth +5",
+      "senses": "passive Perception 12",
+      "languages": "Common, Elvish, Sylvan",
+      "traits": "Magic Resistance.",
+      "actions": "Ram: +3 to hit, 2d4+1 bludgeoning. Shortsword: +5 to hit, 1d6+3 piercing. Shortbow: +5 to hit, range 80/320 ft., 1d6+3 piercing."
+    }
+  },
+  {
+    "id": "srd5e-stone-golem",
+    "name": "Stone Golem",
+    "size": "large",
+    "enemyType": "construct",
+    "cr": "10",
+    "description": "A stone golem is a massive humanoid carving animated by a spirit from the Elemental Plane of Earth.",
+    "tags": ["construct"],
+    "statBlock": {
+      "str": 22, "dex": 9, "con": 20, "int": 3, "wis": 11, "cha": 1,
+      "ac": 17, "hp": "17d10+85 (178)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 120 ft., passive Perception 10",
+      "languages": "understands the languages of its creator but can't speak",
+      "traits": "Immutable Form. Magic Resistance. Magic Weapons. Resistances: nonmagical, non-adamantine B/P/S. Immunities: poison, psychic; charmed, exhaustion, frightened, paralyzed, petrified, poisoned. Multiattack: 2 slams.",
+      "actions": "Slam: +10 to hit, 3d8+6 bludgeoning. Slow (recharge 5–6): 10-ft. radius, DC 17 Wis or slowed for 1 minute (1 action/reaction per turn; attack rolls, Dex saves at disadvantage; -2 to AC)."
+    }
+  },
+  {
+    "id": "srd5e-iron-golem",
+    "name": "Iron Golem",
+    "size": "large",
+    "enemyType": "construct",
+    "cr": "16",
+    "description": "The mightiest of golems, an iron golem is an almost indestructible automaton.",
+    "tags": ["construct", "boss"],
+    "statBlock": {
+      "str": 24, "dex": 9, "con": 20, "int": 3, "wis": 11, "cha": 1,
+      "ac": 20, "hp": "18d10+90 (189)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 120 ft., passive Perception 10",
+      "languages": "understands creator's languages but can't speak",
+      "traits": "Fire Absorption: Heals from fire damage. Magic Resistance. Magic Weapons. Immunities: fire, poison, psychic; charmed, exhaustion, frightened, paralyzed, petrified, poisoned. Multiattack: 2 attacks.",
+      "actions": "Slam: +13 to hit, 3d8+7 bludgeoning. Sword: +13 to hit, 3d10+7 slashing. Poison Breath (recharge 6): 15-ft. cone, DC 19 Con or 10d8 poison, poisoned for 1 minute."
+    }
+  },
+  {
+    "id": "srd5e-animated-armor",
+    "name": "Animated Armor",
+    "size": "medium",
+    "enemyType": "construct",
+    "cr": "1",
+    "description": "Enchanted plate mail that stands up to fight without a wearer inside.",
+    "tags": ["construct"],
+    "statBlock": {
+      "str": 14, "dex": 11, "con": 13, "int": 1, "wis": 3, "cha": 1,
+      "ac": 18, "hp": "6d8+6 (33)", "speed": "25 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Blindsight 60 ft. (blind beyond), passive Perception 6",
+      "languages": "",
+      "traits": "Antimagic Susceptibility: Incapacitated in antimagic field. False Appearance: Indistinguishable from normal armor when motionless. Immunities: poison, psychic; blinded, charmed, deafened, exhaustion, frightened, paralyzed, petrified, poisoned. Multiattack: 2 slams.",
+      "actions": "Slam: +4 to hit, 1d6+2 bludgeoning."
+    }
+  },
+  {
+    "id": "srd5e-will-o-wisp",
+    "name": "Will-o'-Wisp",
+    "size": "tiny",
+    "enemyType": "undead",
+    "cr": "2",
+    "description": "Will-o'-wisps are malevolent spirits that haunt swamps and lure travelers to their doom.",
+    "tags": ["undead", "incorporeal", "tiny"],
+    "statBlock": {
+      "str": 1, "dex": 28, "con": 10, "int": 13, "wis": 14, "cha": 11,
+      "ac": 19, "hp": "9d4 (22)", "speed": "0 ft., fly 50 ft. (hover)",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 120 ft., passive Perception 12",
+      "languages": "the languages it knew in life",
+      "traits": "Consume Life: Feeds on dying creatures within 5 ft. Ephemeral: Can't wear/carry anything. Incorporeal Movement. Variable Illumination: Bright/dim light 5–20 ft. Resistances: acid, cold, fire, necrotic, thunder; nonmagical B/P/S. Immunities: lightning, poison; exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained, unconscious.",
+      "actions": "Shock: +4 to hit, 2d8 lightning. Invisibility."
+    }
+  },
+  {
+    "id": "srd5e-aboleth",
+    "name": "Aboleth",
+    "size": "large",
+    "enemyType": "aberration",
+    "cr": "10",
+    "description": "Aboleths are ancient, alien beings of tremendous psionic power who lurk in deep underwater lairs.",
+    "tags": ["aberration", "aquatic", "legendary", "psionic"],
+    "statBlock": {
+      "str": 21, "dex": 9, "con": 15, "int": 18, "wis": 15, "cha": 18,
+      "ac": 17, "hp": "18d10+36 (135)", "speed": "10 ft., swim 40 ft.",
+      "saves": "Con +6, Int +8, Wis +6",
+      "skills": "History +12, Perception +10",
+      "senses": "Darkvision 120 ft., passive Perception 20",
+      "languages": "Deep Speech, telepathy 120 ft.",
+      "traits": "Amphibious. Mucous Cloud: Breathing air within 5 ft. must succeed DC 14 Con or diseased. Probing Telepathy: Reads thoughts of telepathied creatures. Legendary Actions (3). Multiattack: 3 tentacles.",
+      "actions": "Tentacle: +9 to hit, 2d6+5 bludgeoning; diseased on hit (DC 14 Con or max HP halved). Tail: +9 to hit, 3d6+5 bludgeoning. Enslave (3/day): DC 14 Wis save or charmed indefinitely. Psychic Drain (Legendary): 3d6 psychic, regains HP."
+    }
+  },
+  {
+    "id": "srd5e-behir",
+    "name": "Behir",
+    "size": "huge",
+    "enemyType": "monstrosity",
+    "cr": "11",
+    "description": "A behir is a lightning-breathing serpentine predator with twelve legs that claims a large territory.",
+    "tags": ["monstrosity", "lightning", "huge"],
+    "statBlock": {
+      "str": 23, "dex": 16, "con": 18, "int": 7, "wis": 14, "cha": 12,
+      "ac": 17, "hp": "16d12+64 (168)", "speed": "50 ft., climb 40 ft.",
+      "saves": "",
+      "skills": "Perception +6, Stealth +7",
+      "senses": "Darkvision 90 ft., passive Perception 16",
+      "languages": "Draconic",
+      "traits": "Immunities: lightning. Multiattack: 1 bite + 1 constrict.",
+      "actions": "Bite: +10 to hit, 3d10+6 piercing. Constrict: +10 to hit, 2d10+6 bludgeoning; restrained, DC 16 Str to escape. Lightning Breath (recharge 5–6): 20-ft. line, DC 16 Dex or 12d10 lightning. Swallow: DC 16 Str or swallowed (blinded, restrained, 6d6 acid/turn; burst free at 30 damage)."
+    }
+  },
+  {
+    "id": "srd5e-bulette",
+    "name": "Bulette",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "5",
+    "description": "A bulette, or land shark, is an armored predator that burrows through earth to ambush prey.",
+    "tags": ["monstrosity", "tunneler"],
+    "statBlock": {
+      "str": 19, "dex": 11, "con": 21, "int": 2, "wis": 10, "cha": 5,
+      "ac": 17, "hp": "9d10+45 (94)", "speed": "40 ft., burrow 40 ft.",
+      "saves": "",
+      "skills": "Perception +6",
+      "senses": "Darkvision 60 ft., Tremorsense 60 ft., passive Perception 16",
+      "languages": "",
+      "traits": "Standing Leap: 30 ft. long, 15 ft. high.",
+      "actions": "Bite: +7 to hit, 4d12+4 piercing. Deadly Leap: Jumps and lands in adjacent space; DC 16 Str or Dex or 3d6+4 + knocked prone."
+    }
+  },
+  {
+    "id": "srd5e-chimera",
+    "name": "Chimera",
+    "size": "large",
+    "enemyType": "monstrosity",
+    "cr": "6",
+    "description": "The chimera is a monstrous amalgam of lion, goat, and dragon that breathes fire.",
+    "tags": ["monstrosity", "fire"],
+    "statBlock": {
+      "str": 19, "dex": 11, "con": 19, "int": 3, "wis": 14, "cha": 10,
+      "ac": 14, "hp": "12d10+48 (114)", "speed": "30 ft., fly 60 ft.",
+      "saves": "",
+      "skills": "Perception +8",
+      "senses": "Darkvision 60 ft., passive Perception 18",
+      "languages": "understands Draconic but can't speak",
+      "traits": "Multiattack: 1 bite + 1 horns + 1 claws.",
+      "actions": "Bite: +7 to hit, 2d6+4 piercing. Horns: +7 to hit, 2d10+4 bludgeoning. Claws: +7 to hit, 2d6+4 slashing. Fire Breath (recharge 5–6): 15-ft. cone, DC 15 Dex or 7d8 fire (half on save)."
+    }
+  },
+  {
+    "id": "srd5e-yuan-ti-pureblood",
+    "name": "Yuan-ti Pureblood",
+    "size": "medium",
+    "enemyType": "humanoid (yuan-ti)",
+    "cr": "1",
+    "description": "Yuan-ti purebloods are the least degenerate of the yuan-ti, appearing almost fully humanoid.",
+    "tags": ["humanoid", "yuan-ti", "poison"],
+    "statBlock": {
+      "str": 11, "dex": 16, "con": 13, "int": 14, "wis": 12, "cha": 14,
+      "ac": 11, "hp": "9d8+9 (49)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "Deception +6, Perception +3, Stealth +5",
+      "senses": "Darkvision 60 ft., passive Perception 13",
+      "languages": "Abyssal, Common, Draconic",
+      "traits": "Innate Spellcasting (Cha, save DC 12): at will: animal friendship (snakes only), poison spray; 3/day: charm person, suggestion. Magic Resistance. Immunity: poison; poisoned.",
+      "actions": "Multiattack: 1 bite + 1 scimitar. Bite: +5 to hit, 1d4+3 piercing + 2d4 poison (DC 11 Con, half on save). Scimitar: +5 to hit, 1d6+3 slashing. Shortbow: +5 to hit, range 80/320 ft., 1d6+3 + 2d4 poison."
+    }
+  },
+  {
+    "id": "srd5e-troglodyte",
+    "name": "Troglodyte",
+    "size": "medium",
+    "enemyType": "humanoid (troglodyte)",
+    "cr": "1/4",
+    "description": "Troglodytes are primitive humanoids that dwell in underground caverns. Their stench is nauseating.",
+    "tags": ["humanoid", "cave"],
+    "statBlock": {
+      "str": 14, "dex": 10, "con": 14, "int": 6, "wis": 10, "cha": 6,
+      "ac": 11, "hp": "2d8+4 (13)", "speed": "30 ft.",
+      "saves": "",
+      "skills": "",
+      "senses": "Darkvision 60 ft., passive Perception 10",
+      "languages": "Troglodyte",
+      "traits": "Chameleon Skin: Advantage on Stealth checks. Stench: Creatures that start turn within 5 ft., DC 12 Con or poisoned until start of next turn. Sunlight Sensitivity. Multiattack: 1 bite + 2 claws.",
+      "actions": "Bite: +4 to hit, 1d4+2 piercing. Claw: +4 to hit, 1d4+2 slashing."
+    }
+  },
+  {
+    "id": "srd5e-xorn",
+    "name": "Xorn",
+    "size": "medium",
+    "enemyType": "elemental",
+    "cr": "5",
+    "description": "A xorn is a strange elemental creature that tunnels through earth seeking gems and metals to consume.",
+    "tags": ["elemental"],
+    "statBlock": {
+      "str": 17, "dex": 10, "con": 22, "int": 11, "wis": 10, "cha": 11,
+      "ac": 19, "hp": "7d8+42 (73)", "speed": "20 ft., burrow 20 ft.",
+      "saves": "",
+      "skills": "Perception +6, Stealth +3",
+      "senses": "Darkvision 60 ft., Tremorsense 60 ft., passive Perception 16",
+      "languages": "Terran",
+      "traits": "Earth Glide. Stone Camouflage: Advantage on Stealth in rocky terrain. Treasure Sense: Can pinpoint precious metals/gems within 60 ft. Resistances: piercing and slashing from nonmagical B/P/S. Multiattack: 3 claws + 1 bite.",
+      "actions": "Claw: +6 to hit, 1d6+3 slashing. Bite: +6 to hit, 4d6+3 piercing."
+    }
+  }
+]

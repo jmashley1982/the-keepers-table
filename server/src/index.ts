@@ -19,9 +19,10 @@ import { jobsRouter } from './routes/jobs.routes.js'
 import { stylePresetsRouter } from './routes/style-presets.routes.js'
 import { mapsRouter } from './routes/maps.routes.js'
 import { playerCharactersRouter } from './routes/player-characters.routes.js'
+import { enemiesRouter } from './routes/enemies.routes.js'
 import { startWorker, stopWorker } from './lib/worker.js'
 import { seedBuiltinPresets } from './lib/seed-presets.js'
-import { seedSystemTemplates } from './lib/seed-templates.js'
+import { seedSystemTemplates, seedEnemies } from './lib/seed-templates.js'
 import './lib/auth.js'
 
 const app = express()
@@ -76,6 +77,7 @@ app.use('/api/jobs', jobsRouter)
 app.use('/api/style-presets', stylePresetsRouter)
 app.use('/api/campaigns/:campaignId/maps', mapsRouter)
 app.use('/api/campaigns', playerCharactersRouter)
+app.use('/api/campaigns', enemiesRouter)
 
 // Health (no session required)
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
@@ -104,6 +106,7 @@ const server = app.listen(PORT, async () => {
   await startWorker()
   await seedBuiltinPresets()
   await seedSystemTemplates()
+  await seedEnemies()
 })
 
 // Graceful shutdown

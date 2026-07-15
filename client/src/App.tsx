@@ -20,6 +20,8 @@ import MapsPage from './pages/campaign/MapsPage'
 import PlayersPage from './pages/campaign/PlayersPage'
 import CampaignSettingsPage from './pages/campaign/CampaignSettingsPage'
 import SettingsPage from './pages/SettingsPage'
+import EnemiesPage from './pages/campaign/EnemiesPage'
+import EnemyGeneratorPage from './pages/campaign/EnemyGeneratorPage'
 import AppShell from './components/layout/AppShell'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -70,6 +72,8 @@ export default function App() {
         <Route path="campaign/:campaignId/library/:tab/:entityId" element={<EntityDetailPage />} />
         <Route path="campaign/:campaignId/players" element={<PlayersPage />} />
         <Route path="campaign/:campaignId/maps" element={<MapsPage />} />
+        <Route path="campaign/:campaignId/enemies" element={<EnemiesPage />} />
+        <Route path="campaign/:campaignId/generate/enemy" element={<EnemyGeneratorPage />} />
         <Route path="campaign/:campaignId/generate/battle-map" element={<BattleMapGeneratorPage />} />
         <Route path="campaign/:campaignId/generate/world-map" element={<WorldMapGeneratorPage />} />
         <Route path="campaign/:campaignId/generate/:kind" element={<GeneratorPage />} />

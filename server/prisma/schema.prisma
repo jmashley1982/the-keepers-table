@@ -85,6 +85,30 @@ model SystemTemplate {
 
   owner     User?      @relation("UserTemplates", fields: [ownerUserId], references: [id], onDelete: SetNull)
   campaigns Campaign[]
+  enemies   Enemy[]
+}
+
+// ─── Enemies (Bestiary) ──────────────────────────────────────────────────────
+
+model Enemy {
+  id               String    @id @default(cuid())
+  systemTemplateId String
+  campaignId       String?
+  name             String
+  description      String    @default("")
+  enemyType        String    @default("")
+  size             String    @default("")
+  cr               String?
+  statBlock        Json      @default("{}")
+  source           String    @default("srd")
+  isBuiltin        Boolean   @default(false)
+  tags             String[]  @default([])
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  campaign       Campaign?      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  systemTemplate SystemTemplate @relation(fields: [systemTemplateId], references: [id])
 }
 
 // ─── Campaigns ──────────────────────────────────────────────────────────────
@@ -117,6 +141,7 @@ model Campaign {
   generationJobs   GenerationJob[]
   assets           Asset[]
   playerCharacters PlayerCharacter[]
+  enemies          Enemy[]
 }
 
 // ─── Parties ────────────────────────────────────────────────────────────────

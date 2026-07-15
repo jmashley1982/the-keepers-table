@@ -1,0 +1,782 @@
+[
+  {
+    "id": "srd-dw-goblin",
+    "name": "Goblin",
+    "enemyType": "humanoid",
+    "description": "Goblins are small, wiry creatures that lurk in dark places and ambush unwary travelers.",
+    "tags": ["horde", "small", "organized"],
+    "statBlock": {
+      "hp": 3,
+      "armor": 1,
+      "damage": "d6",
+      "instinct": "To take what they can get",
+      "moves": "Ambush from shadows\nCall for reinforcements\nFlee when outnumbered",
+      "tags": "Horde, Small, Stealthy"
+    }
+  },
+  {
+    "id": "srd-dw-goblin-war-rider",
+    "name": "Goblin War Rider",
+    "enemyType": "humanoid",
+    "description": "Goblins mounted on wolf-back, swooping across the plains to terrorize travelers.",
+    "tags": ["group", "small", "mounted"],
+    "statBlock": {
+      "hp": 6,
+      "armor": 1,
+      "damage": "d8",
+      "instinct": "To harry and harry until the prey falls",
+      "moves": "Ride past and attack\nLead foes into ambush\nKick their wolf into a frenzy",
+      "tags": "Group, Small, Organized, Cavalry"
+    }
+  },
+  {
+    "id": "srd-dw-goblin-shaman",
+    "name": "Goblin Shaman",
+    "enemyType": "humanoid",
+    "description": "The spiritual leader of a goblin tribe, calling on dark powers to bless raids and curse enemies.",
+    "tags": ["solitary", "small", "magical"],
+    "statBlock": {
+      "hp": 9,
+      "armor": 0,
+      "damage": "d6",
+      "instinct": "To bind spirits to goblin will",
+      "moves": "Cast a hex\nSummon spirit helpers\nDisappear into shadow",
+      "tags": "Solitary, Small, Magical, Devious"
+    }
+  },
+  {
+    "id": "srd-dw-orc",
+    "name": "Orc Warrior",
+    "enemyType": "humanoid",
+    "description": "Hard-muscled warriors who paint their bodies before battle and fight with brutal efficiency.",
+    "tags": ["horde", "organized", "warrior"],
+    "statBlock": {
+      "hp": 6,
+      "armor": 1,
+      "damage": "d8",
+      "instinct": "To die in glorious battle",
+      "moves": "Press the attack ferociously\nKnock aside armor\nFight to the last breath",
+      "tags": "Horde, Organized, Warrior"
+    }
+  },
+  {
+    "id": "srd-dw-orc-bloodwarrior",
+    "name": "Orc Bloodwarrior",
+    "enemyType": "humanoid",
+    "description": "The most fearsome of orc fighters, capable of entering a blood frenzy that makes them near unstoppable.",
+    "tags": ["solitary", "large", "warrior"],
+    "statBlock": {
+      "hp": 16,
+      "armor": 2,
+      "damage": "d10+2",
+      "instinct": "To destroy everything weaker than themselves",
+      "moves": "Enter a frenzy: ignore injuries, deal +damage\nKnock down and trample\nRoar to terrify weaker foes",
+      "tags": "Solitary, Large, Warrior, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-orc-shaman",
+    "name": "Orc Shaman",
+    "enemyType": "humanoid",
+    "description": "Calls upon the dark gods of the orc clans, drawing power from blood and sacrifice.",
+    "tags": ["solitary", "magical", "religious"],
+    "statBlock": {
+      "hp": 12,
+      "armor": 0,
+      "damage": "d8",
+      "instinct": "To strengthen the clan through dark ritual",
+      "moves": "Curse an enemy\nSummon ancestral spirits\nCall lightning from a clear sky",
+      "tags": "Solitary, Magical, Divine"
+    }
+  },
+  {
+    "id": "srd-dw-skeleton",
+    "name": "Skeleton",
+    "enemyType": "undead",
+    "description": "The animated remains of the dead, kept moving by necromantic energy and an empty will.",
+    "tags": ["horde", "undead"],
+    "statBlock": {
+      "hp": 4,
+      "armor": 1,
+      "damage": "d6",
+      "instinct": "To follow orders from beyond the grave",
+      "moves": "Continue fighting through mortal wounds\nAssemble into formation\nRattle bones to unsettle foes",
+      "tags": "Horde, Undead, Organized"
+    }
+  },
+  {
+    "id": "srd-dw-skeleton-archer",
+    "name": "Skeleton Archer",
+    "enemyType": "undead",
+    "description": "Animated bones that wield bows with mechanical precision, never tiring, never missing cover.",
+    "tags": ["horde", "undead", "ranged"],
+    "statBlock": {
+      "hp": 4,
+      "armor": 0,
+      "damage": "d6",
+      "instinct": "To rain arrows on the living",
+      "moves": "Volley from cover\nKite retreating foes\nCollapse cover with massed fire",
+      "tags": "Horde, Undead, Ranged"
+    }
+  },
+  {
+    "id": "srd-dw-zombie",
+    "name": "Zombie",
+    "enemyType": "undead",
+    "description": "Rotting corpses shuffling forward driven by necrotic hunger, silent and relentless.",
+    "tags": ["horde", "undead", "slow"],
+    "statBlock": {
+      "hp": 8,
+      "armor": 1,
+      "damage": "d6+2",
+      "instinct": "To consume the living",
+      "moves": "Grab and hold\nAbsorb damage and keep coming\nRise again after being felled",
+      "tags": "Horde, Undead, Slow, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-ghoul",
+    "name": "Ghoul",
+    "enemyType": "undead",
+    "description": "Once a person cursed for desecrating the dead; now a ravenous, paralysis-inflicting predator.",
+    "tags": ["group", "undead", "cunning"],
+    "statBlock": {
+      "hp": 12,
+      "armor": 1,
+      "damage": "d6",
+      "instinct": "To feast on the freshly dead",
+      "moves": "Paralyze with a touch\nDigging up graves to feed\nMove swiftly through tunnels and ruins",
+      "tags": "Group, Undead, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-wight",
+    "name": "Wight",
+    "enemyType": "undead",
+    "description": "A warrior bound by dark oaths beyond death, retaining some intellect and terrible purpose.",
+    "tags": ["solitary", "undead", "intelligent"],
+    "statBlock": {
+      "hp": 16,
+      "armor": 3,
+      "damage": "d10+1",
+      "instinct": "To serve the oath that bound them",
+      "moves": "Drain the life from a victim's eyes\nCommand lesser undead\nAnnounce an ancient grievance",
+      "tags": "Solitary, Undead, Intelligent, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-lich",
+    "name": "Lich",
+    "enemyType": "undead",
+    "description": "An ancient wizard who sacrificed their own soul to cheat death, now nearly immortal and immeasurably powerful.",
+    "tags": ["solitary", "undead", "magical", "divine"],
+    "statBlock": {
+      "hp": 30,
+      "armor": 3,
+      "damage": "d10+5",
+      "instinct": "To pursue eternal power and knowledge",
+      "moves": "Cast a devastating ritual spell\nDrain life force with a touch\nReveal that death cannot stop them",
+      "tags": "Solitary, Undead, Magical, Divine, Terrifying, Amorphous"
+    }
+  },
+  {
+    "id": "srd-dw-vampire",
+    "name": "Vampire",
+    "enemyType": "undead",
+    "description": "An ageless predator wrapped in aristocratic grace, the vampire feeds on the blood of the living.",
+    "tags": ["solitary", "undead", "magical", "stealthy"],
+    "statBlock": {
+      "hp": 24,
+      "armor": 2,
+      "damage": "d10+2",
+      "instinct": "To seduce, dominate, and feed",
+      "moves": "Charm a victim into compliance\nDrain blood and regain health\nTransform into mist or wolves\nCommand their thralls",
+      "tags": "Solitary, Undead, Stealthy, Magical, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-cave-rat",
+    "name": "Cave Rat",
+    "enemyType": "beast",
+    "description": "Fat rodents the size of small dogs with matted gray fur and yellow, too-long teeth.",
+    "tags": ["horde", "small", "beast"],
+    "statBlock": {
+      "hp": 3,
+      "armor": 0,
+      "damage": "d3",
+      "instinct": "To gnaw on everything",
+      "moves": "Overwhelm a lone target\nSpread disease with a bite",
+      "tags": "Horde, Small, Animal"
+    }
+  },
+  {
+    "id": "srd-dw-stirge",
+    "name": "Stirge",
+    "enemyType": "beast",
+    "description": "Blood-drinking flying pests with a trumpet-like snout — an annoyance to some, deadly in a swarm.",
+    "tags": ["horde", "tiny", "beast", "flying"],
+    "statBlock": {
+      "hp": 3,
+      "armor": 0,
+      "damage": "d3",
+      "instinct": "To feed on warm blood",
+      "moves": "Attach and drain blood\nSwarm around a victim in a cloud",
+      "tags": "Horde, Tiny, Flying, Animal"
+    }
+  },
+  {
+    "id": "srd-dw-dire-wolf",
+    "name": "Dire Wolf",
+    "enemyType": "beast",
+    "description": "A massive predatory wolf the size of a cart horse, with thick black fur and glowing amber eyes.",
+    "tags": ["group", "large", "beast"],
+    "statBlock": {
+      "hp": 16,
+      "armor": 1,
+      "damage": "d8+1",
+      "instinct": "To bring down large prey",
+      "moves": "Howl and call the pack\nKnock prey to the ground\nHarry a target until it can't flee",
+      "tags": "Group, Large, Animal, Organized"
+    }
+  },
+  {
+    "id": "srd-dw-cave-bear",
+    "name": "Cave Bear",
+    "enemyType": "beast",
+    "description": "Enormous prehistoric bears that make their lairs in deep cavern systems.",
+    "tags": ["solitary", "large", "beast"],
+    "statBlock": {
+      "hp": 24,
+      "armor": 1,
+      "damage": "d10+1",
+      "instinct": "To defend its territory",
+      "moves": "Pin prey under an enormous paw\nRoar to shake the stalactites\nRake with powerful claws",
+      "tags": "Solitary, Large, Animal, Territorial"
+    }
+  },
+  {
+    "id": "srd-dw-giant-spider",
+    "name": "Giant Spider",
+    "enemyType": "beast",
+    "description": "A spider the size of a horse, spinning webs that can trap a man whole.",
+    "tags": ["solitary", "large", "beast", "stealthy"],
+    "statBlock": {
+      "hp": 16,
+      "armor": 1,
+      "damage": "d6+2",
+      "instinct": "To trap and feed",
+      "moves": "Entangle in sticky webbing\nHang from the ceiling and drop\nInject paralyzing venom",
+      "tags": "Solitary, Large, Animal, Stealthy"
+    }
+  },
+  {
+    "id": "srd-dw-giant-scorpion",
+    "name": "Giant Scorpion",
+    "enemyType": "beast",
+    "description": "An armored arthropod the size of a horse, with crushing claws and a deadly venomous stinger.",
+    "tags": ["group", "large", "beast"],
+    "statBlock": {
+      "hp": 18,
+      "armor": 3,
+      "damage": "d8+2",
+      "instinct": "To crush and sting",
+      "moves": "Grab with pincers and sting repeatedly\nKnock down with a tail sweep\nPursuit through rocky terrain",
+      "tags": "Group, Large, Animal, Armored"
+    }
+  },
+  {
+    "id": "srd-dw-troll",
+    "name": "Troll",
+    "enemyType": "giant",
+    "description": "A massive, regenerating creature of hunger with crude intelligence. Fire and acid alone stop its healing.",
+    "tags": ["solitary", "large", "regenerating"],
+    "statBlock": {
+      "hp": 28,
+      "armor": 1,
+      "damage": "d10+3",
+      "instinct": "To eat everything, always",
+      "moves": "Regenerate from wounds before the foe's eyes\nSmash with enormous fists\nFling rocks from a great distance",
+      "tags": "Solitary, Large, Terrifying, Regenerating"
+    }
+  },
+  {
+    "id": "srd-dw-ogre",
+    "name": "Ogre",
+    "enemyType": "giant",
+    "description": "A lumbering, brutish giant that smashes first and thinks never. Lives to fight and eat.",
+    "tags": ["group", "large", "warrior"],
+    "statBlock": {
+      "hp": 20,
+      "armor": 1,
+      "damage": "d10+1",
+      "instinct": "To break things and take what it wants",
+      "moves": "Hurl a boulder at a distant target\nKnock enemies off their feet\nUse a smaller creature as a club",
+      "tags": "Group, Large, Warrior"
+    }
+  },
+  {
+    "id": "srd-dw-cyclops",
+    "name": "Cyclops",
+    "enemyType": "giant",
+    "description": "A one-eyed giant with poor depth perception but terrifying strength.",
+    "tags": ["solitary", "large"],
+    "statBlock": {
+      "hp": 24,
+      "armor": 2,
+      "damage": "d10+3",
+      "instinct": "To guard what it has claimed",
+      "moves": "Throw boulders wildly\nHerd creatures like sheep\nPanic when surprised by more than one direction",
+      "tags": "Solitary, Large, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-ankheg",
+    "name": "Ankheg",
+    "enemyType": "monstrosity",
+    "description": "A car-sized insectoid that burrows under farmland and sprays acid on prey.",
+    "tags": ["solitary", "large", "tunneler"],
+    "statBlock": {
+      "hp": 19,
+      "armor": 3,
+      "damage": "d8+1",
+      "instinct": "To burrow, ambush, and devour",
+      "moves": "Burst from the ground beneath a foe\nSpray acid in a wide arc\nDrag prey underground",
+      "tags": "Solitary, Large, Tunneler, Amorphous"
+    }
+  },
+  {
+    "id": "srd-dw-owlbear",
+    "name": "Owlbear",
+    "enemyType": "monstrosity",
+    "description": "What magic birthed this abomination? Half bear, half owl, all violence.",
+    "tags": ["solitary", "large", "monstrosity"],
+    "statBlock": {
+      "hp": 20,
+      "armor": 1,
+      "damage": "d10+4",
+      "instinct": "To find and destroy prey",
+      "moves": "Hold prey in a crushing grip\nShriek loud enough to disorient\nScent prey through walls and doors",
+      "tags": "Solitary, Large, Monstrosity, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-minotaur",
+    "name": "Minotaur",
+    "enemyType": "monstrosity",
+    "description": "A bull-headed warrior with supernatural strength and a perfect sense of labyrinthine space.",
+    "tags": ["solitary", "large", "monstrosity"],
+    "statBlock": {
+      "hp": 20,
+      "armor": 2,
+      "damage": "d10+3",
+      "instinct": "To guard its labyrinth and its rage",
+      "moves": "Charge with unstoppable momentum\nGore and toss with powerful horns\nKnow exactly where prey is in its maze",
+      "tags": "Solitary, Large, Warrior, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-basilisk",
+    "name": "Basilisk",
+    "enemyType": "monstrosity",
+    "description": "A low, slow reptile whose gaze turns flesh to stone — one of the oldest and most feared curses.",
+    "tags": ["solitary", "medium", "monstrosity"],
+    "statBlock": {
+      "hp": 16,
+      "armor": 2,
+      "damage": "d8",
+      "instinct": "To turn all it sees to stone",
+      "moves": "Gaze: petrify a creature\nBite through stone-hard flesh\nLumber toward prey without hurry",
+      "tags": "Solitary, Medium, Slow"
+    }
+  },
+  {
+    "id": "srd-dw-manticore",
+    "name": "Manticore",
+    "enemyType": "monstrosity",
+    "description": "A lion with a human face and a tail covered in venomous spikes it launches at prey.",
+    "tags": ["solitary", "large", "flying"],
+    "statBlock": {
+      "hp": 20,
+      "armor": 1,
+      "damage": "d8+2",
+      "instinct": "To hunt and consume humanoid prey",
+      "moves": "Rain spikes from the sky\nDive and rend with lion claws\nTaunt prey with unsettling human-like speech",
+      "tags": "Solitary, Large, Flying, Intelligent"
+    }
+  },
+  {
+    "id": "srd-dw-harpy",
+    "name": "Harpy",
+    "enemyType": "monstrosity",
+    "description": "Part woman, part vulture, harassing and luring prey with a terrible song.",
+    "tags": ["group", "flying", "monstrosity"],
+    "statBlock": {
+      "hp": 12,
+      "armor": 1,
+      "damage": "d6",
+      "instinct": "To lure, claw, and torment",
+      "moves": "Sing to lure the unwary\nMob a target in a shrieking cloud\nCarry prey to a great height and release",
+      "tags": "Group, Flying, Devious"
+    }
+  },
+  {
+    "id": "srd-dw-hydra",
+    "name": "Hydra",
+    "enemyType": "monstrosity",
+    "description": "A seven-headed serpentine predator that grows two heads for every one that is cut off.",
+    "tags": ["solitary", "large", "monstrosity"],
+    "statBlock": {
+      "hp": 28,
+      "armor": 2,
+      "damage": "d8+4",
+      "instinct": "To consume everything within reach",
+      "moves": "Attack with multiple heads at once\nGrow back severed heads\nConstrict a victim under its coils",
+      "tags": "Solitary, Large, Terrifying, Amorphous"
+    }
+  },
+  {
+    "id": "srd-dw-wyvern",
+    "name": "Wyvern",
+    "enemyType": "dragon",
+    "description": "A lesser dragon kin with two legs and powerful wings, its venomous stinger tail as deadly as its jaws.",
+    "tags": ["solitary", "large", "flying", "dragon"],
+    "statBlock": {
+      "hp": 24,
+      "armor": 2,
+      "damage": "d10+3",
+      "instinct": "To prove dominance over other fliers",
+      "moves": "Dive from the sun to strike\nPlunge the venomous stinger deep\nBear aloft and drop prey from height",
+      "tags": "Solitary, Large, Flying, Dragon"
+    }
+  },
+  {
+    "id": "srd-dw-dragon-black",
+    "name": "Black Dragon",
+    "enemyType": "dragon",
+    "description": "A swamp-dwelling dragon of cruelty and acid, hoarding misery as much as treasure.",
+    "tags": ["solitary", "huge", "dragon", "acid"],
+    "statBlock": {
+      "hp": 32,
+      "armor": 3,
+      "damage": "d10+7",
+      "instinct": "To corrupt and destroy beauty",
+      "moves": "Spit a stream of corroding acid\nBreath acid in a wide cone\nDive below dark water and attack from beneath\nLet minions fight while watching",
+      "tags": "Solitary, Huge, Dragon, Terrifying, Amorphous"
+    }
+  },
+  {
+    "id": "srd-dw-dragon-red",
+    "name": "Red Dragon",
+    "enemyType": "dragon",
+    "description": "The greatest and most feared of dragons, a creature of fire and towering pride.",
+    "tags": ["solitary", "huge", "dragon", "fire"],
+    "statBlock": {
+      "hp": 36,
+      "armor": 4,
+      "damage": "d12+7",
+      "instinct": "To dominate and be feared",
+      "moves": "Breathe a torrent of fire\nDemand tribute and respect\nFly to a height and survey the burning landscape\nCrush with its claws",
+      "tags": "Solitary, Huge, Dragon, Terrifying, Amorphous, Magical"
+    }
+  },
+  {
+    "id": "srd-dw-demon",
+    "name": "Demon Soldier",
+    "enemyType": "fiend",
+    "description": "A lesser demon conscripted into an army from the Abyss — vicious, brutal, and nearly mindless.",
+    "tags": ["horde", "medium", "fiend"],
+    "statBlock": {
+      "hp": 8,
+      "armor": 1,
+      "damage": "d6+2",
+      "instinct": "To corrupt and destroy",
+      "moves": "Surge forward in a mindless charge\nIgnore wounds from lesser weapons\nDrag a soul back to the Abyss",
+      "tags": "Horde, Medium, Magical, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-balor",
+    "name": "Balor",
+    "enemyType": "fiend",
+    "description": "A massive demon general trailing fire and wielding a flaming sword and lightning whip.",
+    "tags": ["solitary", "huge", "fiend", "boss"],
+    "statBlock": {
+      "hp": 34,
+      "armor": 3,
+      "damage": "d12+9",
+      "instinct": "To lead the hosts of Hell to victory",
+      "moves": "Strike with the flaming sword\nEnsnare with the lightning whip\nExplode in a fiery death, damaging all nearby\nCommand lesser demons",
+      "tags": "Solitary, Huge, Magical, Terrifying, Divine"
+    }
+  },
+  {
+    "id": "srd-dw-imp",
+    "name": "Imp",
+    "enemyType": "fiend",
+    "description": "A tiny devil that serves a master, carrying messages, spying, and tempting mortals.",
+    "tags": ["solitary", "tiny", "fiend", "stealthy"],
+    "statBlock": {
+      "hp": 6,
+      "armor": 1,
+      "damage": "d4",
+      "instinct": "To corrupt and report",
+      "moves": "Sting with a venomous tail\nGo invisible to spy\nWhisper temptations in a sleeping ear",
+      "tags": "Solitary, Tiny, Magical, Stealthy, Devious"
+    }
+  },
+  {
+    "id": "srd-dw-bandit",
+    "name": "Bandit",
+    "enemyType": "humanoid",
+    "description": "Desperate or greedy road agents who prey on travelers in lawless lands.",
+    "tags": ["horde", "medium", "humanoid"],
+    "statBlock": {
+      "hp": 6,
+      "armor": 1,
+      "damage": "d6",
+      "instinct": "To take what others have earned",
+      "moves": "Surround and threaten\nAmbush from the treeline\nFlee when the odds turn",
+      "tags": "Horde, Medium, Organized"
+    }
+  },
+  {
+    "id": "srd-dw-bandit-king",
+    "name": "Bandit King",
+    "enemyType": "humanoid",
+    "description": "The charismatic or terrifying leader of a large bandit gang, with military experience.",
+    "tags": ["solitary", "medium", "humanoid", "leader"],
+    "statBlock": {
+      "hp": 16,
+      "armor": 2,
+      "damage": "d8+2",
+      "instinct": "To rule through fear and cunning",
+      "moves": "Rally the gang\nOffer a deal, then betray\nDuel personally to prove dominance",
+      "tags": "Solitary, Medium, Organized, Devious"
+    }
+  },
+  {
+    "id": "srd-dw-cultist",
+    "name": "Cultist",
+    "enemyType": "humanoid",
+    "description": "True believers willing to die — and kill — for a dark power they only half understand.",
+    "tags": ["horde", "medium", "humanoid", "religious"],
+    "statBlock": {
+      "hp": 6,
+      "armor": 0,
+      "damage": "d6",
+      "instinct": "To serve the dark patron",
+      "moves": "Fight with fanatical disregard for safety\nAttempt a ritual sacrifice\nSummon something worse",
+      "tags": "Horde, Medium, Organized, Devious"
+    }
+  },
+  {
+    "id": "srd-dw-dark-priest",
+    "name": "Dark Priest",
+    "enemyType": "humanoid",
+    "description": "A servant of dark gods who wields divine power corrupted by ambition and cruelty.",
+    "tags": ["solitary", "medium", "humanoid", "magical"],
+    "statBlock": {
+      "hp": 14,
+      "armor": 1,
+      "damage": "d8+2",
+      "instinct": "To spread the will of their patron",
+      "moves": "Curse an enemy with their god's displeasure\nHeal allies by drawing life from enemies\nCommand undead",
+      "tags": "Solitary, Medium, Magical, Divine, Devious"
+    }
+  },
+  {
+    "id": "srd-dw-mud-golem",
+    "name": "Mud Golem",
+    "enemyType": "construct",
+    "description": "A hulking construct of animated earth that returns to a pile when destroyed — until someone makes it again.",
+    "tags": ["group", "large", "construct"],
+    "statBlock": {
+      "hp": 18,
+      "armor": 1,
+      "damage": "d8+2",
+      "instinct": "To protect what it was made to protect",
+      "moves": "Engulf a creature in its mass\nReform from seeming destruction\nFling clods of earth",
+      "tags": "Group, Large, Construct, Slow"
+    }
+  },
+  {
+    "id": "srd-dw-clay-golem",
+    "name": "Clay Golem",
+    "enemyType": "construct",
+    "description": "A humanoid construct of hardened clay, slow but nearly indestructible.",
+    "tags": ["solitary", "large", "construct"],
+    "statBlock": {
+      "hp": 20,
+      "armor": 3,
+      "damage": "d10+3",
+      "instinct": "To follow its creation orders exactly",
+      "moves": "Crush with enormous hands\nIgnore injuries and keep walking\nBerserk when injured by lightning",
+      "tags": "Solitary, Large, Construct, Slow"
+    }
+  },
+  {
+    "id": "srd-dw-shadow",
+    "name": "Shadow",
+    "enemyType": "undead",
+    "description": "A creature of pure darkness born when someone dies in total despair. It drains life just by touching.",
+    "tags": ["solitary", "undead", "stealthy"],
+    "statBlock": {
+      "hp": 12,
+      "armor": 4,
+      "damage": "d6",
+      "instinct": "To engulf all light",
+      "moves": "Emerge from a target's shadow\nWeaken with a cold touch\nHide in absolute darkness",
+      "tags": "Solitary, Undead, Stealthy, Amorphous, Magical"
+    }
+  },
+  {
+    "id": "srd-dw-crocodilian",
+    "name": "Crocodilian",
+    "enemyType": "beast",
+    "description": "A massive, armored reptile lurking in murky swamp water, completely still until prey is in reach.",
+    "tags": ["group", "large", "beast"],
+    "statBlock": {
+      "hp": 18,
+      "armor": 3,
+      "damage": "d8+3",
+      "instinct": "To ambush and drag prey under",
+      "moves": "Drag prey beneath the water\nDeath roll to break bones\nLay perfectly still until the last moment",
+      "tags": "Group, Large, Animal, Stealthy"
+    }
+  },
+  {
+    "id": "srd-dw-swamp-troll",
+    "name": "Swamp Troll",
+    "enemyType": "monstrosity",
+    "description": "A hungrier, fouler troll from the swamps, reeking of decay and bristling with moss and fungi.",
+    "tags": ["solitary", "large", "regenerating"],
+    "statBlock": {
+      "hp": 24,
+      "armor": 1,
+      "damage": "d8+3",
+      "instinct": "To devour whatever crosses its swamp",
+      "moves": "Regenerate and stand back up\nVomit a stream of acid bile\nDrag prey into deep water",
+      "tags": "Solitary, Large, Regenerating, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-will-o-wisp",
+    "name": "Will-o'-Wisp",
+    "enemyType": "undead",
+    "description": "A ghostly light that lures travelers into bogs and drowning pits, feasting on their despair.",
+    "tags": ["solitary", "tiny", "flying", "stealthy"],
+    "statBlock": {
+      "hp": 6,
+      "armor": 4,
+      "damage": "d6",
+      "instinct": "To lead the living to ruin",
+      "moves": "Lure with a beckoning light\nShock with lightning when touched\nVanish when in danger",
+      "tags": "Solitary, Tiny, Flying, Stealthy, Undead, Magical"
+    }
+  },
+  {
+    "id": "srd-dw-gnoll",
+    "name": "Gnoll",
+    "enemyType": "humanoid",
+    "description": "Hyena-headed raiders touched by demonic power, who roam in frenzied war packs leaving nothing alive.",
+    "tags": ["horde", "medium", "humanoid"],
+    "statBlock": {
+      "hp": 8,
+      "armor": 1,
+      "damage": "d6+1",
+      "instinct": "To rampage and consume",
+      "moves": "Ravage a fallen enemy\nHowl to draw more gnolls\nFight harder when it smells blood",
+      "tags": "Horde, Medium, Organized"
+    }
+  },
+  {
+    "id": "srd-dw-centaur",
+    "name": "Centaur",
+    "enemyType": "monstrosity",
+    "description": "Half human, half horse — proud warriors of the open plains who defend their tribal lands.",
+    "tags": ["group", "large", "intelligent"],
+    "statBlock": {
+      "hp": 16,
+      "armor": 1,
+      "damage": "d8+1",
+      "instinct": "To defend the old ways",
+      "moves": "Charge with a lance\nHurl a javelin from horse-speed\nKick with crushing hooves",
+      "tags": "Group, Large, Organized, Intelligent"
+    }
+  },
+  {
+    "id": "srd-dw-mummy",
+    "name": "Mummy",
+    "enemyType": "undead",
+    "description": "An ancient priest or noble preserved and bound by ritual to guard a tomb forever.",
+    "tags": ["solitary", "medium", "undead"],
+    "statBlock": {
+      "hp": 20,
+      "armor": 2,
+      "damage": "d8+3",
+      "instinct": "To protect what it was bound to protect",
+      "moves": "Curse with rotting disease\nParalyze with fear\nCall for others to help guard the tomb",
+      "tags": "Solitary, Medium, Undead, Terrifying, Divine"
+    }
+  },
+  {
+    "id": "srd-dw-death-knight",
+    "name": "Death Knight",
+    "enemyType": "undead",
+    "description": "A paladin brought back by oath-breaking and dark power, clad in black armor radiating cold dread.",
+    "tags": ["solitary", "medium", "undead", "warrior"],
+    "statBlock": {
+      "hp": 28,
+      "armor": 4,
+      "damage": "d10+4",
+      "instinct": "To serve the oath of destruction",
+      "moves": "Smite with unholy energy\nCall upon hell-fire in a burst\nRally undead minions to its banner",
+      "tags": "Solitary, Medium, Undead, Warrior, Magical, Terrifying"
+    }
+  },
+  {
+    "id": "srd-dw-treant",
+    "name": "Treant",
+    "enemyType": "plant",
+    "description": "An ancient tree given will and voice. They war against those who burn the forest.",
+    "tags": ["solitary", "huge", "intelligent", "plant"],
+    "statBlock": {
+      "hp": 28,
+      "armor": 3,
+      "damage": "d10+5",
+      "instinct": "To protect the ancient forest",
+      "moves": "Uproot and hurl a tree\nGrapple with animated branches\nCall beasts and plants to help",
+      "tags": "Solitary, Huge, Intelligent, Amorphous, Plant"
+    }
+  },
+  {
+    "id": "srd-dw-unicorn",
+    "name": "Unicorn",
+    "enemyType": "fey",
+    "description": "A horse of pure magic whose horn can heal or kill. Protects sacred forests with divine wrath.",
+    "tags": ["solitary", "large", "magical", "divine"],
+    "statBlock": {
+      "hp": 20,
+      "armor": 2,
+      "damage": "d10+1",
+      "instinct": "To purge corruption from its woods",
+      "moves": "Charge and impale with the horn\nHeal the worthy with a touch\nCall lightning on the corrupt",
+      "tags": "Solitary, Large, Magical, Divine, Intelligent"
+    }
+  },
+  {
+    "id": "srd-dw-blink-dog",
+    "name": "Blink Dog",
+    "enemyType": "fey",
+    "description": "A dog-like fey creature that teleports short distances to evade and flank its quarry.",
+    "tags": ["group", "small", "fey", "magical"],
+    "statBlock": {
+      "hp": 10,
+      "armor": 1,
+      "damage": "d6",
+      "instinct": "To run down and disrupt",
+      "moves": "Teleport to flank\nBite and vanish\nCoordinate with pack through barking",
+      "tags": "Group, Small, Magical, Organized, Animal"
+    }
+  }
+]
