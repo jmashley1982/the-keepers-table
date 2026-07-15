@@ -67,7 +67,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
   )
 
   return (
-    <aside className="w-56 flex flex-col h-full overflow-y-auto flex-shrink-0"
+    <aside className="hidden md:flex w-56 flex-col h-full overflow-y-auto flex-shrink-0"
       style={{ background: 'linear-gradient(180deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-surface) 95%, var(--color-bg)) 100%)', borderRight: '1px solid var(--color-border)' }}
     >
       {/* Logo */}

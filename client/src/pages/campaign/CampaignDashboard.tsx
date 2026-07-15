@@ -96,7 +96,7 @@ export default function CampaignDashboard() {
   )
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
       {/* Campaign header */}
       <div>
         <h1 className="display-font text-4xl font-bold text-ink">{campaign.name}</h1>
@@ -141,7 +141,7 @@ export default function CampaignDashboard() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'NPCs',      count: campaign._count?.npcs ?? 0,      icon: '🧙', imageSrc: ci?.npcs,      tab: 'npcs' },
           { label: 'Items',     count: campaign._count?.items ?? 0,     icon: '⚔️', imageSrc: ci?.items,     tab: 'items' },
@@ -255,7 +255,7 @@ interface PC {
 function ActionCard({ icon, label, onClick, loading, imageSrc }: { icon: string; label: string; onClick: () => void; loading?: boolean; imageSrc?: string }) {
   return (
     <button
-      className="card text-center hover:border-accent/50 hover:bg-accent/5 transition-all cursor-pointer group"
+      className="card text-center hover:border-accent/50 hover:bg-accent/5 transition-all cursor-pointer group touch-manipulation min-h-[60px]"
       onClick={onClick}
       disabled={loading}
     >

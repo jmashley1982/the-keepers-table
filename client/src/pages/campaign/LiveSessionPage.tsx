@@ -68,6 +68,9 @@ export default function LiveSessionPage() {
   const [acceptedNewEntities, setAcceptedNewEntities] = useState<Set<number>>(new Set())
   const [elapsed, setElapsed] = useState(0)
 
+  // ── Mobile panel switcher (Notes | Entities | Peek) ──
+  const [activePanel, setActivePanel] = useState<'notes' | 'entities' | 'peek'>('notes')
+
   // ── Section rail state ──
   const [activeSection, setActiveSection] = useState<string>('players')
   const [searchQuery, setSearchQuery] = useState('')
@@ -124,6 +127,11 @@ export default function LiveSessionPage() {
   useEffect(() => {
     if (sessionData?.session?.dmRawNotes) setNotes(sessionData.session.dmRawNotes)
   }, [sessionData?.session?.id])
+
+  // ── Auto-switch to peek panel on mobile when an entity is selected ──
+  useEffect(() => {
+    if (peekedEntity || peekedPC) setActivePanel('peek')
+  }, [peekedEntity, peekedPC])
 
   // ── Timer ──
   useEffect(() => {
@@ -247,11 +255,33 @@ export default function LiveSessionPage() {
         </div>
       </div>
 
+      {/* ── Mobile panel tab strip ───────────────────────────────────── */}
+      <div className="md:hidden flex border-b border-border bg-surface shrink-0">
+        {(['notes', 'entities', 'peek'] as const).map(panel => (
+          <button
+            key={panel}
+            onClick={() => setActivePanel(panel)}
+            className={cn(
+              'flex-1 py-3 text-xs font-semibold capitalize transition-colors touch-manipulation min-h-[44px] border-b-2',
+              activePanel === panel
+                ? 'text-accent border-accent bg-accent/5'
+                : 'text-ink-muted border-transparent hover:text-ink',
+            )}
+          >
+            {panel === 'notes' ? '📝 Notes' : panel === 'entities' ? '👥 Entities' : '🔍 Peek'}
+          </button>
+        ))}
+      </div>
+
       {/* ── Main 3-column layout ─────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden">
 
         {/* ── LEFT: Section rail + entity list ─────────────────── */}
-        <div className="w-64 border-r border-border bg-surface flex flex-col shrink-0 overflow-hidden">
+        <div className={cn(
+          'border-r border-border bg-surface flex-col shrink-0 overflow-hidden',
+          'md:flex md:w-64',
+          activePanel === 'entities' ? 'flex flex-1' : 'hidden',
+        )}>
           {/* Section tabs */}
           <div className="flex border-b border-border">
             {Object.keys(SECTION_ICONS).map(sec => (
@@ -259,7 +289,7 @@ export default function LiveSessionPage() {
                 key={sec}
                 onClick={() => { setActiveSection(sec); setPeekedEntity(null); setPeekedPC(null) }}
                 className={cn(
-                  'flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
+                  'flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors touch-manipulation min-h-[44px]',
                   activeSection === sec
                     ? 'text-accent border-b-2 border-accent bg-accent/5'
                     : 'text-ink-muted hover:text-ink hover:bg-surface-2'
@@ -342,7 +372,7 @@ export default function LiveSessionPage() {
                       key={pc.id}
                       onClick={() => setPeekedPC(peekedPC?.id === pc.id ? null : pc)}
                       className={cn(
-                        'w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-surface-2 transition-colors flex items-center gap-2.5',
+                        'w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-surface-2 transition-colors flex items-center gap-2.5 touch-manipulation min-h-[44px]',
                         peekedPC?.id === pc.id && 'bg-accent/5 border-l-2 border-l-accent'
                       )}
                     >
@@ -386,7 +416,7 @@ export default function LiveSessionPage() {
                       peekedEntity?.entity.id === entity.id ? null : { entity, type: ENTITY_TYPES[activeSection] }
                     )}
                     className={cn(
-                      'w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-surface-2 transition-colors flex items-center justify-between gap-2',
+                      'w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-surface-2 transition-colors flex items-center justify-between gap-2 touch-manipulation min-h-[44px]',
                       peekedEntity?.entity.id === entity.id && 'bg-accent/5 border-l-2 border-l-accent'
                     )}
                   >
@@ -405,7 +435,11 @@ export default function LiveSessionPage() {
         </div>
 
         {/* ── CENTER: Notes (+ entity peek overlay) / Map viewer ── */}
-        <div className="flex-1 flex flex-col overflow-hidden relative">
+        <div className={cn(
+          'flex-col overflow-hidden relative',
+          'md:flex md:flex-1',
+          activePanel === 'notes' ? 'flex flex-1' : 'hidden',
+        )}>
           {/* Map viewer (shown when maps section is active and a map is selected) */}
           {activeSection === 'maps' && selectedMapId && !peekedEntity && (
             <div className="absolute inset-0 z-5 bg-neutral-950 flex flex-col overflow-hidden">
@@ -620,8 +654,84 @@ export default function LiveSessionPage() {
           </div>
         </div>
 
+        {/* ── MOBILE PEEK panel — shown on mobile when peek tab is active ── */}
+        <div className={cn(
+          'flex-col overflow-hidden',
+          'md:hidden',
+          activePanel === 'peek' ? 'flex flex-1' : 'hidden',
+        )}>
+          {peekedEntity ? (
+            <>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                <span className="text-sm font-medium text-ink-muted capitalize">{peekedEntity.type} details</span>
+                <button className="btn-ghost p-1 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" onClick={() => { setPeekedEntity(null); setActivePanel('entities') }}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <EntityCard
+                  entity={peekedEntity.entity as Parameters<typeof EntityCard>[0]['entity']}
+                  entityType={peekedEntity.type as Parameters<typeof EntityCard>[0]['entityType']}
+                  campaignId={campaignId!}
+                />
+              </div>
+            </>
+          ) : peekedPC ? (
+            <>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                <div className="flex items-center gap-2">
+                  <Shield size={14} className="text-accent" />
+                  <span className="text-sm font-medium text-ink">{peekedPC.name}</span>
+                </div>
+                <button className="btn-ghost p-1 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center" onClick={() => { setPeekedPC(null); setActivePanel('entities') }}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <p className="text-xs text-ink-muted">
+                  {[peekedPC.race, peekedPC.class, peekedPC.level ? `Level ${peekedPC.level}` : ''].filter(Boolean).join(' · ')}
+                </p>
+                {peekedPC.combatStats && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {peekedPC.combatStats.hp != null && (
+                      <div className="bg-surface-2 rounded-card p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-0.5"><Heart size={10} className="text-red-400" /><span className="text-[10px] text-ink-muted">HP</span></div>
+                        <p className="text-sm font-bold text-ink">{peekedPC.combatStats.hp}{peekedPC.combatStats.maxHp != null && <span className="text-ink-muted font-normal text-xs">/{peekedPC.combatStats.maxHp}</span>}</p>
+                      </div>
+                    )}
+                    {peekedPC.combatStats.ac != null && (
+                      <div className="bg-surface-2 rounded-card p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-0.5"><Shield size={10} className="text-blue-400" /><span className="text-[10px] text-ink-muted">AC</span></div>
+                        <p className="text-sm font-bold text-ink">{peekedPC.combatStats.ac}</p>
+                      </div>
+                    )}
+                    {peekedPC.combatStats.initiative != null && (
+                      <div className="bg-surface-2 rounded-card p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-0.5"><Sword size={10} className="text-orange-400" /><span className="text-[10px] text-ink-muted">Init</span></div>
+                        <p className="text-sm font-bold text-ink">{(peekedPC.combatStats.initiative ?? 0) >= 0 ? '+' : ''}{peekedPC.combatStats.initiative}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {peekedPC.notes && <p className="mt-3 text-xs text-ink leading-relaxed whitespace-pre-wrap">{peekedPC.notes}</p>}
+                <button className="btn-ghost text-xs w-full justify-center text-accent border border-border mt-4 min-h-[44px] touch-manipulation" onClick={() => navigate(`/campaign/${campaignId}/players`)}>
+                  Open full character sheet
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-ink-muted p-8 text-center">
+              <Search size={32} className="opacity-30" />
+              <p className="text-sm">Select an entity from the Entities tab to see details here.</p>
+              <button className="btn-ghost text-xs text-accent touch-manipulation min-h-[44px]" onClick={() => setActivePanel('entities')}>
+                Browse entities →
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* ── RIGHT: Quick reference / encounter bar ────────────── */}
-        <div className="w-56 border-l border-border bg-surface flex flex-col shrink-0 overflow-hidden">
+        <div className="hidden md:flex w-56 border-l border-border bg-surface flex-col shrink-0 overflow-hidden">
           <div className="px-3 py-2.5 border-b border-border shrink-0">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Quick Reference</p>
           </div>
