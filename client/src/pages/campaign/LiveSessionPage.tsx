@@ -605,7 +605,7 @@ export default function LiveSessionPage() {
                 {/* Identity row */}
                 <div className="flex flex-wrap gap-2">
                   {peekedPC.race && <span className="badge bg-surface-2 text-ink-muted text-xs">{peekedPC.race}</span>}
-                  {peekedPC.class && <span className="badge bg-surface-2 text-ink-muted text-xs">{peekedPC.subclass ? `${peekedPC.subclass} ${peekedPC.class}` : peekedPC.class}</span>}
+                  {peekedPC.class && <span className="badge bg-surface-2 text-ink-muted text-xs">{peekedPC.subclass ? (peekedPC.class.toLowerCase() === 'barbarian' && ['SMASH!', 'DESTROY!', 'BEND BARS, LIFT GATES'].includes(peekedPC.subclass) ? `${peekedPC.class} (${peekedPC.subclass})` : `${peekedPC.subclass} ${peekedPC.class}`) : peekedPC.class}</span>}
                   {peekedPC.level && <span className="badge bg-accent/10 text-accent text-xs">Level {peekedPC.level}</span>}
                   {peekedPC.background && <span className="badge bg-surface-2 text-ink-muted text-xs">{peekedPC.background}</span>}
                 </div>

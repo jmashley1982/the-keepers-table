@@ -244,8 +244,8 @@ function SheetUploadButton({ campaignId, pcId, onExtracted }: {
 
 // ── PC Card (compact, sortable) ───────────────────────────────────────────────
 
-function PCCard({ pc, campaignId, onSelect, onDelete, onMoveUp, onMoveDown, isFirst, isLast }: {
-  pc: PlayerCharacter; campaignId: string
+function PCCard({ pc, campaignId, isDungeonWorld, onSelect, onDelete, onMoveUp, onMoveDown, isFirst, isLast }: {
+  pc: PlayerCharacter; campaignId: string; isDungeonWorld?: boolean
   onSelect: () => void; onDelete: () => void
   onMoveUp: () => void; onMoveDown: () => void
   isFirst: boolean; isLast: boolean
@@ -298,7 +298,9 @@ function PCCard({ pc, campaignId, onSelect, onDelete, onMoveUp, onMoveDown, isFi
             {pc.race && <span className="badge bg-surface-2 text-ink-muted text-[10px]">{pc.race}</span>}
             {pc.class && (
               <span className="badge bg-accent/10 text-accent text-[10px]">
-                {pc.subclass ? `${pc.subclass} ${pc.class}` : pc.class}
+                {isDungeonWorld && pc.class.toLowerCase() === 'barbarian' && pc.subclass
+                  ? `${pc.class} (${pc.subclass})`
+                  : pc.subclass ? `${pc.subclass} ${pc.class}` : pc.class}
               </span>
             )}
             <span className="badge bg-surface-2 text-ink-muted text-[10px]">Lv {pc.level}</span>
@@ -646,16 +648,34 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld, syste
                 )}
               </div>
               <div>
-                <label className="label">Subclass</label>
-                {isDnd5e && subclassOptions.length > 0 ? (
-                  <Dnd5eCombobox
-                    value={draft.subclass}
-                    onChange={v => setDraft(d => ({ ...d, subclass: v }))}
-                    options={subclassOptions}
-                    placeholder="Choose subclass…"
-                  />
+                {isDungeonWorld && draft.class.toLowerCase() === 'barbarian' ? (
+                  <>
+                    <label className="label">Appetite for Destruction</label>
+                    <select
+                      className="input text-sm"
+                      value={draft.subclass}
+                      onChange={e => setDraft(d => ({ ...d, subclass: e.target.value }))}
+                    >
+                      <option value="">— Choose one —</option>
+                      <option value="SMASH!">SMASH! (defy danger reduces harm by 1d6)</option>
+                      <option value="DESTROY!">DESTROY! (hack & slash deals +1d6 damage)</option>
+                      <option value="BEND BARS, LIFT GATES">BEND BARS, LIFT GATES (pure strength treats 7–9 as 10+)</option>
+                    </select>
+                  </>
                 ) : (
-                  <input className="input text-sm" value={draft.subclass} onChange={e => setDraft(d => ({ ...d, subclass: e.target.value }))} />
+                  <>
+                    <label className="label">Subclass</label>
+                    {isDnd5e && subclassOptions.length > 0 ? (
+                      <Dnd5eCombobox
+                        value={draft.subclass}
+                        onChange={v => setDraft(d => ({ ...d, subclass: v }))}
+                        options={subclassOptions}
+                        placeholder="Choose subclass…"
+                      />
+                    ) : (
+                      <input className="input text-sm" value={draft.subclass} onChange={e => setDraft(d => ({ ...d, subclass: e.target.value }))} />
+                    )}
+                  </>
                 )}
               </div>
               <div>
@@ -1059,6 +1079,7 @@ export default function PlayersPage() {
                     key={pc.id}
                     pc={pc}
                     campaignId={campaignId!}
+                    isDungeonWorld={isDungeonWorld}
                     onSelect={() => setSelectedPcId(pc.id)}
                     onDelete={() => {
                       if (confirm(`Delete ${pc.name}? This cannot be undone.`)) {
