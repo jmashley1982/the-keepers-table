@@ -57,6 +57,8 @@ interface RawEntity {
   appearance?: string
   personality?: string
   motivations?: string
+  notes?: string
+  dmOnlyNotes?: string
   class?: string
   level?: number
   race?: string
@@ -68,6 +70,7 @@ interface RawEntity {
   rarity?: string
   category?: string
   mechanicalEffect?: string
+  portraitAsset?: { id: string } | null
 }
 
 interface Props {
@@ -79,10 +82,12 @@ interface Props {
 }
 
 // ── Mention parser ─────────────────────────────────────────────────────────────
+// Tokenises by @TYPE: syntax first; entity lookup provides display metadata.
+// Unresolved tokens (entity deleted/renamed) still render as chips.
 
 type MentionSegment =
   | { kind: 'text'; value: string }
-  | { kind: 'mention'; entityType: EntityType; name: string }
+  | { kind: 'mention'; entityType: EntityType; name: string; resolved: boolean }
 
 function parseMentions(text: string, allEntities: MentionEntity[]): MentionSegment[] {
   const result: MentionSegment[] = []
@@ -95,19 +100,34 @@ function parseMentions(text: string, allEntities: MentionEntity[]): MentionSegme
     const entityType = LABEL_TO_TYPE[label]
     const rest = text.slice(match.index + match[0].length)
 
+    // 1. Try to resolve to a known entity name (longest match wins)
     const candidates = allEntities
       .filter(e => e.type === entityType && rest.startsWith(e.name))
       .sort((a, b) => b.name.length - a.name.length)
 
+    let chipName: string
+    let consumeLength: number
+    let resolved: boolean
+
     if (candidates.length > 0) {
-      const entity = candidates[0]
-      if (match.index > lastIndex) {
-        result.push({ kind: 'text', value: text.slice(lastIndex, match.index) })
-      }
-      result.push({ kind: 'mention', entityType, name: entity.name })
-      lastIndex = match.index + match[0].length + entity.name.length
-      pattern.lastIndex = lastIndex
+      chipName = candidates[0].name
+      consumeLength = candidates[0].name.length
+      resolved = true
+    } else {
+      // 2. Syntax-only fallback: grab text until next @ or newline, trim trailing whitespace
+      const syntaxMatch = rest.match(/^([^@\n]+)/)
+      if (!syntaxMatch) continue
+      chipName = syntaxMatch[1].trimEnd()
+      consumeLength = syntaxMatch[1].length   // keep raw length for index advance
+      resolved = false
     }
+
+    if (match.index > lastIndex) {
+      result.push({ kind: 'text', value: text.slice(lastIndex, match.index) })
+    }
+    result.push({ kind: 'mention', entityType, name: chipName, resolved })
+    lastIndex = match.index + match[0].length + consumeLength
+    pattern.lastIndex = lastIndex
   }
 
   if (lastIndex < text.length) {
@@ -136,12 +156,13 @@ function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const subtitle = entity
-    ? [entity.role, entity.type, entity.class].filter(Boolean).join(' · ')
-    : ''
-  const levelRace = entity
-    ? [entity.level ? `Lv${entity.level}` : '', entity.race].filter(Boolean).join(' · ')
-    : ''
+  const subtitleParts = entity
+    ? [entity.role, entity.type, entity.class].filter(Boolean)
+    : []
+  const levelRaceParts = entity
+    ? [entity.level ? `Lv${entity.level}` : '', entity.race].filter(Boolean)
+    : []
+  const allSubtitleParts = [...subtitleParts, ...levelRaceParts]
 
   return (
     <div
@@ -152,19 +173,30 @@ function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
         className="bg-surface rounded-card border border-border w-full max-w-sm shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* ── Header ── */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-          <span className={cn('p-1.5 rounded shrink-0', TYPE_COLORS[target.entityType])}>
-            {TYPE_ICONS[target.entityType]}
-          </span>
+          {/* PC portrait thumbnail */}
+          {target.entityType === 'pc' && entity?.portraitAsset ? (
+            <img
+              src={`/api/assets/${entity.portraitAsset.id}/serve`}
+              alt={entity.name}
+              className="w-10 h-10 rounded-full object-cover shrink-0 border border-border"
+            />
+          ) : (
+            <span className={cn('p-1.5 rounded shrink-0', TYPE_COLORS[target.entityType])}>
+              {TYPE_ICONS[target.entityType]}
+            </span>
+          )}
+
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-ink text-sm truncate">{target.name}</h3>
-            {(subtitle || levelRace) && (
+            {allSubtitleParts.length > 0 && (
               <p className="text-[11px] text-ink-muted truncate">
-                {[subtitle, levelRace].filter(Boolean).join(' · ')}
+                {allSubtitleParts.join(' · ')}
               </p>
             )}
           </div>
+
           <span className={cn(
             'text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider shrink-0',
             TYPE_COLORS[target.entityType],
@@ -174,7 +206,7 @@ function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
           <button className="btn-ghost p-1 shrink-0" onClick={onClose}><X size={14} /></button>
         </div>
 
-        {/* Body */}
+        {/* ── Body ── */}
         <div className="px-5 py-4 space-y-3 max-h-80 overflow-y-auto">
           {!entity ? (
             <p className="text-sm text-ink-muted text-center py-4">No details found</p>
@@ -185,9 +217,9 @@ function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
                 <>
                   {(entity.playerName || entity.background || entity.alignment) && (
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
-                      {entity.playerName  && <span>Player: <span className="text-ink">{entity.playerName}</span></span>}
-                      {entity.background  && <span>Background: <span className="text-ink">{entity.background}</span></span>}
-                      {entity.alignment   && <span>Alignment: <span className="text-ink">{entity.alignment}</span></span>}
+                      {entity.playerName && <span>Player: <span className="text-ink">{entity.playerName}</span></span>}
+                      {entity.background && <span>Background: <span className="text-ink">{entity.background}</span></span>}
+                      {entity.alignment  && <span>Alignment: <span className="text-ink">{entity.alignment}</span></span>}
                     </div>
                   )}
                   {entity.combatStats && Object.values(entity.combatStats).some(v => v != null) && (
@@ -224,31 +256,51 @@ function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
                       })}
                     </div>
                   )}
+                  {entity.notes && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted mb-1">Notes</p>
+                      <p className="text-xs text-ink leading-relaxed line-clamp-4">{entity.notes}</p>
+                    </div>
+                  )}
                 </>
               )}
 
               {/* ── NPC ── */}
               {target.entityType === 'npc' && (
-                (entity.status || entity.dispositionToParty) && (
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {entity.status && (
-                      <span className={cn(
-                        'px-2 py-0.5 rounded-full text-[10px] font-medium',
-                        entity.status === 'alive'   ? 'bg-green-500/15 text-green-400' :
-                        entity.status === 'dead'    ? 'bg-red-500/15 text-red-400' :
-                        entity.status === 'missing' ? 'bg-orange-500/15 text-orange-400' :
-                        'bg-surface-2 text-ink-muted',
-                      )}>
-                        {entity.status}
-                      </span>
-                    )}
-                    {entity.dispositionToParty && (
-                      <span className="text-xs text-ink-muted">
-                        Disposition: <span className="text-ink">{entity.dispositionToParty}</span>
-                      </span>
-                    )}
-                  </div>
-                )
+                <>
+                  {(entity.status || entity.dispositionToParty) && (
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {entity.status && (
+                        <span className={cn(
+                          'px-2 py-0.5 rounded-full text-[10px] font-medium',
+                          entity.status === 'alive'   ? 'bg-green-500/15 text-green-400' :
+                          entity.status === 'dead'    ? 'bg-red-500/15 text-red-400' :
+                          entity.status === 'missing' ? 'bg-orange-500/15 text-orange-400' :
+                          'bg-surface-2 text-ink-muted',
+                        )}>
+                          {entity.status}
+                        </span>
+                      )}
+                      {entity.dispositionToParty && (
+                        <span className="text-xs text-ink-muted">
+                          Disposition: <span className="text-ink">{entity.dispositionToParty}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {entity.personality && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted mb-1">Personality</p>
+                      <p className="text-xs text-ink leading-relaxed line-clamp-3">{entity.personality}</p>
+                    </div>
+                  )}
+                  {entity.motivations && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted mb-1">Motivations</p>
+                      <p className="text-xs text-ink leading-relaxed line-clamp-3">{entity.motivations}</p>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* ── Item ── */}
@@ -277,24 +329,20 @@ function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
                 </div>
               )}
 
-              {/* ── NPC personality/appearance ── */}
-              {target.entityType === 'npc' && entity.personality && (
+              {/* ── GM notes (NPC / Location / Item / Faction) ── */}
+              {target.entityType !== 'pc' && (entity.dmOnlyNotes || entity.notes) && (
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted mb-1">Personality</p>
-                  <p className="text-xs text-ink leading-relaxed line-clamp-3">{entity.personality}</p>
-                </div>
-              )}
-              {target.entityType === 'npc' && entity.motivations && (
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted mb-1">Motivations</p>
-                  <p className="text-xs text-ink leading-relaxed line-clamp-3">{entity.motivations}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted mb-1">GM Notes</p>
+                  <p className="text-xs text-ink leading-relaxed line-clamp-4">
+                    {entity.dmOnlyNotes || entity.notes}
+                  </p>
                 </div>
               )}
             </>
           )}
         </div>
 
-        {/* Footer — navigate to full sheet for PCs */}
+        {/* ── Footer — full sheet link for PCs ── */}
         {target.entityType === 'pc' && entity && (
           <div className="px-5 pb-4 pt-1">
             <button
@@ -337,7 +385,7 @@ export default function MentionTextarea({ value, onChange, campaignId, className
     ...(factionData?.items ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'faction'  as const })),
   ], [pcData, npcData, locData, itemData, factionData])
 
-  // Full entity lookup map keyed by "type:name" for the overlay
+  // Full entity lookup map keyed "type:name" for the overlay
   const rawMap = useMemo(() => {
     const map = new Map<string, RawEntity>()
     for (const e of pcData?.items      ?? []) map.set(`pc:${e.name}`,       e as RawEntity)
@@ -419,7 +467,7 @@ export default function MentionTextarea({ value, onChange, campaignId, className
   return (
     <div className="relative flex-1 flex flex-col min-h-0">
 
-      {/* ── Textarea (always mounted to maintain layout; hidden when blurred) ─ */}
+      {/* ── Textarea (always in layout; invisible when blurred to hold space) ── */}
       <textarea
         ref={textareaRef}
         className={cn(className, !focused && 'invisible')}
@@ -436,7 +484,7 @@ export default function MentionTextarea({ value, onChange, campaignId, className
         }}
       />
 
-      {/* ── Rendered view with chips (shown when blurred) ────────────────────── */}
+      {/* ── Rendered view with chips (overlaid when blurred) ─────────────────── */}
       {!focused && (
         <div
           className={cn(
@@ -459,7 +507,9 @@ export default function MentionTextarea({ value, onChange, campaignId, className
                   }}
                   className={cn(
                     'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium mx-0.5 cursor-pointer transition-colors',
-                    CHIP_COLORS[seg.entityType],
+                    seg.resolved
+                      ? CHIP_COLORS[seg.entityType]
+                      : 'bg-surface-2 text-ink-muted border border-border hover:bg-surface',
                   )}
                 >
                   {TYPE_ICONS[seg.entityType]}
