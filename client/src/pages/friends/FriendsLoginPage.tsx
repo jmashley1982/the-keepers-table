@@ -34,7 +34,7 @@ export default function FriendsLoginPage() {
 
         <form onSubmit={handleSubmit} className="card p-6 flex flex-col gap-4">
           <div>
-            <label className="label mb-1">Your name</label>
+            <label className="label mb-1">Your first name</label>
             <input
               className="input w-full"
               type="text"
