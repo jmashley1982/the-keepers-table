@@ -153,9 +153,12 @@ export default function MentionTextarea({ value, onChange, campaignId, className
               <button
                 key={entity.id}
                 onMouseDown={e => { e.preventDefault(); insertMention(entity) }}
+                onMouseEnter={() => setSelectedIdx(i)}
                 className={cn(
-                  'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors',
-                  i === selectedIdx ? 'bg-accent/10' : 'hover:bg-surface-2'
+                  'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors border-l-2',
+                  i === selectedIdx
+                    ? 'bg-accent/20 border-accent text-ink'
+                    : 'border-transparent hover:bg-surface-2'
                 )}
               >
                 <span className="text-ink-muted shrink-0">{TYPE_ICONS[entity.type]}</span>
