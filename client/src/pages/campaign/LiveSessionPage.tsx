@@ -804,21 +804,6 @@ export default function LiveSessionPage() {
           )}
         </div>
 
-        {/* ── RIGHT: Quick reference / encounter bar ────────────── */}
-        <div className="hidden md:flex w-56 border-l border-border bg-surface flex-col shrink-0 overflow-hidden">
-          <div className="px-3 py-2.5 border-b border-border shrink-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Quick Reference</p>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {/* Session encounters */}
-            <QuickRefSection
-              campaignId={campaignId!}
-              sessionId={sessionId!}
-              navigate={navigate}
-            />
-          </div>
-        </div>
       </div>
 
       {/* ── Mobile dot indicator ──────────────────────────────────── */}
@@ -973,61 +958,5 @@ export default function LiveSessionPage() {
   )
 }
 
-// ─── Quick Reference sidebar ───────────────────────────────────────────────────
-function QuickRefSection({ campaignId, sessionId, navigate }: { campaignId: string; sessionId: string; navigate: ReturnType<typeof useNavigate> }) {
-  const { data } = useQuery({
-    queryKey: ['entities', campaignId, 'encounters'],
-    queryFn: () => api.get(`/api/entities/${campaignId}/encounters`).then(r => r.data),
-    enabled: !!campaignId,
-  })
 
-  const encounters: Encounter[] = data?.items ?? []
-  const sessionEncounters = encounters.filter(e => e.sessionId === sessionId)
-  const unlinked = encounters.filter(e => !e.sessionId)
-
-  return (
-    <>
-      {sessionEncounters.length > 0 && (
-        <div>
-          <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">This Session</p>
-          <div className="space-y-1.5">
-            {sessionEncounters.map(enc => (
-              <div key={enc.id} className="p-2 rounded-card bg-surface-2 border border-border/50">
-                <p className="text-xs font-medium text-ink">{enc.name}</p>
-                <p className="text-[10px] text-ink-muted">{enc.type} · {enc.difficulty}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {unlinked.length > 0 && (
-        <div>
-          <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">All Encounters</p>
-          <div className="space-y-1.5">
-            {unlinked.slice(0, 6).map(enc => (
-              <div key={enc.id} className="p-2 rounded-card bg-surface-2 border border-border/50">
-                <p className="text-xs font-medium text-ink">{enc.name}</p>
-                <p className="text-[10px] text-ink-muted">{enc.type} · {enc.difficulty}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {encounters.length === 0 && (
-        <div className="text-center pt-4">
-          <Swords size={24} className="mx-auto text-ink-muted/30 mb-2" />
-          <p className="text-[10px] text-ink-muted mb-2">No encounters yet</p>
-          <button
-            className="btn-ghost text-xs text-accent"
-            onClick={() => navigate(`/campaign/${campaignId}/generate/encounter`)}
-          >
-            <Plus size={10} /> Generate
-          </button>
-        </div>
-      )}
-    </>
-  )
-}
 
