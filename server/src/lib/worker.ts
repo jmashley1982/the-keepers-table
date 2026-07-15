@@ -351,7 +351,8 @@ Return ONLY valid JSON — no prose, no markdown:
     }
 
     // ── Friend quota check (defense-in-depth before Evolink submit) ────────
-    if (isFriendJobUser) {
+    // Only enforce if the friend has no stored Evolink credential of their own
+    if (isFriendJobUser && !evolinkCred?.encryptedKey) {
       const imageJobCount = await prisma.generationJob.count({
         where: { userId: genJob.userId, provider: 'evolink', status: { not: 'failed' }, id: { not: jobId } },
       })
