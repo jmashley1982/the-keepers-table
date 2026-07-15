@@ -57,6 +57,13 @@ export default function GenerateArtButton({
   const [aspectRatio] = useState<AspectRatio>('portrait')
   const [isPreviewing, setIsPreviewing] = useState(false)
 
+  const { data: authData } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get('/auth/me').then(r => r.data),
+    staleTime: 5 * 60_000,
+  })
+  const isFriend = authData?.user?.isFriend === true
+
   const { data: credsData } = useQuery({
     queryKey: ['credentials'],
     queryFn: () => api.get('/api/credentials').then(r => r.data),
@@ -66,11 +73,13 @@ export default function GenerateArtButton({
     (c: { provider: string }) => c.provider === 'evolink'
   )
 
+  const canGenerateImage = hasEvoLink || isFriend
+
   const { data: presetsData } = useQuery({
     queryKey: ['style-presets'],
     queryFn: () => api.get('/api/style-presets').then(r => r.data),
     staleTime: 120_000,
-    enabled: hasEvoLink,
+    enabled: canGenerateImage,
   })
   const presets: StylePreset[] = presetsData?.presets ?? []
 
@@ -217,7 +226,7 @@ export default function GenerateArtButton({
 
   const isSubmitting = generateMutation.isPending
 
-  if (!hasEvoLink) return null
+  if (!canGenerateImage) return null
 
   return (
     <div className="flex flex-col gap-0.5">

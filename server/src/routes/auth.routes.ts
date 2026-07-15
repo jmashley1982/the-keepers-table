@@ -103,5 +103,6 @@ authRouter.get('/me', async (req, res) => {
     res.status(401).json({ error: 'Not authenticated' })
     return
   }
-  res.json({ user: dbUser, isDemo: req.session.isDemo ?? false })
+  const isFriend = dbUser.email.startsWith('friend_') && dbUser.email.endsWith('@keeper.internal')
+  res.json({ user: { ...dbUser, isFriend }, isDemo: req.session.isDemo ?? false })
 })

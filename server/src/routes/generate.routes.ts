@@ -276,6 +276,19 @@ const ENEMY_SCHEMA_DW = `{
   }
 }`
 
+// ── Location Generator ────────────────────────────────────────────────────────
+
+const LOCATION_SCHEMA = `{
+  "name": "string — evocative location name",
+  "type": "string — settlement|dungeon|wilderness|building|ruins|landmark|other",
+  "description": "string — 2-3 sentences describing the look, feel, and atmosphere",
+  "atmosphere": "string — the mood or tone in 1 sentence",
+  "notableFeatures": ["string — distinct details a visitor would notice"],
+  "hooks": ["string — potential adventure hooks or points of interest"],
+  "dmOnlyNotes": "string — secrets, hidden dangers, or GM-facing info",
+  "tags": ["string"]
+}`
+
 // ── Session Wrap ──────────────────────────────────────────────────────────────
 
 const SESSION_WRAP_SCHEMA = `{
@@ -297,6 +310,7 @@ const KIND_SCHEMAS: Record<string, string> = {
   dialogue: DIALOGUE_SCHEMA,
   faction: FACTION_SCHEMA,
   plot_thread: PLOT_THREAD_SCHEMA,
+  location: LOCATION_SCHEMA,
   session_wrap: SESSION_WRAP_SCHEMA,
   enemy: ENEMY_SCHEMA,
 }
@@ -306,7 +320,7 @@ const KIND_SCHEMAS: Record<string, string> = {
 async function handleTextGenerate(req: Request, res: Response): Promise<void> {
   const userId = res.locals.user.id
   const schema = z.object({
-    kind: z.enum(['npc', 'encounter', 'treasure', 'dialogue', 'faction', 'plot_thread', 'session_wrap', 'quick', 'prep_suggestions', 'enemy']),
+    kind: z.enum(['npc', 'encounter', 'treasure', 'dialogue', 'faction', 'plot_thread', 'location', 'session_wrap', 'quick', 'prep_suggestions', 'enemy']),
     campaignId: z.string().optional(),
     prompt: z.string(),
     sessionId: z.string().optional(),
