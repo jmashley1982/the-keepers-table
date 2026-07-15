@@ -60,6 +60,9 @@ friendsRouter.post('/login', async (req, res) => {
   })
 })
 
+const FRIEND_TEXT_LIMIT = 24
+const FRIEND_IMAGE_LIMIT = 12
+
 friendsRouter.get('/me', async (req, res) => {
   const userId = req.session?.userId
   if (!userId) {
@@ -71,7 +74,26 @@ friendsRouter.get('/me', async (req, res) => {
     res.status(401).json({ error: 'Not a friend account' })
     return
   }
-  res.json({ username: user.displayName, isFriend: true })
+
+  const [textUsed, imageUsed] = await Promise.all([
+    prisma.generationJob.count({
+      where: { userId, provider: 'anthropic', status: { not: 'failed' } },
+    }),
+    prisma.generationJob.count({
+      where: { userId, provider: 'evolink', status: { not: 'failed' } },
+    }),
+  ])
+
+  res.json({
+    username: user.displayName,
+    isFriend: true,
+    quota: {
+      textUsed,
+      textLimit: FRIEND_TEXT_LIMIT,
+      imageUsed,
+      imageLimit: FRIEND_IMAGE_LIMIT,
+    },
+  })
 })
 
 friendsRouter.post('/logout', (req, res) => {

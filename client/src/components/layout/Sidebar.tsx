@@ -11,6 +11,7 @@ import {
 import { useState } from 'react'
 import { themeLogo } from '../../lib/themeLogo'
 import RulesReferencePanel from '../dnd5e/RulesReferencePanel'
+import FriendQuotaBar from './FriendQuotaBar'
 
 const THEME_OPTIONS = [
   { id: 'candlelight',  label: 'Candlelight',   icon: Flame },
@@ -139,6 +140,9 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
         </div>
         {navLink('/settings', <Settings size={15} />, 'Settings', true)}
       </nav>
+
+      {/* Friend quota */}
+      <FriendQuotaBar />
 
       {/* Theme picker */}
       <div className="px-3 pb-2">

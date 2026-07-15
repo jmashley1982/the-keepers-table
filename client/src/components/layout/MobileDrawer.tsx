@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { themeLogo } from '../../lib/themeLogo'
+import FriendQuotaBar from './FriendQuotaBar'
 
 const THEME_OPTIONS = [
   { id: 'candlelight',    label: 'Candlelight',   icon: Flame },
@@ -165,6 +166,9 @@ export default function MobileDrawer({ open, onClose }: Props) {
           </div>
           {navItem('/settings', <Settings size={16} />, 'Account Settings', true)}
         </nav>
+
+        {/* Friend quota */}
+        <FriendQuotaBar />
 
         {/* Theme picker */}
         <div className="px-3 pb-2">
