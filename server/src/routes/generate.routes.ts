@@ -846,6 +846,69 @@ generateRouter.post('/image', async (req, res) => {
   res.json({ jobId: job.id })
 })
 
+// ── Quick Image generation (prompt-only, no entity attachment) ───────────────
+
+generateRouter.post('/quick-image', async (req, res) => {
+  const userId = res.locals.user.id
+  const schema = z.object({
+    prompt:     z.string().min(1),
+    campaignId: z.string().min(1),
+    model:      z.string().optional(),
+  })
+
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid request' })
+    return
+  }
+
+  const { prompt, campaignId, model } = parsed.data
+
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId } })
+  if (!campaign) {
+    res.status(403).json({ error: 'Campaign not found or forbidden' })
+    return
+  }
+
+  const imageQuota = await checkFriendImageQuota(userId)
+  if (!imageQuota.allowed) {
+    res.status(429).json({ error: imageQuota.error })
+    return
+  }
+
+  const resolvedModel  = model ?? 'nano-banana-2'
+  const costEstimate   = getImageCostEstimate(resolvedModel)
+
+  const job = await prisma.generationJob.create({
+    data: {
+      userId,
+      campaignId,
+      provider:      'evolink',
+      kind:          'quick_image',
+      status:        'queued',
+      costEstimate,
+      input: {
+        kind:       'quick_image',
+        entityId:   '',
+        entityType: '',
+        prompt,
+        model:      resolvedModel,
+      },
+    },
+  })
+
+  try {
+    await getBoss().send('image.generate', { jobId: job.id })
+  } catch (enqueueErr) {
+    const msg = enqueueErr instanceof Error ? enqueueErr.message : 'Failed to enqueue job'
+    await prisma.generationJob.update({ where: { id: job.id }, data: { status: 'failed', error: msg } })
+    res.status(503).json({ error: `Image queue unavailable: ${msg}` })
+    return
+  }
+
+  res.json({ jobId: job.id })
+})
+
 // ── Pricing metadata ──────────────────────────────────────────────────────────
 
 generateRouter.get('/pricing', (_req, res) => {
