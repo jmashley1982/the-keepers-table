@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { User, MapPin, BookOpen, Scroll, Shield, X, ExternalLink } from 'lucide-react'
+import { User, MapPin, BookOpen, Scroll, Shield, X, ExternalLink, Sword } from 'lucide-react'
 
-export type EntityType = 'pc' | 'npc' | 'location' | 'item' | 'faction'
+export type EntityType = 'pc' | 'npc' | 'location' | 'item' | 'faction' | 'enemy'
 
 export interface MentionEntity {
   id: string
@@ -15,11 +15,11 @@ export interface MentionEntity {
 }
 
 export const TYPE_LABELS: Record<EntityType, string> = {
-  pc: 'PC', npc: 'NPC', location: 'Loc', item: 'Item', faction: 'Faction',
+  pc: 'PC', npc: 'NPC', location: 'Loc', item: 'Item', faction: 'Faction', enemy: 'Enemy',
 }
 
 export const LABEL_TO_TYPE: Record<string, EntityType> = {
-  PC: 'pc', NPC: 'npc', Loc: 'location', Item: 'item', Faction: 'faction',
+  PC: 'pc', NPC: 'npc', Loc: 'location', Item: 'item', Faction: 'faction', Enemy: 'enemy',
 }
 
 export const TYPE_COLORS: Record<EntityType, string> = {
@@ -28,6 +28,7 @@ export const TYPE_COLORS: Record<EntityType, string> = {
   location: 'bg-emerald-500/15 text-emerald-400',
   item:     'bg-orange-500/15 text-orange-400',
   faction:  'bg-purple-500/15 text-purple-400',
+  enemy:    'bg-red-500/15 text-red-400',
 }
 
 export const CHIP_COLORS: Record<EntityType, string> = {
@@ -36,6 +37,7 @@ export const CHIP_COLORS: Record<EntityType, string> = {
   location: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/35',
   item:     'bg-orange-500/20 text-orange-300 border border-orange-500/30 hover:bg-orange-500/35',
   faction:  'bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/35',
+  enemy:    'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/35',
 }
 
 export const TYPE_ICONS: Record<EntityType, React.ReactNode> = {
@@ -44,6 +46,7 @@ export const TYPE_ICONS: Record<EntityType, React.ReactNode> = {
   location: <MapPin size={10} />,
   item:     <BookOpen size={10} />,
   faction:  <Scroll size={10} />,
+  enemy:    <Sword size={10} />,
 }
 
 export interface RawEntity {
@@ -71,6 +74,8 @@ export interface RawEntity {
   category?: string
   mechanicalEffect?: string
   portraitAsset?: { id: string } | null
+  enemyType?: string
+  cr?: string | number
 }
 
 export type MentionSegment =
@@ -83,7 +88,7 @@ export function parseMentions(text: string, allEntities: MentionEntity[]): Menti
   //   New:  @TYPE[id:StoredName]: — self-contained; consumeLength = 0 (name is inside brackets)
   //   Old:  @TYPE:Name            — legacy name-based; consumeLength = entity name length
   // The regex captures everything inside [...] as group 2 (undefined for legacy tokens).
-  const pattern = /@(PC|NPC|Loc|Item|Faction)(?:\[([^\]]*)\])?:/g
+  const pattern = /@(PC|NPC|Loc|Item|Faction|Enemy)(?:\[([^\]]*)\])?:/g
   let lastIndex = 0
   let match: RegExpExecArray | null
 
@@ -202,9 +207,11 @@ export function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
   }, [onClose])
 
   const subtitleParts = entity
-    ? [entity.role, entity.type, entity.class].filter(Boolean)
+    ? target.entityType === 'enemy'
+      ? [entity.enemyType, entity.cr != null ? `CR ${entity.cr}` : ''].filter(Boolean)
+      : [entity.role, entity.type, entity.class].filter(Boolean)
     : []
-  const levelRaceParts = entity
+  const levelRaceParts = entity && target.entityType !== 'enemy'
     ? [entity.level ? `Lv${entity.level}` : '', entity.race].filter(Boolean)
     : []
   const allSubtitleParts = [...subtitleParts, ...levelRaceParts]
@@ -415,6 +422,12 @@ export default function MentionText({ text, campaignId, className }: MentionText
   const { data: itemData }    = useQuery({ queryKey: ['entities', campaignId, 'items'],     queryFn: () => api.get(`/api/entities/${campaignId}/items`).then(r => r.data),     enabled: !!campaignId })
   const { data: factionData } = useQuery({ queryKey: ['entities', campaignId, 'factions'], queryFn: () => api.get(`/api/entities/${campaignId}/factions`).then(r => r.data), enabled: !!campaignId })
   const { data: pcData }      = useQuery({ queryKey: ['player-characters', campaignId],    queryFn: () => api.get(`/api/campaigns/${campaignId}/player-characters`).then(r => r.data), enabled: !!campaignId })
+  const { data: enemyData }   = useQuery({ queryKey: ['enemies', campaignId],              queryFn: () => api.get(`/api/campaigns/${campaignId}/enemies`).then(r => r.data),  enabled: !!campaignId })
+
+  const allEnemies: RawEntity[] = useMemo(() => [
+    ...(enemyData?.srdEnemies    ?? []).map((e: RawEntity) => e as RawEntity),
+    ...(enemyData?.customEnemies ?? []).map((e: RawEntity) => e as RawEntity),
+  ], [enemyData])
 
   const allEntities: MentionEntity[] = useMemo(() => [
     ...(pcData?.items      ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'pc'       as const, subtitle: [e.class, e.level ? `Lv${e.level}` : ''].filter(Boolean).join(' ') || undefined })),
@@ -422,7 +435,8 @@ export default function MentionText({ text, campaignId, className }: MentionText
     ...(locData?.items     ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'location' as const, subtitle: e.type })),
     ...(itemData?.items    ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'item'     as const })),
     ...(factionData?.items ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'faction'  as const })),
-  ], [pcData, npcData, locData, itemData, factionData])
+    ...allEnemies.map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'enemy' as const, subtitle: e.enemyType })),
+  ], [pcData, npcData, locData, itemData, factionData, allEnemies])
 
   const rawMap = useMemo(() => {
     const map = new Map<string, RawEntity>()
@@ -431,8 +445,9 @@ export default function MentionText({ text, campaignId, className }: MentionText
     for (const e of locData?.items     ?? []) { map.set(`location:${e.name}`,    e as RawEntity); map.set(`location-id:${e.id}`,    e as RawEntity) }
     for (const e of itemData?.items    ?? []) { map.set(`item:${e.name}`,        e as RawEntity); map.set(`item-id:${e.id}`,        e as RawEntity) }
     for (const e of factionData?.items ?? []) { map.set(`faction:${e.name}`,     e as RawEntity); map.set(`faction-id:${e.id}`,     e as RawEntity) }
+    for (const e of allEnemies)               { map.set(`enemy:${e.name}`,       e as RawEntity); map.set(`enemy-id:${e.id}`,       e as RawEntity) }
     return map
-  }, [pcData, npcData, locData, itemData, factionData])
+  }, [pcData, npcData, locData, itemData, factionData, allEnemies])
 
   const segments = useMemo(() => parseMentions(text, allEntities), [text, allEntities])
 

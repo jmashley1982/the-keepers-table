@@ -39,6 +39,12 @@ export default function MentionTextarea({ value, onChange, campaignId, className
   const { data: itemData }    = useQuery({ queryKey: ['entities', campaignId, 'items'],     queryFn: () => api.get(`/api/entities/${campaignId}/items`).then(r => r.data),     enabled: !!campaignId })
   const { data: factionData } = useQuery({ queryKey: ['entities', campaignId, 'factions'], queryFn: () => api.get(`/api/entities/${campaignId}/factions`).then(r => r.data), enabled: !!campaignId })
   const { data: pcData }      = useQuery({ queryKey: ['player-characters', campaignId],    queryFn: () => api.get(`/api/campaigns/${campaignId}/player-characters`).then(r => r.data), enabled: !!campaignId })
+  const { data: enemyData }   = useQuery({ queryKey: ['enemies', campaignId],              queryFn: () => api.get(`/api/campaigns/${campaignId}/enemies`).then(r => r.data),  enabled: !!campaignId })
+
+  const allEnemies: RawEntity[] = useMemo(() => [
+    ...(enemyData?.srdEnemies    ?? []).map((e: RawEntity) => e as RawEntity),
+    ...(enemyData?.customEnemies ?? []).map((e: RawEntity) => e as RawEntity),
+  ], [enemyData])
 
   const allEntities: MentionEntity[] = useMemo(() => [
     ...(pcData?.items      ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'pc'       as const, subtitle: [e.class, e.level ? `Lv${e.level}` : ''].filter(Boolean).join(' ') || undefined })),
@@ -46,7 +52,8 @@ export default function MentionTextarea({ value, onChange, campaignId, className
     ...(locData?.items     ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'location' as const, subtitle: e.type })),
     ...(itemData?.items    ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'item'     as const })),
     ...(factionData?.items ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'faction'  as const })),
-  ], [pcData, npcData, locData, itemData, factionData])
+    ...allEnemies.map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'enemy' as const, subtitle: e.enemyType })),
+  ], [pcData, npcData, locData, itemData, factionData, allEnemies])
 
   const rawMap = useMemo(() => {
     const map = new Map<string, RawEntity>()
@@ -55,8 +62,9 @@ export default function MentionTextarea({ value, onChange, campaignId, className
     for (const e of locData?.items     ?? []) { map.set(`location:${e.name}`,    e as RawEntity); map.set(`location-id:${e.id}`,    e as RawEntity) }
     for (const e of itemData?.items    ?? []) { map.set(`item:${e.name}`,        e as RawEntity); map.set(`item-id:${e.id}`,        e as RawEntity) }
     for (const e of factionData?.items ?? []) { map.set(`faction:${e.name}`,     e as RawEntity); map.set(`faction-id:${e.id}`,     e as RawEntity) }
+    for (const e of allEnemies)               { map.set(`enemy:${e.name}`,       e as RawEntity); map.set(`enemy-id:${e.id}`,       e as RawEntity) }
     return map
-  }, [pcData, npcData, locData, itemData, factionData])
+  }, [pcData, npcData, locData, itemData, factionData, allEnemies])
 
   const filtered = useMemo(
     () => mentionState
