@@ -821,6 +821,27 @@ export default function LiveSessionPage() {
         </div>
       </div>
 
+      {/* ── Mobile dot indicator ──────────────────────────────────── */}
+      <div className="md:hidden flex items-center justify-center gap-2.5 py-2.5 bg-surface border-t border-border shrink-0">
+        {PANELS.map(panel => (
+          <button
+            key={panel}
+            onClick={() => setActivePanel(panel)}
+            className="p-1.5 touch-manipulation"
+            aria-label={`Go to ${panel} panel`}
+          >
+            <span
+              className={cn(
+                'block rounded-full transition-all duration-200',
+                activePanel === panel
+                  ? 'w-2.5 h-2.5 bg-accent'
+                  : 'w-2 h-2 bg-ink-muted/30',
+              )}
+            />
+          </button>
+        ))}
+      </div>
+
       {/* ── Session Wrap Modal ────────────────────────────────────── */}
       {wrapOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
