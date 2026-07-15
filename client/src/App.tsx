@@ -5,6 +5,7 @@ import { useUIStore } from './store/useUIStore'
 import { useEffect } from 'react'
 
 // Pages
+import SplashPage from './pages/SplashPage'
 import FriendsLoginPage from './pages/friends/FriendsLoginPage'
 import LoginPage from './pages/auth/LoginPage'
 import OnboardingPage from './pages/auth/OnboardingPage'
@@ -59,7 +60,10 @@ export default function App() {
       {/* Friends login */}
       <Route path="/friends" element={<FriendsLoginPage />} />
 
-      {/* Public */}
+      {/* Splash / landing */}
+      <Route path="/" element={<SplashPage />} />
+
+      {/* Public auth */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<Navigate to="/login" replace />} />
       <Route path="/onboarding" element={<OnboardingPage />} />

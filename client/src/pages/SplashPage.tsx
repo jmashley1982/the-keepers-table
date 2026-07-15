@@ -1,0 +1,191 @@
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api, apiError } from '../lib/api'
+import { useUIStore } from '../store/useUIStore'
+import { themeLogo } from '../lib/themeLogo'
+import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn } from 'lucide-react'
+
+const FEATURES = [
+  {
+    icon: Zap,
+    title: 'Quick Generate',
+    desc: 'Spin up NPCs, encounters, locations, and loot mid-session — one prompt, instant results.',
+  },
+  {
+    icon: Swords,
+    title: 'Live Session Tools',
+    desc: 'Track initiative, notes, and entities in real time while you run the table.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Campaign Library',
+    desc: 'Organise every NPC, faction, location, and plot thread in one place.',
+  },
+  {
+    icon: Map,
+    title: 'Battle & World Maps',
+    desc: 'Generate evocative maps on demand and pin locations to your world.',
+  },
+]
+
+export default function SplashPage() {
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  const theme = useUIStore(s => s.theme)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get('/auth/me').then(r => r.data),
+    retry: false,
+  })
+
+  useEffect(() => {
+    if (!isLoading && data?.user) {
+      navigate('/campaigns', { replace: true })
+    }
+  }, [data, isLoading, navigate])
+
+  const demo = useMutation({
+    mutationFn: () => api.post('/auth/demo/login'),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['me'] })
+      navigate(`/campaigns/${res.data.campaignId}`)
+    },
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="min-h-screen flex flex-col relative overflow-hidden"
+      style={{ background: 'var(--color-bg)' }}
+    >
+      {/* Atmospheric glow */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `
+            radial-gradient(ellipse 70% 50% at 50% 0%,
+              color-mix(in srgb, var(--color-accent) 12%, transparent) 0%,
+              transparent 70%),
+            radial-gradient(ellipse 100% 100% at 50% 50%,
+              transparent 40%,
+              rgba(0,0,0,0.5) 100%)
+          `,
+        }}
+      />
+
+      {/* Nav bar */}
+      <header className="relative z-10 flex items-center justify-between px-6 py-4 max-w-5xl mx-auto w-full">
+        <img
+          src={themeLogo(theme)}
+          alt="The Keeper's Table"
+          className="h-8 w-auto logo-theme opacity-80"
+        />
+        <button
+          className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
+          onClick={() => navigate('/login')}
+        >
+          <LogIn size={15} />
+          Sign in
+        </button>
+      </header>
+
+      {/* Hero */}
+      <main className="relative z-10 flex flex-col items-center text-center px-6 pt-16 pb-24 flex-1">
+        <img
+          src={themeLogo(theme)}
+          alt="The Keeper's Table"
+          className="h-32 w-auto mx-auto mb-6 logo-theme"
+          style={{
+            filter: 'drop-shadow(0 0 40px color-mix(in srgb, var(--color-accent) 35%, transparent))',
+          }}
+        />
+
+        <h1
+          className="display-font text-4xl sm:text-5xl font-bold mb-4 leading-tight"
+          style={{ color: 'var(--color-ink)' }}
+        >
+          The Keeper's Table
+        </h1>
+
+        <p className="text-ink-muted text-lg max-w-xl mb-10 leading-relaxed">
+          The AI-powered command centre for Game Masters.
+          Built for live play — generate anything, track everything, never lose the thread.
+        </p>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 mb-20">
+          <button
+            onClick={() => demo.mutate()}
+            disabled={demo.isPending}
+            className="flex items-center gap-2 px-6 py-3 rounded-card font-semibold text-sm transition-all disabled:opacity-50 min-w-[220px] justify-center"
+            style={{
+              background: 'var(--color-accent)',
+              color: '#fff',
+              boxShadow: '0 0 24px color-mix(in srgb, var(--color-accent) 40%, transparent)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
+            onMouseLeave={e => (e.currentTarget.style.filter = '')}
+          >
+            <FlaskConical size={16} />
+            {demo.isPending ? 'Loading demo…' : 'Try the demo — no sign‑up needed'}
+          </button>
+
+          <button
+            onClick={() => navigate('/login')}
+            className="flex items-center gap-2 px-6 py-3 rounded-card font-semibold text-sm transition-all min-w-[160px] justify-center"
+            style={{
+              background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)',
+              color: 'var(--color-accent)',
+              border: '1.5px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 18%, transparent)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 10%, transparent)')}
+          >
+            <LogIn size={15} />
+            Sign in
+          </button>
+        </div>
+
+        {demo.isError && (
+          <p className="text-danger text-sm mb-4">{apiError(demo.error)}</p>
+        )}
+
+        {/* Feature grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl w-full text-left">
+          {FEATURES.map(({ icon: Icon, title, desc }) => (
+            <div
+              key={title}
+              className="rounded-card p-5 border border-border/60"
+              style={{
+                background: 'color-mix(in srgb, var(--color-surface) 80%, transparent)',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              <div className="flex items-center gap-2.5 mb-2">
+                <Icon size={16} style={{ color: 'var(--color-accent)' }} />
+                <span className="font-semibold text-sm text-ink">{title}</span>
+              </div>
+              <p className="text-xs text-ink-muted leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 text-center pb-6">
+        <p className="text-[11px] text-ink-muted/40">
+          © {new Date().getFullYear()} The Keeper's Table
+        </p>
+      </footer>
+    </div>
+  )
+}

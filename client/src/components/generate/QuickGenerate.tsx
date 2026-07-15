@@ -1,23 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { X, Zap, Loader, RefreshCw, BookOpen, CheckCircle2, Image } from 'lucide-react'
+import { X, Zap, Loader, RefreshCw, CheckCircle2, Image, Skull, PlusCircle } from 'lucide-react'
 import { useJobStatus } from '../../lib/useJobStatus'
 
-type TextKind = 'auto' | 'npc' | 'encounter' | 'treasure' | 'location' | 'dialogue'
+type TextKind = 'auto' | 'npc' | 'encounter' | 'treasure' | 'location' | 'foe'
 type Kind = TextKind | 'image'
 type Quality = 'low' | 'med' | 'high'
-
-interface SessionSummary {
-  id: string
-  sessionNumber: number
-  status: string
-  dmRawNotes: string | null
-}
+type SaveKind = 'npc' | 'encounter' | 'location' | 'treasure' | 'foe'
 
 const TEXT_KIND_MAP: Record<TextKind, string> = {
   auto: 'quick', npc: 'npc', encounter: 'encounter',
-  treasure: 'treasure', location: 'location', dialogue: 'dialogue',
+  treasure: 'treasure', location: 'location', foe: 'enemy',
 }
 
 const QUALITY_MODELS: Record<Quality, string> = {
@@ -38,7 +32,7 @@ const CHIPS: { kind: Kind; label: string; emoji: string }[] = [
   { kind: 'encounter', label: 'Encounter', emoji: '⚔️' },
   { kind: 'treasure',  label: 'Treasure',  emoji: '💎' },
   { kind: 'location',  label: 'Location',  emoji: '🗺️' },
-  { kind: 'dialogue',  label: 'Dialogue',  emoji: '💬' },
+  { kind: 'foe',       label: 'Foe',       emoji: '💀' },
   { kind: 'image',     label: 'Image',     emoji: '🎨' },
 ]
 
@@ -48,8 +42,27 @@ const PLACEHOLDERS: Record<Kind, string> = {
   encounter: 'Describe an encounter… "undead skeletons guarding a crypt"',
   treasure:  'Describe loot… "reward for saving the village"',
   location:  'Describe a place… "ancient elven library"',
-  dialogue:  'Who is speaking? "the tavern keeper reacts to the party"',
+  foe:       'Describe a foe… "ancient vampire lord with a tragic past"',
   image:     'Describe the image… "misty forest at dawn, ancient ruins"',
+}
+
+const SAVE_CONFIG: Record<SaveKind, { route: string; label: string; extra?: Record<string, string> }> = {
+  npc:       { route: 'npcs',       label: 'Add to NPCs' },
+  encounter: { route: 'encounters', label: 'Add to Encounters' },
+  location:  { route: 'locations',  label: 'Add to Locations' },
+  treasure:  { route: 'items',      label: 'Add to Loot', extra: { category: 'Treasure' } },
+  foe:       { route: 'npcs',       label: 'Add to Foes', extra: { role: 'Foe' } },
+}
+
+const AUTO_SAVE_KINDS: SaveKind[] = ['npc', 'encounter', 'location', 'treasure', 'foe']
+const AUTO_SAVE_LABELS: Record<SaveKind, string> = {
+  npc: 'NPC', encounter: 'Encounter', location: 'Location', treasure: 'Loot', foe: 'Foe',
+}
+
+function extractEntityName(text: string, fallback = 'Generated Entry'): string {
+  const nameLine = text.split('\n').find(l => /^name[:\s]/i.test(l.trim()))
+  if (nameLine) return nameLine.replace(/^name[:\s]+/i, '').trim().slice(0, 80) || fallback
+  return text.split('\n').find(l => l.trim())?.trim().slice(0, 80) || fallback
 }
 
 function flattenToText(val: unknown, depth = 0): string {
@@ -78,15 +91,15 @@ function flattenToText(val: unknown, depth = 0): string {
 }
 
 export default function QuickGenerate({ onClose, campaignId }: { onClose: () => void; campaignId?: string }) {
-  const [prompt, setPrompt]         = useState('')
-  const [kind, setKind]             = useState<Kind>('auto')
-  const [quality, setQuality]       = useState<Quality>('med')
-  const [busy, setBusy]             = useState(false)
+  const [prompt, setPrompt]     = useState('')
+  const [kind, setKind]         = useState<Kind>('auto')
+  const [quality, setQuality]   = useState<Quality>('med')
+  const [busy, setBusy]         = useState(false)
   const [streamText, setStreamText] = useState('')
-  const [result, setResult]         = useState<string | null>(null)
+  const [result, setResult]     = useState<string | null>(null)
   const [imageJobId, setImageJobId] = useState<string | null>(null)
-  const [error, setError]           = useState<string | null>(null)
-  const [sessionMsg, setSessionMsg] = useState<{ text: string; ok: boolean } | null>(null)
+  const [error, setError]       = useState<string | null>(null)
+  const [saveMsg, setSaveMsg]   = useState<{ text: string; ok: boolean } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const imageStatus = useJobStatus(imageJobId)
@@ -98,7 +111,7 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
     setResult(null)
     setStreamText('')
     setImageJobId(null)
-    setSessionMsg(null)
+    setSaveMsg(null)
     setError(null)
   }
 
@@ -108,15 +121,12 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
     setError(null)
     setResult(null)
     setStreamText('')
-    setSessionMsg(null)
+    setSaveMsg(null)
     setImageJobId(null)
 
     try {
       if (kind === 'image') {
-        if (!campaignId) {
-          setError('Open a campaign to generate images')
-          return
-        }
+        if (!campaignId) { setError('Open a campaign to generate images'); return }
         const model = QUALITY_MODELS[quality]
         const { data } = await api.post<{ jobId: string }>('/api/generate/quick-image', {
           prompt, campaignId, model,
@@ -169,27 +179,25 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
     }
   }
 
-  async function addToSession() {
+  async function saveToEntity(saveKind: SaveKind) {
     if (!campaignId || !result) return
-    setSessionMsg(null)
+    setSaveMsg(null)
     try {
-      const { data } = await api.get<{ sessions: SessionSummary[] }>(`/api/campaigns/${campaignId}/sessions`)
-      const sessions = data.sessions
-      const target = sessions.find(s => s.status === 'in_progress') ?? sessions[0]
-      if (!target) {
-        setSessionMsg({ text: 'No session found — start one first', ok: false })
-        return
-      }
-      const kindLabel = CHIPS.find(c => c.kind === kind)?.label ?? 'Quick Gen'
-      const append = `\n\n[${kindLabel} — Quick Gen]\n${result}`
-      await api.patch(`/api/campaigns/${campaignId}/sessions/${target.id}`, {
-        dmRawNotes: (target.dmRawNotes ?? '') + append,
+      const { route, extra } = SAVE_CONFIG[saveKind]
+      const name = extractEntityName(result)
+      await api.post(`/api/entities/${campaignId}/${route}`, {
+        name,
+        description: result,
+        ...extra,
       })
-      setSessionMsg({ text: `Added to Session #${target.sessionNumber}`, ok: true })
+      setSaveMsg({ text: `Saved to ${SAVE_CONFIG[saveKind].label.replace('Add to ', '')}!`, ok: true })
     } catch {
-      setSessionMsg({ text: 'Failed to add to session', ok: false })
+      setSaveMsg({ text: 'Failed to save', ok: false })
     }
   }
+
+  const isTextKind = kind !== 'image'
+  const saveKind = kind !== 'auto' && kind !== 'image' ? (kind as SaveKind) : null
 
   const imageLoading = imageJobId && imageStatus.status !== 'succeeded' && imageStatus.status !== 'failed'
   const imageReady   = imageJobId && imageStatus.status === 'succeeded' && imageStatus.assetId
@@ -208,7 +216,7 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
             <p className="text-2xl">🗺️</p>
             <p className="font-semibold text-ink">Open a campaign first</p>
             <p className="text-sm text-ink-muted">
-              Quick Generate needs a campaign context to save output — open one from the sidebar, then try again.
+              Quick Generate needs a campaign context — open one from the sidebar, then try again.
             </p>
             <button className="btn-primary mt-2" onClick={onClose}>Got it</button>
           </div>
@@ -283,8 +291,8 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
           {/* Error */}
           {error && <p className="text-xs text-danger mt-2">{error}</p>}
 
-          {/* Streaming preview (while generating) */}
-          {busy && kind !== 'image' && streamText && (
+          {/* Streaming preview */}
+          {busy && isTextKind && streamText && (
             <div className="mt-3 p-3 bg-surface-2 rounded-card">
               <p className="text-xs text-ink-muted leading-relaxed line-clamp-3 streaming-cursor">
                 {streamText}
@@ -300,6 +308,7 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                {/* Regen */}
                 <button
                   className="btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5"
                   onClick={generate}
@@ -308,21 +317,41 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
                   <RefreshCw size={12} /> Regen
                 </button>
 
-                <button
-                  className="btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5"
-                  onClick={addToSession}
-                  disabled={busy}
-                >
-                  <BookOpen size={12} /> Add to Session
-                </button>
+                {/* Specific kind: single save button */}
+                {saveKind && (
+                  <button
+                    className="btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5 text-accent border border-accent/30"
+                    onClick={() => saveToEntity(saveKind)}
+                    disabled={busy}
+                  >
+                    <PlusCircle size={12} /> {SAVE_CONFIG[saveKind].label}
+                  </button>
+                )}
 
-                {sessionMsg && (
+                {/* Auto: multi-save chips */}
+                {kind === 'auto' && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-ink-muted">Save as:</span>
+                    {AUTO_SAVE_KINDS.map(sk => (
+                      <button
+                        key={sk}
+                        className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-2 text-ink-muted hover:text-accent hover:bg-accent/10 transition-colors border border-transparent hover:border-accent/20"
+                        onClick={() => saveToEntity(sk)}
+                        disabled={busy}
+                      >
+                        {AUTO_SAVE_LABELS[sk]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {saveMsg && (
                   <span className={cn(
                     'text-xs flex items-center gap-1',
-                    sessionMsg.ok ? 'text-green-400' : 'text-danger',
+                    saveMsg.ok ? 'text-green-400' : 'text-danger',
                   )}>
-                    {sessionMsg.ok && <CheckCircle2 size={12} />}
-                    {sessionMsg.text}
+                    {saveMsg.ok && <CheckCircle2 size={12} />}
+                    {saveMsg.text}
                   </span>
                 )}
               </div>

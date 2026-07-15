@@ -5,28 +5,35 @@ import { useUIStore } from '../../store/useUIStore'
 import { useJobStatus } from '../../lib/useJobStatus'
 import {
   ChevronLeft, ChevronRight, Wand2, User, Swords, Package,
-  MapPin, MessageSquare, Image as ImageIcon, Loader,
-  RefreshCw, BookOpen, CheckCircle2, Zap, type LucideIcon,
+  MapPin, Skull, Image as ImageIcon, Loader,
+  RefreshCw, CheckCircle2, Zap, PlusCircle, type LucideIcon,
 } from 'lucide-react'
 
-type TextKind = 'auto' | 'npc' | 'encounter' | 'treasure' | 'location' | 'dialogue'
+type TextKind = 'auto' | 'npc' | 'encounter' | 'treasure' | 'location' | 'foe'
 type Kind = TextKind | 'image'
 type Quality = 'low' | 'med' | 'high'
-
-interface SessionSummary {
-  id: string
-  sessionNumber: number
-  status: string
-  dmRawNotes: string | null
-}
+type SaveKind = 'npc' | 'encounter' | 'location' | 'treasure' | 'foe'
 
 const TEXT_KIND_MAP: Record<TextKind, string> = {
   auto: 'quick', npc: 'npc', encounter: 'encounter',
-  treasure: 'treasure', location: 'location', dialogue: 'dialogue',
+  treasure: 'treasure', location: 'location', foe: 'enemy',
 }
 
 const QUALITY_MODELS: Record<Quality, string> = {
   low: 'flux-dev', med: 'nano-banana-2', high: 'nano-banana-pro',
+}
+
+const SAVE_CONFIG: Record<SaveKind, { route: string; label: string; extra?: Record<string, string> }> = {
+  npc:       { route: 'npcs',       label: 'Add to NPCs' },
+  encounter: { route: 'encounters', label: 'Add to Encounters' },
+  location:  { route: 'locations',  label: 'Add to Locations' },
+  treasure:  { route: 'items',      label: 'Add to Loot', extra: { category: 'Treasure' } },
+  foe:       { route: 'npcs',       label: 'Add to Foes', extra: { role: 'Foe' } },
+}
+
+const AUTO_SAVE_KINDS: SaveKind[] = ['npc', 'encounter', 'location', 'treasure', 'foe']
+const AUTO_SAVE_LABELS: Record<SaveKind, string> = {
+  npc: 'NPC', encounter: 'Encounter', location: 'Location', treasure: 'Loot', foe: 'Foe',
 }
 
 interface KindDef { kind: Kind; label: string; Icon: LucideIcon }
@@ -36,7 +43,7 @@ const KINDS: KindDef[] = [
   { kind: 'encounter', label: 'Encounter', Icon: Swords },
   { kind: 'treasure',  label: 'Treasure',  Icon: Package },
   { kind: 'location',  label: 'Location',  Icon: MapPin },
-  { kind: 'dialogue',  label: 'Dialogue',  Icon: MessageSquare },
+  { kind: 'foe',       label: 'Foe',       Icon: Skull },
   { kind: 'image',     label: 'Image',     Icon: ImageIcon },
 ]
 
@@ -46,8 +53,14 @@ const PLACEHOLDERS: Record<Kind, string> = {
   encounter: 'Undead skeletons guarding a crypt…',
   treasure:  'Reward for saving the village…',
   location:  'Ancient elven library…',
-  dialogue:  'Tavern keeper reacts to the party…',
+  foe:       'Ancient vampire lord with a tragic past…',
   image:     'Misty forest at dawn, ancient ruins…',
+}
+
+function extractEntityName(text: string, fallback = 'Generated Entry'): string {
+  const nameLine = text.split('\n').find(l => /^name[:\s]/i.test(l.trim()))
+  if (nameLine) return nameLine.replace(/^name[:\s]+/i, '').trim().slice(0, 80) || fallback
+  return text.split('\n').find(l => l.trim())?.trim().slice(0, 80) || fallback
 }
 
 function flattenToText(val: unknown, depth = 0): string {
@@ -86,7 +99,7 @@ export default function RightSidebar({ campaignId }: { campaignId?: string }) {
   const [result, setResult]         = useState<string | null>(null)
   const [imageJobId, setImageJobId] = useState<string | null>(null)
   const [error, setError]           = useState<string | null>(null)
-  const [sessionMsg, setSessionMsg] = useState<{ text: string; ok: boolean } | null>(null)
+  const [saveMsg, setSaveMsg]       = useState<{ text: string; ok: boolean } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const imageStatus = useJobStatus(imageJobId)
@@ -100,7 +113,7 @@ export default function RightSidebar({ campaignId }: { campaignId?: string }) {
     setResult(null)
     setStreamText('')
     setImageJobId(null)
-    setSessionMsg(null)
+    setSaveMsg(null)
     setError(null)
     if (rightSidebarCollapsed) setRightSidebarCollapsed(false)
   }
@@ -111,7 +124,7 @@ export default function RightSidebar({ campaignId }: { campaignId?: string }) {
     setError(null)
     setResult(null)
     setStreamText('')
-    setSessionMsg(null)
+    setSaveMsg(null)
     setImageJobId(null)
 
     try {
@@ -172,24 +185,24 @@ export default function RightSidebar({ campaignId }: { campaignId?: string }) {
     }
   }
 
-  async function addToSession() {
+  async function saveToEntity(saveKind: SaveKind) {
     if (!campaignId || !result) return
-    setSessionMsg(null)
+    setSaveMsg(null)
     try {
-      const { data } = await api.get<{ sessions: SessionSummary[] }>(`/api/campaigns/${campaignId}/sessions`)
-      const sessions = data.sessions
-      const target = sessions.find(s => s.status === 'in_progress') ?? sessions[0]
-      if (!target) { setSessionMsg({ text: 'No session found', ok: false }); return }
-      const kindLabel = KINDS.find(k => k.kind === kind)?.label ?? 'Quick Gen'
-      const append = `\n\n[${kindLabel} — Quick Gen]\n${result}`
-      await api.patch(`/api/campaigns/${campaignId}/sessions/${target.id}`, {
-        dmRawNotes: (target.dmRawNotes ?? '') + append,
+      const { route, extra } = SAVE_CONFIG[saveKind]
+      const name = extractEntityName(result)
+      await api.post(`/api/entities/${campaignId}/${route}`, {
+        name,
+        description: result,
+        ...extra,
       })
-      setSessionMsg({ text: `Added to Session #${target.sessionNumber}`, ok: true })
+      setSaveMsg({ text: `Saved to ${SAVE_CONFIG[saveKind].label.replace('Add to ', '')}!`, ok: true })
     } catch {
-      setSessionMsg({ text: 'Failed to save', ok: false })
+      setSaveMsg({ text: 'Failed to save', ok: false })
     }
   }
+
+  const saveKind = kind !== 'auto' && kind !== 'image' ? (kind as SaveKind) : null
 
   const imageLoading = imageJobId && imageStatus.status !== 'succeeded' && imageStatus.status !== 'failed'
   const imageReady   = imageJobId && imageStatus.status === 'succeeded' && imageStatus.assetId
@@ -331,6 +344,8 @@ export default function RightSidebar({ campaignId }: { campaignId?: string }) {
                 <div className="p-2 bg-surface-2 rounded-card max-h-72 overflow-y-auto">
                   <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{result}</p>
                 </div>
+
+                {/* Action buttons */}
                 <div className="flex gap-1.5 flex-wrap">
                   <button
                     className="btn-ghost text-[11px] flex items-center gap-1 px-2 py-1"
@@ -339,21 +354,45 @@ export default function RightSidebar({ campaignId }: { campaignId?: string }) {
                   >
                     <RefreshCw size={10} /> Regen
                   </button>
-                  <button
-                    className="btn-ghost text-[11px] flex items-center gap-1 px-2 py-1"
-                    onClick={addToSession}
-                    disabled={busy}
-                  >
-                    <BookOpen size={10} /> Add to Session
-                  </button>
+
+                  {/* Specific kind: single targeted save */}
+                  {saveKind && (
+                    <button
+                      className="btn-ghost text-[11px] flex items-center gap-1 px-2 py-1 text-accent border border-accent/25"
+                      onClick={() => saveToEntity(saveKind)}
+                      disabled={busy}
+                    >
+                      <PlusCircle size={10} /> {SAVE_CONFIG[saveKind].label}
+                    </button>
+                  )}
                 </div>
-                {sessionMsg && (
+
+                {/* Auto: save-as row */}
+                {kind === 'auto' && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-ink-muted px-0.5">Save as:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {AUTO_SAVE_KINDS.map(sk => (
+                        <button
+                          key={sk}
+                          className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-2 text-ink-muted hover:text-accent hover:bg-accent/10 transition-colors border border-transparent hover:border-accent/20"
+                          onClick={() => saveToEntity(sk)}
+                          disabled={busy}
+                        >
+                          {AUTO_SAVE_LABELS[sk]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {saveMsg && (
                   <p className={cn(
-                    'text-[11px] flex items-center gap-1 px-1',
-                    sessionMsg.ok ? 'text-green-400' : 'text-danger',
+                    'text-[11px] flex items-center gap-1 px-0.5',
+                    saveMsg.ok ? 'text-green-400' : 'text-danger',
                   )}>
-                    {sessionMsg.ok && <CheckCircle2 size={10} />}
-                    {sessionMsg.text}
+                    {saveMsg.ok && <CheckCircle2 size={10} />}
+                    {saveMsg.text}
                   </p>
                 )}
               </div>
