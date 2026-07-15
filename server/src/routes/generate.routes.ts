@@ -10,6 +10,16 @@ import { getImageCostEstimate, getMinimumConfirmThreshold, getPricingMeta } from
 export const generateRouter = Router()
 generateRouter.use(requireAuth)
 
+// ── Friend-account helpers ────────────────────────────────────────────────────
+
+const FRIEND_TEXT_QUOTA = 24
+const FRIEND_IMAGE_QUOTA = 12
+
+async function isFriendAccount(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
+  return Boolean(user?.email.startsWith('friend_') && user.email.endsWith('@keeper.internal'))
+}
+
 async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
   const anthropicCred = await prisma.apiCredential.findUnique({
     where: { userId_provider: { userId, provider: 'anthropic' } },
@@ -35,31 +45,20 @@ async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
     }
   }
 
-  // Fallback: use owner's env-var keys (friend accounts have no stored credentials)
-  const envClaudeKey = process.env.CLAUDE_API_KEY?.trim()
-  if (envClaudeKey) return new Anthropic({ apiKey: envClaudeKey })
+  // Fallback to owner's env-var keys — only for friend accounts
+  if (await isFriendAccount(userId)) {
+    const envClaudeKey = process.env.CLAUDE_API_KEY?.trim()
+    if (envClaudeKey) return new Anthropic({ apiKey: envClaudeKey })
 
-  const envEvolinkKey = process.env.EVOLINK_API_KEY?.trim()
-  if (envEvolinkKey) return new Anthropic({ apiKey: envEvolinkKey, baseURL: 'https://api.evolink.ai/v1' })
+    const envEvolinkKey = process.env.EVOLINK_API_KEY?.trim()
+    if (envEvolinkKey) return new Anthropic({ apiKey: envEvolinkKey, baseURL: 'https://api.evolink.ai/v1' })
+  }
 
   return null
 }
 
-// ── Friend-account quota helpers ──────────────────────────────────────────────
-
-const FRIEND_TEXT_QUOTA = 24
-const FRIEND_IMAGE_QUOTA = 12
-
-async function userHasOwnCredentials(userId: string): Promise<boolean> {
-  const count = await prisma.apiCredential.count({
-    where: { userId, encryptedKey: { not: null } },
-  })
-  return count > 0
-}
-
 async function checkFriendTextQuota(userId: string): Promise<{ allowed: boolean; error?: string }> {
-  const hasOwn = await userHasOwnCredentials(userId)
-  if (hasOwn) return { allowed: true }
+  if (!(await isFriendAccount(userId))) return { allowed: true }
   const used = await prisma.generationJob.count({
     where: { userId, provider: 'anthropic', status: { not: 'failed' } },
   })
@@ -70,8 +69,7 @@ async function checkFriendTextQuota(userId: string): Promise<{ allowed: boolean;
 }
 
 async function checkFriendImageQuota(userId: string): Promise<{ allowed: boolean; error?: string }> {
-  const hasOwn = await userHasOwnCredentials(userId)
-  if (hasOwn) return { allowed: true }
+  if (!(await isFriendAccount(userId))) return { allowed: true }
   const used = await prisma.generationJob.count({
     where: { userId, provider: 'evolink', status: { not: 'failed' } },
   })

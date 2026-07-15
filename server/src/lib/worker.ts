@@ -330,19 +330,34 @@ Return ONLY valid JSON — no prose, no markdown:
     })
 
     // ── 4. Get EvoLink key ─────────────────────────────────────────────────
+    const jobUser = await prisma.user.findUnique({ where: { id: genJob.userId }, select: { email: true } })
+    const isFriendJobUser = Boolean(jobUser?.email.startsWith('friend_') && jobUser.email.endsWith('@keeper.internal'))
+
     const evolinkCred = await prisma.apiCredential.findUnique({
       where: { userId_provider: { userId: genJob.userId, provider: 'evolink' } },
     })
     let evolinkKey: string
     if (evolinkCred?.encryptedKey) {
       evolinkKey = decrypt(evolinkCred.encryptedKey).trim()
-    } else {
+    } else if (isFriendJobUser) {
       const envKey = process.env.EVOLINK_API_KEY?.trim()
       if (!envKey) throw new Error('No EvoLink API key configured')
       evolinkKey = envKey
+    } else {
+      throw new Error('No EvoLink API key configured')
     }
     if (!/^[\x21-\x7E]+$/.test(evolinkKey)) {
       throw new Error('Saved EvoLink key contains invalid characters — please re-copy it from the EvoLink dashboard and save it again in Settings')
+    }
+
+    // ── Friend quota check (defense-in-depth before Evolink submit) ────────
+    if (isFriendJobUser) {
+      const imageJobCount = await prisma.generationJob.count({
+        where: { userId: genJob.userId, provider: 'evolink', status: { not: 'failed' }, id: { not: jobId } },
+      })
+      if (imageJobCount >= 12) {
+        throw new Error('Image generation quota reached (12 images). Thanks for trying the app!')
+      }
     }
 
     // ── 5. Resolve model for entity category ──────────────────────────────
@@ -463,10 +478,13 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
   const evolinkCred = await prisma.apiCredential.findUnique({
     where: { userId_provider: { userId: genJob.userId, provider: 'evolink' } },
   })
+  const pollUser = await prisma.user.findUnique({ where: { id: genJob.userId }, select: { email: true } })
+  const isFriendPollUser = Boolean(pollUser?.email.startsWith('friend_') && pollUser.email.endsWith('@keeper.internal'))
+
   let evolinkKey: string
   if (evolinkCred?.encryptedKey) {
     evolinkKey = decrypt(evolinkCred.encryptedKey)
-  } else {
+  } else if (isFriendPollUser) {
     const envKey = process.env.EVOLINK_API_KEY?.trim()
     if (!envKey) {
       const credMsg = 'EvoLink credential no longer available'
@@ -475,6 +493,11 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
       return
     }
     evolinkKey = envKey
+  } else {
+    const credMsg = 'EvoLink credential no longer available'
+    await prisma.generationJob.update({ where: { id: jobId }, data: { status: 'failed', error: credMsg, outputRef: { rawError: credMsg } } })
+    await notifyJobUpdate(jobId, 'failed')
+    return
   }
 
   const reenqueue = async () => {
