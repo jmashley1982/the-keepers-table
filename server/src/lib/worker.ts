@@ -13,7 +13,7 @@ const EVOLINK_MODEL_MAP: Record<string, string> = {
   'gpt2':             'gpt-image-2',
   'gpt-image-2':      'gpt-image-2',
   'krea-2-turbo':     'krea-2-turbo',
-  'z-image':          'z-image',
+  'z-image':          'z-image-turbo',
   'nano-banana-2-lite': 'gemini-3.1-flash-lite-image',
   'nano-banana-2':    'gemini-3.1-flash-image-preview',
   'nano-banana-pro':  'gemini-3-pro-image-preview',
