@@ -1,5 +1,5 @@
 import { NavLink, useParams } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, Users, Map, Scroll, Zap } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Users, Map, Scroll, Zap, Swords, Settings, Plus } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
 
@@ -7,8 +7,6 @@ export default function MobileNav() {
   const { campaignId } = useParams()
   const { activeCampaignId, setQuickGenerateOpen } = useUIStore()
   const cid = campaignId ?? activeCampaignId
-
-  if (!cid) return null
 
   const tab = (to: string, icon: React.ReactNode, label: string, end?: boolean) => (
     <NavLink
@@ -25,6 +23,43 @@ export default function MobileNav() {
       <span>{label}</span>
     </NavLink>
   )
+
+  if (!cid) {
+    return (
+      <div
+        className="md:hidden fixed bottom-0 inset-x-0 z-30 flex items-center border-t border-border"
+        style={{
+          background: 'var(--color-surface)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
+        {tab('/campaigns', <Swords size={20} />, 'Campaigns', true)}
+
+        {/* Center placeholder — create campaign */}
+        <NavLink
+          to="/campaigns"
+          end
+          className="flex flex-col items-center justify-center flex-1 py-1"
+          aria-label="New Campaign"
+        >
+          <div
+            className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-transform active:scale-95 touch-manipulation opacity-70"
+            style={{
+              background: 'var(--color-accent)',
+              color: 'var(--color-bg)',
+            }}
+          >
+            <Plus size={22} />
+          </div>
+          <span className="text-[10px] font-medium mt-0.5" style={{ color: 'var(--color-ink-muted)' }}>
+            New
+          </span>
+        </NavLink>
+
+        {tab('/settings', <Settings size={20} />, 'Settings')}
+      </div>
+    )
+  }
 
   return (
     <div
