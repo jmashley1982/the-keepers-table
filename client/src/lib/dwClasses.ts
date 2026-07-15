@@ -43,8 +43,40 @@ APPETITE FOR DESTRUCTION (choose one at character creation)
 - SMASH! When you use your to defy danger, any harm you take is reduced by 1d6.
 - DESTROY! When you hack and slash an enemy into oblivion, you deal +1d6 damage.
 - BEND BARS, LIFT GATES. When you use pure strength, treat 7-9 as a 10+.`,
-    advancedMoves1: [],
-    advancedMoves2: [],
+    advancedMoves1: [
+      { name: 'Full Plate and Packing Steel', description: `You ignore the clumsy tag on armor you wear.` },
+      { name: 'Hoarder', description: `When you have time to rifle through the belongings of a fallen enemy, roll+WIS. On a 10+, hold 3. On a 7–9, hold 1. Spend your hold 1 for 1 to have the GM reveal one of the following about the fallen:
+
+ - A weapon worth taking
+ - Coins or something of value
+ - A useful mundane item` },
+      { name: 'Long Pig', description: `When you eat the heart of a worthy enemy (your call), roll+CON. On a 10+, heal to your full HP and take +1 forward. On a 7–9, heal to your full HP.` },
+      { name: 'Destined for Greatness', description: `When you make your Last Breath roll, on a 7–9 you may choose to survive with 1 HP instead of making a deal with Death. If you do, your Herculean Appetites lose 1 hold.` },
+      { name: 'Cry Havoc', description: `When you lead the charge into battle, those who follow you take +1 forward.` },
+      { name: 'Sick Burn', description: `When you mock and taunt your enemies, roll+CHA. On a 10+, choose 2. On a 7–9, choose 1.
+
+ - One enemy breaks from their group to deal with you personally
+ - One enemy becomes enraged and acts foolishly
+ - One enemy is demoralized and takes -1 forward` },
+      { name: 'Burning Hatred', description: `Choose a type of creature (orcs, undead, dragons, etc.) When you first encounter a member of that type in a session, hold 2. Spend your hold 1 for 1 to:
+
+ - Deal +1d4 damage against that creature
+ - Take +1 forward on a move against that creature` },
+      { name: 'Outsider', description: `When you interact with civilized folk who underestimate or look down on you, roll+CHA. On a 10+, they recognize you as a warrior to be respected, if not trusted. On a 7–9, they treat you indifferently rather than dismissively.` },
+      { name: 'Cleave', description: `When you Hack and Slash, on a 10+ you may deal your damage to a second target in reach as well, in addition to the primary.` },
+    ],
+    advancedMoves2: [
+      { name: 'Armored Appetite', description: `You ignore the clumsy tag on armor you wear. While wearing armor, your Unencumbered, Unarmored bonus still applies.`,
+      replaces: 'full_plate_and_packing_steel' },
+      { name: 'Wild Abandon', description: `When you lead the charge into battle, those who follow you take +1 forward. You also take +1 forward.`,
+      replaces: 'cry_havoc' },
+      { name: 'Blood Bath', description: `When you Hack and Slash and deal damage, you may deal your damage to all enemies within reach instead of just one or two.`,
+      requires: 'cleave' },
+      { name: 'King of the Wild Frontier', description: `Your legend has spread even among the civilized. When you first meet someone who might have heard of you, roll+CHA. On a 10+, they know your name and either want something from you or have something to offer. On a 7–9, they've heard of you — stories mixed, but they pay attention.`,
+      replaces: 'outsider' },
+      { name: 'Indomitable', description: `When someone attempts to Parley with you using a threat of violence or harm, their roll is treated as a miss regardless of result.` },
+      { name: 'Burning Bridges', description: `When you take damage from an enemy, take +1 forward against that enemy.` },
+    ],
     bonds: `Fill in the blanks for each bond that applies:
 • ___ is puny and foolish, but I will protect them nonetheless.
 • I have bested ___ in a contest of strength or endurance.
