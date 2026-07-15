@@ -134,7 +134,7 @@ export default function MentionTextarea({ value, onChange, campaignId, className
       {/* ── Textarea (always in layout; invisible when blurred to hold space) ── */}
       <textarea
         ref={textareaRef}
-        className={cn(className, !focused && 'invisible')}
+        className={cn(className, !focused && 'opacity-0 pointer-events-none')}
         placeholder={placeholder}
         value={value}
         onChange={handleChange}
