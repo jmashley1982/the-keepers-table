@@ -6,7 +6,9 @@ import { cn } from '../../lib/cn'
 import {
   Plus, Trash2, Save, X, Upload, Check,
   ChevronDown, ChevronUp, Loader, Users, ArrowUp, ArrowDown, GripVertical,
+  BookOpen,
 } from 'lucide-react'
+import { DW_CLASSES, applyDWTemplate } from '../../lib/dwClasses'
 import { EntityAvatarWithArt } from '../../components/entity/GenerateArtButton'
 import GenerateArtButton from '../../components/entity/GenerateArtButton'
 import {
@@ -338,6 +340,7 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved }: {
   pc: PlayerCharacter; campaignId: string; onClose: () => void; onSaved: () => void
 }) {
   const qc = useQueryClient()
+  const [templateOpen, setTemplateOpen] = useState(false)
   const [draft, setDraft] = useState<PCDraft>({
     name: pc.name, playerName: pc.playerName, race: pc.race,
     class: pc.class, subclass: pc.subclass, level: pc.level,
@@ -429,6 +432,43 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved }: {
             {pc.name || 'Character Sheet'}
           </h2>
           <div className="flex items-center gap-2">
+            {/* DW Class Template picker */}
+            <div className="relative">
+              <button
+                className="btn-secondary text-xs py-1.5 flex items-center gap-1.5"
+                onClick={() => setTemplateOpen(v => !v)}
+                title="Load a Dungeon World class template"
+              >
+                <BookOpen size={12} /> DW Template
+              </button>
+              {templateOpen && (
+                <div className="absolute right-0 top-full mt-1 z-50 bg-surface border border-border rounded-card shadow-xl w-52 py-1 max-h-80 overflow-y-auto">
+                  <p className="px-3 py-1.5 text-[10px] font-semibold text-ink-muted uppercase tracking-wide border-b border-border mb-1">
+                    Dungeon World Classes
+                  </p>
+                  {DW_CLASSES.map(cls => (
+                    <button
+                      key={cls.name}
+                      className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-surface-2 transition-colors flex items-center justify-between"
+                      onClick={() => {
+                        const t = applyDWTemplate(cls)
+                        applyExtracted({
+                          class: t.class,
+                          features: t.features,
+                          notes: t.notes,
+                          equipment: t.equipment,
+                          combatStats: { ...draft.combatStats, ...t.combatStats },
+                        })
+                        setTemplateOpen(false)
+                      }}
+                    >
+                      <span>{cls.name}</span>
+                      <span className="text-ink-muted text-[10px]">{cls.damageDie} | {cls.hpBase}+CON HP</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <SheetUploadButton campaignId={campaignId} pcId={pc.id} onExtracted={applyExtracted} />
             <button
               className="btn-primary text-sm py-1.5 flex items-center gap-1"
@@ -670,6 +710,7 @@ export default function PlayersPage() {
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [newPlayerName, setNewPlayerName] = useState('')
+  const [newClass, setNewClass] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['player-characters', campaignId],
@@ -735,7 +776,19 @@ export default function PlayersPage() {
 
   function handleCreate() {
     if (!newName.trim()) return
-    createMutation.mutate({ name: newName.trim(), playerName: newPlayerName.trim() || undefined })
+    const cls = DW_CLASSES.find(c => c.name === newClass)
+    const templateData = cls ? applyDWTemplate(cls) : null
+    createMutation.mutate({
+      name: newName.trim(),
+      playerName: newPlayerName.trim() || undefined,
+      ...(templateData ? {
+        class: templateData.class,
+        features: templateData.features,
+        notes: templateData.notes,
+        equipment: templateData.equipment,
+        combatStats: templateData.combatStats,
+      } : {}),
+    })
   }
 
   return (
@@ -759,19 +812,19 @@ export default function PlayersPage() {
       {/* Add character inline form */}
       {creating && (
         <div className="px-8 py-4 border-b border-border bg-surface-2">
-          <div className="flex items-end gap-3 max-w-lg">
-            <div className="flex-1">
+          <div className="flex items-end gap-3 flex-wrap max-w-3xl">
+            <div className="flex-1 min-w-32">
               <label className="label">Character Name *</label>
               <input
                 className="input text-sm"
-                placeholder="Aragorn"
+                placeholder="Vex the Bold"
                 value={newName}
                 autoFocus
                 onChange={e => setNewName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-32">
               <label className="label">Player Name</label>
               <input
                 className="input text-sm"
@@ -781,6 +834,23 @@ export default function PlayersPage() {
                 onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
               />
             </div>
+            <div className="min-w-40">
+              <label className="label flex items-center gap-1">
+                <BookOpen size={11} className="text-accent" /> DW Class Template
+              </label>
+              <select
+                className="input text-sm"
+                value={newClass}
+                onChange={e => setNewClass(e.target.value)}
+              >
+                <option value="">— Blank sheet —</option>
+                {DW_CLASSES.map(cls => (
+                  <option key={cls.name} value={cls.name}>
+                    {cls.name} ({cls.damageDie}, {cls.hpBase}+CON HP)
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
               className="btn-primary py-2 flex items-center gap-1"
               onClick={handleCreate}
@@ -789,7 +859,7 @@ export default function PlayersPage() {
               {createMutation.isPending ? <Loader size={14} className="animate-spin" /> : <Check size={14} />}
               Create
             </button>
-            <button className="btn-secondary py-2" onClick={() => { setCreating(false); setNewName('') }}>
+            <button className="btn-secondary py-2" onClick={() => { setCreating(false); setNewName(''); setNewClass('') }}>
               <X size={14} />
             </button>
           </div>
