@@ -6,7 +6,6 @@ import { useEffect } from 'react'
 
 // Pages
 import FriendsLoginPage from './pages/friends/FriendsLoginPage'
-import FriendsLogoutPage from './pages/friends/FriendsLogoutPage'
 import LoginPage from './pages/auth/LoginPage'
 import OnboardingPage from './pages/auth/OnboardingPage'
 import CampaignsPage from './pages/campaigns/CampaignsPage'
@@ -59,7 +58,6 @@ export default function App() {
     <Routes>
       {/* Friends login */}
       <Route path="/friends" element={<FriendsLoginPage />} />
-      <Route path="/friends/logout" element={<FriendsLogoutPage />} />
 
       {/* Public */}
       <Route path="/login" element={<LoginPage />} />

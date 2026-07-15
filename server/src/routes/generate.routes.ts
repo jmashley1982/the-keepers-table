@@ -50,45 +50,35 @@ async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
 const FRIEND_TEXT_QUOTA = 24
 const FRIEND_IMAGE_QUOTA = 12
 
-function extractFriendUsername(email: string): string | null {
-  if (email.startsWith('friend_') && email.endsWith('@keeper.internal')) {
-    return email.slice('friend_'.length, -'@keeper.internal'.length)
-  }
-  return null
+async function userHasOwnCredentials(userId: string): Promise<boolean> {
+  const count = await prisma.apiCredential.count({
+    where: { userId, encryptedKey: { not: null } },
+  })
+  return count > 0
 }
 
 async function checkFriendTextQuota(userId: string): Promise<{ allowed: boolean; error?: string }> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
-  if (!user) return { allowed: true }
-  const username = extractFriendUsername(user.email)
-  if (!username) return { allowed: true }
-  const friend = await prisma.friendUser.findUnique({ where: { username } })
-  if (!friend) return { allowed: true }
-  if (friend.claudeUsed >= FRIEND_TEXT_QUOTA) {
+  const hasOwn = await userHasOwnCredentials(userId)
+  if (hasOwn) return { allowed: true }
+  const used = await prisma.generationJob.count({
+    where: { userId, provider: 'anthropic', status: { not: 'failed' } },
+  })
+  if (used >= FRIEND_TEXT_QUOTA) {
     return { allowed: false, error: `You've reached the limit of ${FRIEND_TEXT_QUOTA} text generations. Thanks for trying the app!` }
   }
   return { allowed: true }
 }
 
 async function checkFriendImageQuota(userId: string): Promise<{ allowed: boolean; error?: string }> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
-  if (!user) return { allowed: true }
-  const username = extractFriendUsername(user.email)
-  if (!username) return { allowed: true }
-  const friend = await prisma.friendUser.findUnique({ where: { username } })
-  if (!friend) return { allowed: true }
-  if (friend.imageUsed >= FRIEND_IMAGE_QUOTA) {
+  const hasOwn = await userHasOwnCredentials(userId)
+  if (hasOwn) return { allowed: true }
+  const used = await prisma.generationJob.count({
+    where: { userId, provider: 'evolink', status: { not: 'failed' } },
+  })
+  if (used >= FRIEND_IMAGE_QUOTA) {
     return { allowed: false, error: `You've reached the limit of ${FRIEND_IMAGE_QUOTA} image generations. Thanks for trying the app!` }
   }
   return { allowed: true }
-}
-
-async function incrementFriendTextQuota(userId: string): Promise<void> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
-  if (!user) return
-  const username = extractFriendUsername(user.email)
-  if (!username) return
-  await prisma.friendUser.update({ where: { username }, data: { claudeUsed: { increment: 1 } } }).catch(() => {})
 }
 
 async function buildCampaignContext(campaignId: string, query: string): Promise<string> {
@@ -439,7 +429,6 @@ REQUEST: ${prompt}`
           outputRef: JSON.parse(JSON.stringify({ result: streamResult })),
         },
       })
-      await incrementFriendTextQuota(userId)
       res.write(`data: ${JSON.stringify({ result: streamResult, jobId: job.id })}\n\n`)
       res.write(`data: ${JSON.stringify({ done: true, jobId: job.id })}\n\n`)
       res.end()
@@ -475,7 +464,6 @@ REQUEST: ${prompt}`
           outputRef: JSON.parse(JSON.stringify({ result })),
         },
       })
-      await incrementFriendTextQuota(userId)
       res.json({ result, jobId: job.id })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Generation failed'
