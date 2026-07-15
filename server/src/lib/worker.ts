@@ -351,13 +351,18 @@ Return ONLY valid JSON — no prose, no markdown:
     }
 
     // ── Friend quota check (defense-in-depth before Evolink submit) ────────
-    // Only enforce if the friend has no stored Evolink credential of their own
-    if (isFriendJobUser && !evolinkCred?.encryptedKey) {
-      const imageJobCount = await prisma.generationJob.count({
-        where: { userId: genJob.userId, provider: 'evolink', status: { not: 'failed' }, id: { not: jobId } },
+    // Only enforce if the friend has no stored API credentials of their own
+    if (isFriendJobUser) {
+      const ownCredCount = await prisma.apiCredential.count({
+        where: { userId: genJob.userId, encryptedKey: { not: null } },
       })
-      if (imageJobCount >= 12) {
-        throw new Error('Image generation quota reached (12 images). Thanks for trying the app!')
+      if (ownCredCount === 0) {
+        const imageJobCount = await prisma.generationJob.count({
+          where: { userId: genJob.userId, provider: 'evolink', status: { not: 'failed' }, id: { not: jobId } },
+        })
+        if (imageJobCount >= 12) {
+          throw new Error('Image generation quota reached (12 images). Thanks for trying the app!')
+        }
       }
     }
 
