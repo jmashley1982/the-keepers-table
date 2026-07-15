@@ -4,6 +4,7 @@ import { api, apiError } from '../../lib/api'
 import { useState } from 'react'
 import { Plus, Play, CheckCircle, Loader, Volume2, Users } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
+import MentionText from '../../components/session/MentionText'
 
 const CANDLELIGHT_ICONS = {
   newSession:    '/icons/candlelight/new_sesh.webp',
@@ -349,12 +350,17 @@ function RecapCard({ session, campaignId, onDismiss }: { session: Session; campa
         </button>
       </div>
       {session.generatedSummary && (
-        <p className="text-sm text-ink leading-relaxed mb-3">{session.generatedSummary.slice(0, 400)}{session.generatedSummary.length > 400 && '…'}</p>
+        <p className="text-sm text-ink leading-relaxed mb-3">
+          <MentionText text={session.generatedSummary} campaignId={campaignId} />
+        </p>
       )}
       {session.keyEvents?.length > 0 && (
         <ul className="space-y-1 mb-2">
           {(session.keyEvents as string[]).slice(0, 4).map((e, i) => (
-            <li key={i} className="text-xs text-ink-muted flex gap-2"><span className="text-accent">◆</span>{e}</li>
+            <li key={i} className="text-xs text-ink-muted flex gap-2">
+              <span className="text-accent shrink-0">◆</span>
+              <MentionText text={e} campaignId={campaignId} />
+            </li>
           ))}
         </ul>
       )}
@@ -363,7 +369,10 @@ function RecapCard({ session, campaignId, onDismiss }: { session: Session; campa
           <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-1">Hooks for next time</p>
           <ul className="space-y-0.5">
             {(session.hooksForNext as string[]).map((h, i) => (
-              <li key={i} className="text-xs text-ink flex gap-2"><span>→</span>{h}</li>
+              <li key={i} className="text-xs text-ink flex gap-2">
+                <span>→</span>
+                <MentionText text={h} campaignId={campaignId} />
+              </li>
             ))}
           </ul>
         </div>
