@@ -62,6 +62,14 @@ async function userHasOwnCredentials(userId: string): Promise<boolean> {
   return count > 0
 }
 
+async function recordAnthropicUsageForFriend(userId: string, kind: string, campaignId?: string | null): Promise<void> {
+  if (!(await isFriendAccount(userId))) return
+  if (await userHasOwnCredentials(userId)) return
+  await prisma.generationJob.create({
+    data: { userId, campaignId: campaignId ?? null, provider: 'anthropic', kind, status: 'succeeded', input: {} },
+  })
+}
+
 async function checkFriendTextQuota(userId: string): Promise<{ allowed: boolean; error?: string }> {
   if (!(await isFriendAccount(userId))) return { allowed: true }
   if (await userHasOwnCredentials(userId)) return { allowed: true }
@@ -508,6 +516,9 @@ generateRouter.post('/world-map-context', async (req, res) => {
   const client = await getAnthropicClient(userId)
   if (!client) { res.status(402).json({ error: 'No API key configured for text generation.' }); return }
 
+  const worldMapQuota = await checkFriendTextQuota(userId)
+  if (!worldMapQuota.allowed) { res.status(429).json({ error: worldMapQuota.error }); return }
+
   const locations = await prisma.location.findMany({
     where: { campaignId, deletedAt: null },
     select: { name: true, type: true, description: true },
@@ -538,6 +549,7 @@ Write a concise geographic description (2-3 sentences) suitable for generating a
       messages: [{ role: 'user', content: prompt }],
     })
     const summary = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+    await recordAnthropicUsageForFriend(userId, 'world_map_context', campaignId)
     res.json({ summary })
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to generate context' })
@@ -557,6 +569,9 @@ generateRouter.post('/expand-prompt', async (req, res) => {
 
   const client = await getAnthropicClient(userId)
   if (!client) { res.status(402).json({ error: 'No API key configured' }); return }
+
+  const expandQuota = await checkFriendTextQuota(userId)
+  if (!expandQuota.allowed) { res.status(429).json({ error: expandQuota.error }); return }
 
   const { prompt, context } = parsed.data
   const contextHint =
@@ -581,6 +596,7 @@ Return ONLY a JSON array of exactly 3 strings, no markdown wrapper, no prose:
       suggestions = JSON.parse(match ? match[0] : raw)
       if (!Array.isArray(suggestions)) suggestions = []
     } catch { suggestions = [] }
+    await recordAnthropicUsageForFriend(userId, 'expand_prompt')
     res.json({ suggestions: suggestions.slice(0, 3).filter((s): s is string => typeof s === 'string') })
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to expand prompt' })
@@ -606,6 +622,9 @@ generateRouter.post('/session-wrap/:sessionId', async (req, res) => {
 
   const client = await getAnthropicClient(userId)
   if (!client) { res.status(402).json({ error: 'No Anthropic API key' }); return }
+
+  const sessionWrapQuota = await checkFriendTextQuota(userId)
+  if (!sessionWrapQuota.allowed) { res.status(429).json({ error: sessionWrapQuota.error }); return }
 
   const prevSession = await prisma.gameSession.findFirst({
     where: { campaignId: session.campaignId, sessionNumber: { lt: session.sessionNumber }, status: 'complete' },
@@ -676,6 +695,9 @@ generateRouter.post('/prep-suggestions/:campaignId', async (req, res) => {
   const client = await getAnthropicClient(userId)
   if (!client) { res.status(402).json({ error: 'No Anthropic API key' }); return }
 
+  const prepQuota = await checkFriendTextQuota(userId)
+  if (!prepQuota.allowed) { res.status(429).json({ error: prepQuota.error }); return }
+
   const lastSession = await prisma.gameSession.findFirst({
     where: { campaignId, status: 'complete' },
     orderBy: { sessionNumber: 'desc' },
@@ -718,6 +740,7 @@ Generate 3-4 concrete next-session prep suggestions. Return JSON array:
     } catch {
       suggestions = []
     }
+    await recordAnthropicUsageForFriend(userId, 'prep_suggestions', campaignId)
     res.json({ suggestions })
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed' })
@@ -852,6 +875,9 @@ generateRouter.post('/preview-prompt', async (req, res) => {
   const client = await getAnthropicClient(userId)
   if (!client) { res.status(402).json({ error: 'No Anthropic API key configured' }); return }
 
+  const previewQuota = await checkFriendTextQuota(userId)
+  if (!previewQuota.allowed) { res.status(429).json({ error: previewQuota.error }); return }
+
   const entityType = kind === 'portrait_npc' ? 'npc'
     : kind === 'location_art' ? 'location'
     : kind === 'item_art' ? 'item'
@@ -896,8 +922,10 @@ Return ONLY valid JSON — no prose, no markdown:
     const match = raw.match(/\{[\s\S]*\}/)
     if (match) {
       const r = JSON.parse(match[0]) as { prompt?: string }
+      await recordAnthropicUsageForFriend(userId, 'preview_prompt', campaignId)
       res.json({ prompt: r.prompt ?? `${entityData.name ?? 'entity'}, ${styleFragment}` })
     } else {
+      await recordAnthropicUsageForFriend(userId, 'preview_prompt', campaignId)
       res.json({ prompt: `${entityData.name ?? 'entity'}, ${styleFragment}` })
     }
   } catch (err) {
