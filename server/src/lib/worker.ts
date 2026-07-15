@@ -12,6 +12,7 @@ let boss: PgBoss | null = null
 const EVOLINK_MODEL_MAP: Record<string, string> = {
   'gpt2':             'gpt-image-2',
   'gpt-image-2':      'gpt-image-2',
+  'gpt-image-2-ultra': 'gpt-image-2',
   'krea-2-turbo':     'krea-2-turbo',
   'z-image':          'z-image-turbo',
   'nano-banana-2-lite': 'gemini-3.1-flash-lite-image',
@@ -261,23 +262,22 @@ ABSOLUTE RULES — every single one must be obeyed:
 Return ONLY valid JSON — no prose, no markdown:
 {"prompt":"<flat 2D overhead painted cartography, 60-100 words, describe invented landmass shape and biomes>","negative_prompt":"isometric, 3D, perspective view, angled, horizon, sky, photorealistic terrain, earth continents, europe, africa, real world geography, recognizable coastlines, text, labels, compass, grid, border"}`
             : isBattleMap
-            ? `You are an art director for a tabletop RPG. Generate a detailed image prompt for a TOP-DOWN ORTHOGRAPHIC battle map.
+            ? `You are an art director for a tabletop RPG. Generate an image prompt for a TOP-DOWN ORTHOGRAPHIC battle map.
 
 Map context: ${JSON.stringify(entityData)}
 Art style: ${styleFragment}
-Image kind: ${kind}
 
-STRICT RULES — all must be followed:
-- Strict top-down bird's eye view (camera directly overhead, 90° angle, orthographic)
-- NO grid lines or grid overlay on the image
-- NO labels, text, numbers, UI elements, or annotations
-- Consistent, flat overhead lighting (no dramatic shadows)
-- Show terrain, obstacles, furniture, props clearly from above
-- Include tactically interesting features: cover objects, pathways, elevation changes, hazards
-- Rich, detailed environment textures appropriate to the scene description
+ABSOLUTE RULES — every single one must be obeyed:
+- STRICT 90° OVERHEAD view ONLY — camera points STRAIGHT DOWN, filling the entire frame with the ground plane; zero horizon line, zero sky, zero vanishing points
+- NO isometric, NO 3D perspective, NO angled camera, NO diagonal view whatsoever
+- Objects as seen from directly above: trees are circular canopy blobs, walls are straight lines, furniture is flat rectangular shapes — all 2D silhouettes
+- Consistent flat overhead lighting — no dramatic raking shadows
+- Rich textures for floor/terrain materials (stone, wood, dirt, grass) readable from above
+- Include tactically interesting features: doorways, cover objects, barriers, elevation shifts shown by color/texture only
+- NO grid lines, NO hex cells, NO tile borders, NO UI, NO labels, NO text, NO coordinates anywhere
 
 Return ONLY valid JSON — no prose, no markdown:
-{"prompt":"<detailed top-down map description, 40-80 words>","negative_prompt":"<things to avoid>"}`
+{"prompt":"<strict overhead 90° top-down orthographic view, 50-80 words>","negative_prompt":"isometric, 3D perspective, angled view, diagonal camera, vanishing point, horizon line, sky, grid lines, hex grid, tile borders, game UI, labels, text, watermark"}`
             : `You are an art director for a tabletop RPG. Given this entity, write a vivid image generation prompt.
 
 Entity JSON: ${JSON.stringify(entityData)}
@@ -363,10 +363,9 @@ Return ONLY valid JSON — no prose, no markdown:
     console.log(`[image.generate] Submitting job ${jobId}: model=${evolinkModel} size=${size} entityType=${entityType}`)
     const submitBody: Record<string, unknown> = { model: evolinkModel, prompt: promptWithNegative, size }
     if (evolinkModel === 'gpt-image-2') {
-      // Pin GPT Image 2 to 1K / low rendering quality — EvoLink defaults to
-      // `medium`, which bills ~9x more for negligible gain at tabletop sizes.
-      submitBody.quality = 'low'
       submitBody.resolution = '1K'
+      // Ultra High uses medium quality; everything else pins to low.
+      submitBody.quality = model === 'gpt-image-2-ultra' ? 'medium' : 'low'
     } else if (evolinkModel === 'krea-2-turbo') {
       submitBody.resolution = '1K'
     }

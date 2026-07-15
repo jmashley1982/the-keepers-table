@@ -205,9 +205,10 @@ const TEXT_TASK_OPTIONS = [
 ]
 
 const IMAGE_MODEL_OPTIONS = [
-  { value: 'gpt-image-2',    label: 'High — GPT Image 2 (1K)' },
-  { value: 'krea-2-turbo',   label: 'Medium — Krea 2 Turbo (1K)' },
-  { value: 'z-image',        label: 'Low — Z Image' },
+  { value: 'gpt-image-2-ultra', label: 'Ultra High — GPT Image 2 (1K Med)' },
+  { value: 'gpt-image-2',       label: 'High — GPT Image 2 (1K Low)' },
+  { value: 'krea-2-turbo',      label: 'Medium — Krea 2 Turbo (1K)' },
+  { value: 'z-image',           label: 'Low — Z Image' },
 ]
 
 const IMAGE_CATEGORIES = [

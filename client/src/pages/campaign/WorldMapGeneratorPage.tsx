@@ -11,6 +11,7 @@ import {
   ChevronDown, ChevronUp, Sparkles, Check,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import PromptExpandButton from '../../components/ui/PromptExpandButton'
 
 interface StylePreset { id: string; name: string; isBuiltin: boolean }
 
@@ -388,7 +389,10 @@ export default function WorldMapGeneratorPage() {
 
             {/* Description */}
             <div>
-              <label className="label">Geographic description</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label mb-0">Geographic description</label>
+                <PromptExpandButton value={description} onSelect={setDescription} context="world_map" />
+              </div>
               <textarea
                 className="textarea h-24"
                 placeholder={scope === 'world'
@@ -442,7 +446,7 @@ export default function WorldMapGeneratorPage() {
             <div>
               <label className="label">Quality</label>
               <div className="flex gap-1 bg-surface-2 rounded-card p-1">
-                {([['gpt-image-2', 'High'], ['krea-2-turbo', 'Med'], ['z-image', 'Low']] as const).map(([v, label]) => (
+                {([['gpt-image-2-ultra', 'Ultra'], ['gpt-image-2', 'High'], ['krea-2-turbo', 'Med'], ['z-image', 'Low']] as const).map(([v, label]) => (
                   <button
                     key={v}
                     onClick={() => setSelectedModel(v)}

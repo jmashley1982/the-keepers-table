@@ -389,9 +389,10 @@ export default function GenerateArtButton({
             <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Quality</p>
             <div className="flex gap-0.5">
               {([
-                ['gpt-image-2',  'High'],
-                ['krea-2-turbo', 'Med'],
-                ['z-image',      'Low'],
+                ['gpt-image-2-ultra', 'Ultra'],
+                ['gpt-image-2',       'High'],
+                ['krea-2-turbo',      'Med'],
+                ['z-image',           'Low'],
               ] as const).map(([v, label]) => (
                 <button
                   key={v}
@@ -408,7 +409,7 @@ export default function GenerateArtButton({
               ))}
             </div>
             <p className="text-[8px] text-ink-muted/60 mt-0.5 leading-tight">
-              {selectedModel === 'gpt-image-2' ? 'GPT Image 2 (1K)' : selectedModel === 'krea-2-turbo' ? 'Krea 2 Turbo (1K)' : selectedModel === 'z-image' ? 'Z Image' : 'From your preferences'}
+              {selectedModel === 'gpt-image-2-ultra' ? 'GPT Image 2 (1K Med)' : selectedModel === 'gpt-image-2' ? 'GPT Image 2 (1K Low)' : selectedModel === 'krea-2-turbo' ? 'Krea 2 Turbo (1K)' : selectedModel === 'z-image' ? 'Z Image' : 'From your preferences'}
             </p>
           </div>
 

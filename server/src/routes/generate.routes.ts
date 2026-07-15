@@ -419,6 +419,49 @@ Write a concise geographic description (2-3 sentences) suitable for generating a
   }
 })
 
+// ── Prompt expander ───────────────────────────────────────────────────────────
+
+generateRouter.post('/expand-prompt', async (req, res) => {
+  const userId = res.locals.user.id
+  const schema = z.object({
+    prompt: z.string().min(1).max(1000),
+    context: z.enum(['battle_map', 'world_map', 'general']).optional().default('general'),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
+
+  const client = await getAnthropicClient(userId)
+  if (!client) { res.status(402).json({ error: 'No API key configured' }); return }
+
+  const { prompt, context } = parsed.data
+  const contextHint =
+    context === 'battle_map' ? 'a tactical battle map scene for a tabletop RPG (specific terrain, obstacles, atmosphere, encounter feel)' :
+    context === 'world_map'  ? 'a fantasy world or region geography (terrain types, biomes, landmarks, atmosphere)' :
+    'a tabletop RPG content generation prompt'
+
+  try {
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 600,
+      system: `You are a creative writing assistant for a tabletop RPG GM. The user has written a brief prompt for ${contextHint}. Expand it into 3 richer, more evocative alternatives that add specific sensory detail, atmosphere, and interesting features while staying true to the original intent. Each suggestion should be 1–3 vivid sentences.
+
+Return ONLY a JSON array of exactly 3 strings, no markdown wrapper, no prose:
+["suggestion 1", "suggestion 2", "suggestion 3"]`,
+      messages: [{ role: 'user', content: `Prompt: ${prompt}` }],
+    })
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text : '[]'
+    let suggestions: string[] = []
+    try {
+      const match = raw.match(/\[[\s\S]*\]/)
+      suggestions = JSON.parse(match ? match[0] : raw)
+      if (!Array.isArray(suggestions)) suggestions = []
+    } catch { suggestions = [] }
+    res.json({ suggestions: suggestions.slice(0, 3).filter((s): s is string => typeof s === 'string') })
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to expand prompt' })
+  }
+})
+
 // ── Session Wrap trigger ──────────────────────────────────────────────────────
 
 generateRouter.post('/session-wrap/:sessionId', async (req, res) => {

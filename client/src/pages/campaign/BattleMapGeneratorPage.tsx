@@ -11,6 +11,7 @@ import {
   ChevronDown, ChevronUp, Wand2,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import PromptExpandButton from '../../components/ui/PromptExpandButton'
 
 interface StylePreset { id: string; name: string; isBuiltin: boolean }
 interface EntityOption { id: string; name: string }
@@ -247,7 +248,10 @@ export default function BattleMapGeneratorPage() {
         <div className="p-4 space-y-4 flex-1">
           {/* Scene description */}
           <div>
-            <label className="label">Scene description</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label mb-0">Scene description</label>
+              <PromptExpandButton value={description} onSelect={setDescription} context="battle_map" />
+            </div>
             <textarea
               className="textarea h-28"
               placeholder="A ruined tavern with collapsed roof, overturned tables, fireplace in the north wall, three exits…"
@@ -288,7 +292,7 @@ export default function BattleMapGeneratorPage() {
           <div>
             <label className="label">Quality</label>
             <div className="flex gap-1 bg-surface-2 rounded-card p-1">
-              {([['gpt-image-2', 'High'], ['krea-2-turbo', 'Med'], ['z-image', 'Low']] as const).map(([v, label]) => (
+              {([['gpt-image-2-ultra', 'Ultra'], ['gpt-image-2', 'High'], ['krea-2-turbo', 'Med'], ['z-image', 'Low']] as const).map(([v, label]) => (
                 <button
                   key={v}
                   onClick={() => setSelectedModel(v)}
