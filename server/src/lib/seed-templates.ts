@@ -214,6 +214,39 @@ export async function seedEnemies(): Promise<void> {
   }
 
   console.log(`⚔️  Synced ${upserted5e + upsertedDw} SRD enemies (${upserted5e} 5e, ${upsertedDw} DW)`)
+
+  // Resync any per-campaign copies of DW SRD enemies to the current SRD stats.
+  // Campaign bestiaries normally reference SRD data live (served from JSON),
+  // but if older data ever cloned builtin DW enemies into a campaign
+  // (source 'srd', isBuiltin false), bring those copies up to date by name.
+  const dwByName = new Map(allDw.map(e => [e.name.toLowerCase(), e]))
+  const dwCopies = await prisma.enemy.findMany({
+    where: {
+      isBuiltin: false,
+      source: 'srd',
+      systemTemplateId: 'builtin-dungeon-world',
+      deletedAt: null,
+    },
+  })
+  let resynced = 0
+  for (const copy of dwCopies) {
+    const src = dwByName.get(copy.name.toLowerCase())
+    if (!src) continue
+    await prisma.enemy.update({
+      where: { id: copy.id },
+      data: {
+        description: src.description ?? '',
+        enemyType: src.enemyType ?? '',
+        size: src.size ?? '',
+        statBlock: (src.statBlock ?? {}) as Prisma.InputJsonValue,
+        tags: src.tags ?? [],
+      },
+    })
+    resynced++
+  }
+  if (resynced > 0) {
+    console.log(`🔄 Resynced ${resynced} campaign copies of DW SRD enemies to current stats`)
+  }
 }
 
 export async function seedSystemTemplates(): Promise<void> {
