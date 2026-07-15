@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useState } from 'react'
 import { cn } from '../../lib/cn'
-import { Plus, Search, ChevronDown, ChevronRight, Trash2, BookOpen, Swords, Edit2, Check, X } from 'lucide-react'
+import { Plus, Search, ChevronDown, ChevronRight, Trash2, BookOpen, Swords, Edit2, Check, X, Download } from 'lucide-react'
+import MonsterImportModal from '../../components/dnd5e/MonsterImportModal'
 
 interface Enemy {
   id: string
@@ -259,6 +260,7 @@ export default function EnemiesPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [searchInput, setSearchInput] = useState('')
+  const [importModalOpen, setImportModalOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['enemies', campaignId, search, typeFilter],
@@ -313,13 +315,29 @@ export default function EnemiesPage() {
               {srdEnemies.length} system monsters · {customEnemies.length} campaign enemies
             </p>
           </div>
-          <button
-            className="btn-primary"
-            onClick={() => navigate(`/campaign/${campaignId}/generate/enemy`)}
-          >
-            <Plus size={16} /> Generate Enemy
-          </button>
+          <div className="flex items-center gap-2">
+            {systemTemplateId === 'builtin-d-d-5e' && (
+              <button
+                className="btn-secondary flex items-center gap-1.5"
+                onClick={() => setImportModalOpen(true)}
+              >
+                <Download size={16} /> Import from SRD
+              </button>
+            )}
+            <button
+              className="btn-primary"
+              onClick={() => navigate(`/campaign/${campaignId}/generate/enemy`)}
+            >
+              <Plus size={16} /> Generate Enemy
+            </button>
+          </div>
         </div>
+        {importModalOpen && campaignId && (
+          <MonsterImportModal
+            campaignId={campaignId}
+            onClose={() => setImportModalOpen(false)}
+          />
+        )}
 
         {/* Search */}
         <form onSubmit={handleSearch} className="flex gap-2 max-w-md">

@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import {
   RefreshCw, Edit2, Save, Trash2,
-  ChevronDown, ChevronUp, Eye, EyeOff,
+  ChevronDown, ChevronUp, Eye, EyeOff, Package,
 } from 'lucide-react'
 import GenerateArtButton, { EntityAvatarWithArt } from './GenerateArtButton'
+import ItemLookupPanel from '../dnd5e/ItemLookupPanel'
 
 export interface EntityCardData {
   id: string
@@ -144,6 +145,15 @@ export default function EntityCard({
   const [editing, setEditing] = useState(false)
   const [showSecrets, setShowSecrets] = useState(false)
   const [draft, setDraft] = useState(entity)
+  const [itemLookupOpen, setItemLookupOpen] = useState(false)
+
+  const { data: campaignData } = useQuery({
+    queryKey: ['campaign', campaignId],
+    queryFn: () => api.get(`/api/campaigns/${campaignId}`).then(r => r.data),
+    enabled: !!campaignId && entityType === 'item',
+    staleTime: 5 * 60 * 1000,
+  })
+  const isDnd5eItem = entityType === 'item' && campaignData?.campaign?.systemTemplateId === 'builtin-d-d-5e'
 
   const entityPath = entityType === 'plot_thread' ? 'plot-threads' : `${entityType}s`
 
@@ -252,6 +262,15 @@ export default function EntityCard({
 
         {/* Actions */}
         <div className={cn('flex items-center gap-1 transition-opacity shrink-0', scratchMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}>
+          {isDnd5eItem && !scratchMode && (
+            <button
+              className="btn-ghost p-1"
+              onClick={() => setItemLookupOpen(true)}
+              title="Lookup SRD Item"
+            >
+              <Package size={13} />
+            </button>
+          )}
           {onRegenerate && (
             <button className="btn-ghost p-1" onClick={onRegenerate} title="Regenerate">
               <RefreshCw size={13} />
@@ -389,6 +408,8 @@ export default function EntityCard({
           </button>
         </div>
       )}
+
+      {itemLookupOpen && <ItemLookupPanel onClose={() => setItemLookupOpen(false)} />}
     </div>
   )
 }

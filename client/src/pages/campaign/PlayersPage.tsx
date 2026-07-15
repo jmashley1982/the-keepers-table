@@ -6,11 +6,18 @@ import { cn } from '../../lib/cn'
 import {
   Plus, Trash2, Save, X, Upload, Check,
   ChevronDown, ChevronUp, Loader, Users, ArrowUp, ArrowDown, GripVertical,
-  BookOpen,
+  BookOpen, Sparkles,
 } from 'lucide-react'
 import { DW_CLASSES, applyDWTemplate } from '../../lib/dwClasses'
 import { EntityAvatarWithArt } from '../../components/entity/GenerateArtButton'
 import GenerateArtButton from '../../components/entity/GenerateArtButton'
+import {
+  useDnd5eEnabled,
+  useDnd5eClasses,
+  useDnd5eSubclasses,
+  useDnd5eRaces,
+} from '../../hooks/useDnd5eApi'
+import SpellLookupModal from '../../components/dnd5e/SpellLookupModal'
 import {
   DndContext,
   closestCenter,
@@ -336,11 +343,54 @@ function PCCard({ pc, campaignId, onSelect, onDelete, onMoveUp, onMoveDown, isFi
 
 // ── PC Sheet Editor ───────────────────────────────────────────────────────────
 
-function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld }: {
-  pc: PlayerCharacter; campaignId: string; onClose: () => void; onSaved: () => void; isDungeonWorld: boolean
+function Dnd5eCombobox({
+  value, onChange, options, placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+  placeholder?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const filtered = q.trim()
+    ? options.filter(o => o.label.toLowerCase().includes(q.toLowerCase()))
+    : options
+
+  return (
+    <div className="relative">
+      <input
+        className="input text-sm w-full"
+        value={open ? q : value}
+        placeholder={placeholder}
+        onFocus={() => { setOpen(true); setQ('') }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onChange={e => setQ(e.target.value)}
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-0.5 bg-surface border border-border rounded-card shadow-xl max-h-48 overflow-y-auto">
+          {filtered.slice(0, 30).map(opt => (
+            <button
+              key={opt.value}
+              className="w-full text-left px-3 py-1.5 text-sm text-ink hover:bg-accent/10 hover:text-accent"
+              onMouseDown={() => { onChange(opt.label); setQ(''); setOpen(false) }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld, systemTemplateId }: {
+  pc: PlayerCharacter; campaignId: string; onClose: () => void; onSaved: () => void
+  isDungeonWorld: boolean; systemTemplateId: string
 }) {
   const qc = useQueryClient()
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [spellModalOpen, setSpellModalOpen] = useState(false)
   const [draft, setDraft] = useState<PCDraft>({
     name: pc.name, playerName: pc.playerName, race: pc.race,
     class: pc.class, subclass: pc.subclass, level: pc.level,
@@ -360,6 +410,16 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld }: {
   const [featuresOpen, setFeaturesOpen] = useState(true)
   const [equipOpen, setEquipOpen] = useState(true)
   const [backstoryOpen, setBackstoryOpen] = useState(false)
+
+  const isDnd5e = useDnd5eEnabled(systemTemplateId)
+  const { data: dnd5eClasses } = useDnd5eClasses()
+  const selectedClassIndex = dnd5eClasses?.find(c => c.name.toLowerCase() === draft.class.toLowerCase())?.index ?? null
+  const { data: dnd5eSubclasses } = useDnd5eSubclasses(isDnd5e ? selectedClassIndex : null)
+  const { data: dnd5eRaces } = useDnd5eRaces()
+
+  const classOptions = (dnd5eClasses ?? []).map(c => ({ value: c.index, label: c.name }))
+  const subclassOptions = (dnd5eSubclasses ?? []).map(s => ({ value: s.index, label: s.name }))
+  const raceOptions = (dnd5eRaces ?? []).map(r => ({ value: r.index, label: r.name }))
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<PCDraft>) =>
@@ -432,6 +492,16 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld }: {
             {pc.name || 'Character Sheet'}
           </h2>
           <div className="flex items-center gap-2">
+            {/* D&D 5e Spell Lookup button */}
+            {isDnd5e && (
+              <button
+                className="btn-secondary text-xs py-1.5 flex items-center gap-1.5"
+                onClick={() => setSpellModalOpen(true)}
+                title="Look up spells"
+              >
+                <Sparkles size={12} /> Spells
+              </button>
+            )}
             {/* DW Class Template picker — only for Dungeon World campaigns */}
             {isDungeonWorld && (
               <div className="relative">
@@ -484,6 +554,16 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld }: {
           </div>
         </div>
 
+        {spellModalOpen && (
+          <SpellLookupModal
+            onClose={() => setSpellModalOpen(false)}
+            onAddToNotes={(text) => {
+              setDraft(d => ({ ...d, notes: d.notes ? `${d.notes}\n\n${text}` : text }))
+              setSpellModalOpen(false)
+            }}
+          />
+        )}
+
         <div className="p-6 space-y-4">
           {/* Portrait */}
           <div className="flex items-start gap-4">
@@ -513,15 +593,42 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld }: {
               </div>
               <div>
                 <label className="label">Race</label>
-                <input className="input text-sm" value={draft.race} onChange={e => setDraft(d => ({ ...d, race: e.target.value }))} />
+                {isDnd5e && raceOptions.length > 0 ? (
+                  <Dnd5eCombobox
+                    value={draft.race}
+                    onChange={v => setDraft(d => ({ ...d, race: v }))}
+                    options={raceOptions}
+                    placeholder="Choose race…"
+                  />
+                ) : (
+                  <input className="input text-sm" value={draft.race} onChange={e => setDraft(d => ({ ...d, race: e.target.value }))} />
+                )}
               </div>
               <div>
                 <label className="label">Class</label>
-                <input className="input text-sm" value={draft.class} onChange={e => setDraft(d => ({ ...d, class: e.target.value }))} />
+                {isDnd5e && classOptions.length > 0 ? (
+                  <Dnd5eCombobox
+                    value={draft.class}
+                    onChange={v => { setDraft(d => ({ ...d, class: v, subclass: '' })) }}
+                    options={classOptions}
+                    placeholder="Choose class…"
+                  />
+                ) : (
+                  <input className="input text-sm" value={draft.class} onChange={e => setDraft(d => ({ ...d, class: e.target.value }))} />
+                )}
               </div>
               <div>
                 <label className="label">Subclass</label>
-                <input className="input text-sm" value={draft.subclass} onChange={e => setDraft(d => ({ ...d, subclass: e.target.value }))} />
+                {isDnd5e && subclassOptions.length > 0 ? (
+                  <Dnd5eCombobox
+                    value={draft.subclass}
+                    onChange={v => setDraft(d => ({ ...d, subclass: v }))}
+                    options={subclassOptions}
+                    placeholder="Choose subclass…"
+                  />
+                ) : (
+                  <input className="input text-sm" value={draft.subclass} onChange={e => setDraft(d => ({ ...d, subclass: e.target.value }))} />
+                )}
               </div>
               <div>
                 <label className="label">Level</label>
@@ -932,6 +1039,7 @@ export default function PlayersPage() {
           pc={selectedPc}
           campaignId={campaignId!}
           isDungeonWorld={isDungeonWorld}
+          systemTemplateId={campaignData?.campaign?.systemTemplateId ?? ''}
           onClose={() => setSelectedPcId(null)}
           onSaved={() => {
             qc.invalidateQueries({ queryKey: ['player-characters', campaignId] })

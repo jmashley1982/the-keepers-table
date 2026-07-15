@@ -6,10 +6,11 @@ import { cn } from '../../lib/cn'
 import {
   LayoutDashboard, BookOpen, Map, Scroll,
   Settings, LogOut, ChevronDown, Zap, Users,
-  Contrast, Flame, Skull, Rocket, Terminal, Swords,
+  Contrast, Flame, Skull, Rocket, Terminal, Swords, Shield,
 } from 'lucide-react'
 import { useState } from 'react'
 import { themeLogo } from '../../lib/themeLogo'
+import RulesReferencePanel from '../dnd5e/RulesReferencePanel'
 
 const THEME_OPTIONS = [
   { id: 'candlelight',  label: 'Candlelight',   icon: Flame },
@@ -25,6 +26,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
   const qc = useQueryClient()
   const { theme, setTheme, setQuickGenerateOpen } = useUIStore()
   const [themeOpen, setThemeOpen] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
 
   const { data: meData } = useQuery({
     queryKey: ['me'],
@@ -47,6 +49,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
 
   const campaign = campaignData?.campaign
   const user = meData?.user
+  const isDnd5e = campaign?.systemTemplateId === 'builtin-d-d-5e'
 
   const navLink = (to: string, icon: React.ReactNode, label: string, end?: boolean) => (
     <NavLink
@@ -118,6 +121,16 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
             {navLink(`/campaign/${campaignId}/maps`, <Map size={15} />, 'Maps')}
             {navLink(`/campaign/${campaignId}/log`, <Scroll size={15} />, 'Session Log')}
             {navLink(`/campaign/${campaignId}/settings`, <Settings size={15} />, 'Campaign Settings')}
+
+            {isDnd5e && (
+              <button
+                onClick={() => setRulesOpen(true)}
+                className="flex items-center gap-2.5 px-3 py-2 text-sm transition-all duration-150 rounded-card border-l-2 border-transparent text-ink-muted hover:text-ink hover:bg-white/5 w-full text-left"
+              >
+                <Shield size={15} />
+                <span>5e Rules</span>
+              </button>
+            )}
           </>
         )}
 
@@ -169,6 +182,8 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
           Sign out
         </button>
       </div>
+
+      {rulesOpen && <RulesReferencePanel onClose={() => setRulesOpen(false)} />}
     </aside>
   )
 }
