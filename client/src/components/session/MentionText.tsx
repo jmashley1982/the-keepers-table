@@ -75,43 +75,100 @@ export interface RawEntity {
 
 export type MentionSegment =
   | { kind: 'text'; value: string }
-  | { kind: 'mention'; entityType: EntityType; name: string; resolved: boolean }
+  | { kind: 'mention'; entityType: EntityType; name: string; entityId?: string; resolved: boolean }
 
 export function parseMentions(text: string, allEntities: MentionEntity[]): MentionSegment[] {
   const result: MentionSegment[] = []
-  const pattern = /@(PC|NPC|Loc|Item|Faction):/g
+  // Token formats supported (in order of preference):
+  //   New:  @TYPE[id:StoredName]: — self-contained; consumeLength = 0 (name is inside brackets)
+  //   Old:  @TYPE:Name            — legacy name-based; consumeLength = entity name length
+  // The regex captures everything inside [...] as group 2 (undefined for legacy tokens).
+  const pattern = /@(PC|NPC|Loc|Item|Faction)(?:\[([^\]]*)\])?:/g
   let lastIndex = 0
   let match: RegExpExecArray | null
 
   while ((match = pattern.exec(text)) !== null) {
     const label = match[1]
+    const bracketContent = match[2]   // undefined for legacy @TYPE:Name tokens
     const entityType = LABEL_TO_TYPE[label]
     const rest = text.slice(match.index + match[0].length)
-
-    const candidates = allEntities
-      .filter(e => e.type === entityType && rest.startsWith(e.name))
-      .sort((a, b) => b.name.length - a.name.length)
 
     let chipName: string
     let consumeLength: number
     let resolved: boolean
+    let resolvedId: string | undefined
 
-    if (candidates.length > 0) {
-      chipName = candidates[0].name
-      consumeLength = candidates[0].name.length
-      resolved = true
+    if (bracketContent !== undefined) {
+      const colonIdx = bracketContent.indexOf(':')
+
+      if (colonIdx !== -1) {
+        // New self-contained format: @TYPE[id:StoredName]:
+        // The stored name is embedded inside the brackets — nothing to consume from rest.
+        const storedId   = bracketContent.slice(0, colonIdx)
+        const storedName = bracketContent.slice(colonIdx + 1)
+        const byId = allEntities.find(e => e.type === entityType && e.id === storedId)
+        if (byId) {
+          chipName  = byId.name   // show current entity name (rename-transparent)
+          resolvedId = byId.id
+          resolved   = true
+        } else {
+          chipName = storedName   // entity deleted — display stored name
+          resolved  = false
+        }
+        consumeLength = 0   // entire token is inside the regex match; rest is free text
+
+      } else {
+        // Intermediate bracket format without stored name: @TYPE[id]:Name
+        // (may appear in notes created between the two implementations; handle gracefully)
+        const storedId = bracketContent
+        const byId = allEntities.find(e => e.type === entityType && e.id === storedId)
+        if (byId && rest.startsWith(byId.name)) {
+          // Entity name unchanged — exact boundary known
+          chipName      = byId.name
+          consumeLength = byId.name.length
+          resolvedId    = byId.id
+          resolved      = true
+        } else if (byId) {
+          // Entity renamed — consume up to next @ / newline as best-effort fallback
+          const syntaxMatch = rest.match(/^([^@\n]+)/)
+          if (!syntaxMatch) continue
+          chipName      = byId.name
+          consumeLength = syntaxMatch[1].trimEnd().length
+          resolvedId    = byId.id
+          resolved      = true
+        } else {
+          const syntaxMatch = rest.match(/^([^@\n]+)/)
+          if (!syntaxMatch) continue
+          chipName      = syntaxMatch[1].trimEnd()
+          consumeLength = syntaxMatch[1].length
+          resolved      = false
+        }
+      }
+
     } else {
-      const syntaxMatch = rest.match(/^([^@\n]+)/)
-      if (!syntaxMatch) continue
-      chipName = syntaxMatch[1].trimEnd()
-      consumeLength = syntaxMatch[1].length
-      resolved = false
+      // Legacy name-based token: @TYPE:Name
+      const candidates = allEntities
+        .filter(e => e.type === entityType && rest.startsWith(e.name))
+        .sort((a, b) => b.name.length - a.name.length)
+
+      if (candidates.length > 0) {
+        chipName      = candidates[0].name
+        consumeLength = candidates[0].name.length
+        resolvedId    = candidates[0].id
+        resolved      = true
+      } else {
+        const syntaxMatch = rest.match(/^([^@\n]+)/)
+        if (!syntaxMatch) continue
+        chipName      = syntaxMatch[1].trimEnd()
+        consumeLength = syntaxMatch[1].length
+        resolved      = false
+      }
     }
 
     if (match.index > lastIndex) {
       result.push({ kind: 'text', value: text.slice(lastIndex, match.index) })
     }
-    result.push({ kind: 'mention', entityType, name: chipName, resolved })
+    result.push({ kind: 'mention', entityType, name: chipName, entityId: resolvedId, resolved })
     lastIndex = match.index + match[0].length + consumeLength
     pattern.lastIndex = lastIndex
   }
@@ -123,7 +180,7 @@ export function parseMentions(text: string, allEntities: MentionEntity[]): Menti
   return result
 }
 
-interface OverlayTarget { entityType: EntityType; name: string }
+export interface OverlayTarget { entityType: EntityType; name: string; entityId?: string }
 
 export function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
   target: OverlayTarget
@@ -132,7 +189,11 @@ export function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
   onClose: () => void
 }) {
   const navigate = useNavigate()
-  const entity = rawMap.get(`${target.entityType}:${target.name}`)
+  // Prefer ID-based lookup (survives renames), fall back to name-based for legacy tokens
+  const entity = target.entityId
+    ? (rawMap.get(`${target.entityType}-id:${target.entityId}`) ?? rawMap.get(`${target.entityType}:${target.name}`))
+    : rawMap.get(`${target.entityType}:${target.name}`)
+  const displayName = entity?.name ?? target.name
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -171,7 +232,7 @@ export function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-ink text-sm truncate">{target.name}</h3>
+            <h3 className="font-bold text-ink text-sm truncate">{displayName}</h3>
             {allSubtitleParts.length > 0 && (
               <p className="text-[11px] text-ink-muted truncate">
                 {allSubtitleParts.join(' · ')}
@@ -365,11 +426,11 @@ export default function MentionText({ text, campaignId, className }: MentionText
 
   const rawMap = useMemo(() => {
     const map = new Map<string, RawEntity>()
-    for (const e of pcData?.items      ?? []) map.set(`pc:${e.name}`,       e as RawEntity)
-    for (const e of npcData?.items     ?? []) map.set(`npc:${e.name}`,      e as RawEntity)
-    for (const e of locData?.items     ?? []) map.set(`location:${e.name}`, e as RawEntity)
-    for (const e of itemData?.items    ?? []) map.set(`item:${e.name}`,     e as RawEntity)
-    for (const e of factionData?.items ?? []) map.set(`faction:${e.name}`,  e as RawEntity)
+    for (const e of pcData?.items      ?? []) { map.set(`pc:${e.name}`,          e as RawEntity); map.set(`pc-id:${e.id}`,          e as RawEntity) }
+    for (const e of npcData?.items     ?? []) { map.set(`npc:${e.name}`,         e as RawEntity); map.set(`npc-id:${e.id}`,         e as RawEntity) }
+    for (const e of locData?.items     ?? []) { map.set(`location:${e.name}`,    e as RawEntity); map.set(`location-id:${e.id}`,    e as RawEntity) }
+    for (const e of itemData?.items    ?? []) { map.set(`item:${e.name}`,        e as RawEntity); map.set(`item-id:${e.id}`,        e as RawEntity) }
+    for (const e of factionData?.items ?? []) { map.set(`faction:${e.name}`,     e as RawEntity); map.set(`faction-id:${e.id}`,     e as RawEntity) }
     return map
   }, [pcData, npcData, locData, itemData, factionData])
 
@@ -384,7 +445,7 @@ export default function MentionText({ text, campaignId, className }: MentionText
           ) : (
             <button
               key={i}
-              onClick={() => setOverlayTarget({ entityType: seg.entityType, name: seg.name })}
+              onClick={() => setOverlayTarget({ entityType: seg.entityType, name: seg.name, entityId: seg.entityId })}
               className={cn(
                 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium mx-0.5 cursor-pointer transition-colors',
                 seg.resolved

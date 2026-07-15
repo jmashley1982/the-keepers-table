@@ -16,7 +16,7 @@ import {
   EntityMentionOverlay,
 } from './MentionText'
 
-interface OverlayTarget { entityType: EntityType; name: string }
+interface OverlayTarget { entityType: EntityType; name: string; entityId?: string }
 
 interface Props {
   value: string
@@ -50,11 +50,11 @@ export default function MentionTextarea({ value, onChange, campaignId, className
 
   const rawMap = useMemo(() => {
     const map = new Map<string, RawEntity>()
-    for (const e of pcData?.items      ?? []) map.set(`pc:${e.name}`,       e as RawEntity)
-    for (const e of npcData?.items     ?? []) map.set(`npc:${e.name}`,      e as RawEntity)
-    for (const e of locData?.items     ?? []) map.set(`location:${e.name}`, e as RawEntity)
-    for (const e of itemData?.items    ?? []) map.set(`item:${e.name}`,     e as RawEntity)
-    for (const e of factionData?.items ?? []) map.set(`faction:${e.name}`,  e as RawEntity)
+    for (const e of pcData?.items      ?? []) { map.set(`pc:${e.name}`,          e as RawEntity); map.set(`pc-id:${e.id}`,          e as RawEntity) }
+    for (const e of npcData?.items     ?? []) { map.set(`npc:${e.name}`,         e as RawEntity); map.set(`npc-id:${e.id}`,         e as RawEntity) }
+    for (const e of locData?.items     ?? []) { map.set(`location:${e.name}`,    e as RawEntity); map.set(`location-id:${e.id}`,    e as RawEntity) }
+    for (const e of itemData?.items    ?? []) { map.set(`item:${e.name}`,        e as RawEntity); map.set(`item-id:${e.id}`,        e as RawEntity) }
+    for (const e of factionData?.items ?? []) { map.set(`faction:${e.name}`,     e as RawEntity); map.set(`faction-id:${e.id}`,     e as RawEntity) }
     return map
   }, [pcData, npcData, locData, itemData, factionData])
 
@@ -113,7 +113,9 @@ export default function MentionTextarea({ value, onChange, campaignId, className
     if (!mentionState) return
     const before = value.slice(0, mentionState.start)
     const after  = value.slice(mentionState.start + 1 + mentionState.query.length)
-    const tag    = `@${TYPE_LABELS[entity.type]}:${entity.name}`
+    // Self-contained token: id and name both inside brackets, nothing consumed from rest.
+    // Format: @TYPE[id:StoredName]: — survives entity renames via ID lookup.
+    const tag    = `@${TYPE_LABELS[entity.type]}[${entity.id}:${entity.name}]:`
     const newVal = `${before}${tag}${after}`
     onChange(newVal)
     setMentionState(null)
@@ -165,7 +167,7 @@ export default function MentionTextarea({ value, onChange, campaignId, className
                   onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
                   onClick={e => {
                     e.stopPropagation()
-                    setOverlayTarget({ entityType: seg.entityType, name: seg.name })
+                    setOverlayTarget({ entityType: seg.entityType, name: seg.name, entityId: seg.entityId })
                   }}
                   className={cn(
                     'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium mx-0.5 cursor-pointer transition-colors',
@@ -267,11 +269,11 @@ export function MentionText({ text, campaignId, className }: MentionTextProps) {
 
   const rawMap = useMemo(() => {
     const map = new Map<string, RawEntity>()
-    for (const e of pcData?.items      ?? []) map.set(`pc:${e.name}`,       e as RawEntity)
-    for (const e of npcData?.items     ?? []) map.set(`npc:${e.name}`,      e as RawEntity)
-    for (const e of locData?.items     ?? []) map.set(`location:${e.name}`, e as RawEntity)
-    for (const e of itemData?.items    ?? []) map.set(`item:${e.name}`,     e as RawEntity)
-    for (const e of factionData?.items ?? []) map.set(`faction:${e.name}`,  e as RawEntity)
+    for (const e of pcData?.items      ?? []) { map.set(`pc:${e.name}`,          e as RawEntity); map.set(`pc-id:${e.id}`,          e as RawEntity) }
+    for (const e of npcData?.items     ?? []) { map.set(`npc:${e.name}`,         e as RawEntity); map.set(`npc-id:${e.id}`,         e as RawEntity) }
+    for (const e of locData?.items     ?? []) { map.set(`location:${e.name}`,    e as RawEntity); map.set(`location-id:${e.id}`,    e as RawEntity) }
+    for (const e of itemData?.items    ?? []) { map.set(`item:${e.name}`,        e as RawEntity); map.set(`item-id:${e.id}`,        e as RawEntity) }
+    for (const e of factionData?.items ?? []) { map.set(`faction:${e.name}`,     e as RawEntity); map.set(`faction-id:${e.id}`,     e as RawEntity) }
     return map
   }, [pcData, npcData, locData, itemData, factionData])
 
@@ -286,7 +288,7 @@ export function MentionText({ text, campaignId, className }: MentionTextProps) {
           ) : (
             <button
               key={i}
-              onClick={e => { e.stopPropagation(); setOverlayTarget({ entityType: seg.entityType, name: seg.name }) }}
+              onClick={e => { e.stopPropagation(); setOverlayTarget({ entityType: seg.entityType, name: seg.name, entityId: seg.entityId }) }}
               className={cn(
                 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium mx-0.5 cursor-pointer transition-colors',
                 seg.resolved
