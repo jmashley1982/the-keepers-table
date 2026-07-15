@@ -10,7 +10,9 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       const url: string = err.config?.url ?? ''
-      if (!url.startsWith('/api/friends')) {
+      const isAuthProbe = url.startsWith('/auth/me') || url.startsWith('/api/friends')
+      const onPublicPage = ['/', '/login', '/signup', '/onboarding', '/friends'].includes(window.location.pathname)
+      if (!isAuthProbe && !onPublicPage) {
         window.location.href = '/login'
       }
     }
