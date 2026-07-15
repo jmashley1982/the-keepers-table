@@ -57,8 +57,14 @@ async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
   return null
 }
 
+async function userHasOwnCredentials(userId: string): Promise<boolean> {
+  const count = await prisma.apiCredential.count({ where: { userId, encryptedKey: { not: null } } })
+  return count > 0
+}
+
 async function checkFriendTextQuota(userId: string): Promise<{ allowed: boolean; error?: string }> {
   if (!(await isFriendAccount(userId))) return { allowed: true }
+  if (await userHasOwnCredentials(userId)) return { allowed: true }
   const used = await prisma.generationJob.count({
     where: { userId, provider: 'anthropic', status: { not: 'failed' } },
   })
@@ -70,6 +76,7 @@ async function checkFriendTextQuota(userId: string): Promise<{ allowed: boolean;
 
 async function checkFriendImageQuota(userId: string): Promise<{ allowed: boolean; error?: string }> {
   if (!(await isFriendAccount(userId))) return { allowed: true }
+  if (await userHasOwnCredentials(userId)) return { allowed: true }
   const used = await prisma.generationJob.count({
     where: { userId, provider: 'evolink', status: { not: 'failed' } },
   })

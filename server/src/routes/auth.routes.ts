@@ -35,6 +35,11 @@ authRouter.post('/signup', async (req, res) => {
   }
   const { email, password, displayName } = parsed.data
 
+  if (email.toLowerCase().endsWith('@keeper.internal')) {
+    res.status(400).json({ error: 'Invalid email address' })
+    return
+  }
+
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     res.status(409).json({ error: 'Email already registered' })
