@@ -424,8 +424,8 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved }: {
   )
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto">
-      <div className="bg-surface rounded-card border border-border w-full max-w-3xl my-4 shadow-xl">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-surface rounded-card border border-border w-full max-w-3xl my-4 shadow-xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="display-font text-xl font-bold text-ink">
