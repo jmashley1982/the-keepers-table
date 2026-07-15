@@ -16,6 +16,7 @@ preferencesRouter.patch('/', async (req, res) => {
     measurementUnits: z.enum(['imperial', 'metric']).optional(),
     themePreference: z.string().optional(),
     imageModelByCategory: z.record(z.string()).optional(),
+    textModelByTask: z.record(z.string()).optional(),
     softCapPerCall: z.number().min(0.01).max(50).optional(),
   })
   const parsed = schema.safeParse(req.body)

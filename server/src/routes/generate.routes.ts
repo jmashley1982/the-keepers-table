@@ -221,7 +221,9 @@ generateRouter.post('/text', async (req, res) => {
 
   const { kind, campaignId, prompt, sessionId, npcId, stream, model } = parsed.data
   const userPref = await prisma.userPreference.findUnique({ where: { userId } })
-  const textModel = model ?? userPref?.defaultTextModel ?? 'claude-opus-4-5'
+  const taskModelMap = (userPref?.textModelByTask ?? {}) as Record<string, string>
+  const taskKey = kind === 'dialogue' ? 'dialogue' : kind === 'session_wrap' ? 'sessionWrap' : 'entityGen'
+  const textModel = model ?? taskModelMap[taskKey] ?? userPref?.defaultTextModel ?? 'claude-opus-4-5'
 
   let context = ''
   if (campaignId) {
@@ -445,7 +447,8 @@ generateRouter.post('/session-wrap/:sessionId', async (req, res) => {
 
   const context = await buildCampaignContext(session.campaignId, session.dmRawNotes)
   const userPref = await prisma.userPreference.findUnique({ where: { userId } })
-  const textModel = userPref?.defaultTextModel ?? 'claude-opus-4-5'
+  const taskModelMap2 = (userPref?.textModelByTask ?? {}) as Record<string, string>
+  const textModel = taskModelMap2['sessionWrap'] ?? userPref?.defaultTextModel ?? 'claude-opus-4-5'
 
   const prompt = `${context}
 
@@ -516,7 +519,8 @@ generateRouter.post('/prep-suggestions/:campaignId', async (req, res) => {
 
   const context = await buildCampaignContext(campaignId, '')
   const userPref = await prisma.userPreference.findUnique({ where: { userId } })
-  const textModel = userPref?.defaultTextModel ?? 'claude-opus-4-5'
+  const taskModelMap3 = (userPref?.textModelByTask ?? {}) as Record<string, string>
+  const textModel = taskModelMap3['sessionWrap'] ?? userPref?.defaultTextModel ?? 'claude-opus-4-5'
 
   const prompt = `${context}
 

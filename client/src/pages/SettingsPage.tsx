@@ -190,6 +190,20 @@ function StylePresetsSection() {
   )
 }
 
+const CLAUDE_MODELS = [
+  { value: 'claude-fable-4-5',  label: 'Fable 5',    badge: 'Most capable',   desc: 'Research & complex multi-step tasks' },
+  { value: 'claude-opus-4-5',   label: 'Opus 4.8',   badge: 'Complex',        desc: 'Agents, coding, nuanced writing' },
+  { value: 'claude-sonnet-4-5', label: 'Sonnet 5',   badge: 'Balanced',       desc: 'Everyday tasks, fast & cost-efficient' },
+  { value: 'claude-haiku-4-5',  label: 'Haiku 4.5',  badge: 'Fastest',        desc: 'High-volume, lowest cost' },
+]
+
+const TEXT_TASK_OPTIONS = [
+  { key: 'entityGen',    label: 'Entity generation',   desc: 'NPCs, encounters, factions, locations, items' },
+  { key: 'sessionWrap',  label: 'Session wrap & prep',  desc: 'Post-session summaries and next-session prep suggestions' },
+  { key: 'dialogue',     label: 'Dialogue writing',     desc: 'NPC voices and conversation generation' },
+  { key: 'sheetExtract', label: 'PC sheet scan',        desc: 'Reading uploaded character sheets' },
+]
+
 const IMAGE_MODEL_OPTIONS = [
   { value: 'gpt-image-2',        label: 'High — GPT2 (1K)' },
   { value: 'nano-banana-2-lite', label: 'Low — Google Nano Banana 2 Lite (1K)' },
@@ -235,9 +249,18 @@ export default function SettingsPage() {
 
   const qc = useQueryClient()
   const [displayName, setDisplayName] = useState(meData?.user?.displayName ?? '')
-  const [textModel, setTextModel] = useState(meData?.user?.preference?.defaultTextModel ?? 'claude-opus-4-5')
+  const [textModel, setTextModel] = useState(meData?.user?.preference?.defaultTextModel ?? 'claude-sonnet-4-5')
   const [contentRating, setContentRating] = useState(meData?.user?.preference?.contentRating ?? 'standard')
   const [softCap, setSoftCap] = useState<number>(prefData?.preference?.softCapPerCall ?? pricingDefault)
+
+  const storedTextModelByTask: Record<string, string> = prefData?.preference?.textModelByTask ?? {}
+  const [textModelByTask, setTextModelByTask] = useState<Record<string, string>>(storedTextModelByTask)
+
+  useEffect(() => {
+    if (prefData?.preference?.textModelByTask) {
+      setTextModelByTask(prefData.preference.textModelByTask as Record<string, string>)
+    }
+  }, [prefData?.preference?.textModelByTask])
 
   useEffect(() => {
     if (prefData?.preference?.softCapPerCall != null) {
@@ -259,6 +282,17 @@ export default function SettingsPage() {
     mutationFn: (models: Record<string, string>) => api.patch('/api/preferences', { imageModelByCategory: models }),
     onSuccess: () => refetchPref(),
   })
+
+  const updateTextModels = useMutation({
+    mutationFn: (models: Record<string, string>) => api.patch('/api/preferences', { textModelByTask: models }),
+    onSuccess: () => refetchPref(),
+  })
+
+  function handleTextModelChange(taskKey: string, model: string) {
+    const updated = { ...textModelByTask, [taskKey]: model }
+    setTextModelByTask(updated)
+    updateTextModels.mutate(updated)
+  }
 
   const [usageRange, setUsageRange] = useState<'7d' | '30d' | 'all'>('30d')
 
@@ -308,10 +342,11 @@ export default function SettingsPage() {
 
         <div>
           <label className="label">Default Claude model</label>
+          <p className="text-xs text-ink-muted mb-1.5">Used for any task that doesn't have a specific model set below.</p>
           <select className="input" value={textModel} onChange={e => setTextModel(e.target.value)}>
-            <option value="claude-opus-4-5">Claude Opus (best quality)</option>
-            <option value="claude-sonnet-4-5">Claude Sonnet (faster, cheaper)</option>
-            <option value="claude-haiku-4-5">Claude Haiku (fastest)</option>
+            {CLAUDE_MODELS.map(m => (
+              <option key={m.value} value={m.value}>{m.label} — {m.desc}</option>
+            ))}
           </select>
         </div>
 
@@ -352,6 +387,56 @@ export default function SettingsPage() {
           Save preferences
         </button>
         {updatePref.isSuccess && <p className="text-xs text-green-500">✓ Saved</p>}
+      </div>
+
+      {/* Per-task Claude model selection */}
+      <div className="card space-y-4">
+        <div>
+          <h2 className="font-semibold text-ink">Claude Model per Task</h2>
+          <p className="text-sm text-ink-muted mt-0.5">
+            Pick the best model for each job — run Fable on session wraps, Haiku on quick entity generation, or anything in between.
+            Leave a task on <span className="text-ink font-medium">Default</span> to use whichever model you chose above.
+          </p>
+        </div>
+
+        {/* Model legend */}
+        <div className="grid grid-cols-2 gap-2">
+          {CLAUDE_MODELS.map(m => (
+            <div key={m.value} className="flex items-start gap-2 bg-surface-2 rounded-card px-3 py-2 border border-border">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-ink">{m.label}</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent font-medium uppercase tracking-wide">{m.badge}</span>
+                </div>
+                <p className="text-[11px] text-ink-muted mt-0.5 leading-snug">{m.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Per-task dropdowns */}
+        <div className="space-y-3 border-t border-border pt-4">
+          {TEXT_TASK_OPTIONS.map(task => (
+            <div key={task.key} className="flex items-center gap-4">
+              <div className="min-w-[160px] shrink-0">
+                <p className="text-sm font-medium text-ink">{task.label}</p>
+                <p className="text-[11px] text-ink-muted leading-snug">{task.desc}</p>
+              </div>
+              <select
+                className="input flex-1"
+                value={textModelByTask[task.key] ?? ''}
+                onChange={e => handleTextModelChange(task.key, e.target.value)}
+              >
+                <option value="">Default</option>
+                {CLAUDE_MODELS.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+
+        {updateTextModels.isSuccess && <p className="text-xs text-green-500">✓ Task models saved</p>}
       </div>
 
       {/* Style Presets */}

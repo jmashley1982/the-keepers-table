@@ -285,11 +285,15 @@ playerCharactersRouter.post(
     const mediaType = req.file.mimetype as 'image/png' | 'image/jpeg' | 'image/webp'
     const base64 = req.file.buffer.toString('base64')
 
+    const pcUserPref = await prisma.userPreference.findUnique({ where: { userId } })
+    const pcTaskModelMap = (pcUserPref?.textModelByTask ?? {}) as Record<string, string>
+    const sheetModel = pcTaskModelMap['sheetExtract'] ?? pcUserPref?.defaultTextModel ?? 'claude-opus-4-5'
+
     let extracted: Record<string, unknown> = {}
     let extractionFailed = false
     try {
       const msg = await client.messages.create({
-        model: 'claude-opus-4-5',
+        model: sheetModel,
         max_tokens: 2048,
         messages: [{
           role: 'user',

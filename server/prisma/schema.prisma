@@ -57,6 +57,7 @@ model UserPreference {
   defaultImageModel    String   @default("seedream-5")
   imageStylePreset     String   @default("Classic fantasy oil")
   imageModelByCategory Json     @default("{}")
+  textModelByTask      Json     @default("{}")
   contentRating        String   @default("standard") // "family" | "standard" | "grim"
   measurementUnits     String   @default("imperial")
   softCapPerCall       Float    @default(0.50)
