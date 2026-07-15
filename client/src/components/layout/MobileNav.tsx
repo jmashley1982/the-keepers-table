@@ -72,18 +72,22 @@ export default function MobileNav() {
       {tab(`/campaign/${cid}`, <LayoutDashboard size={20} />, 'Dashboard', true)}
       {tab(`/campaign/${cid}/library`, <BookOpen size={20} />, 'Library')}
 
-      {/* Center Quick Generate button */}
-      <div className="flex flex-col items-center justify-center flex-1 py-1">
+      {/* Center Quick Generate button — elevated FAB with label */}
+      <div className="flex flex-col items-center justify-end flex-1 pb-1" style={{ marginTop: '-18px' }}>
         <button
           onClick={() => setQuickGenerateOpen(true)}
-          className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg transition-transform active:scale-95 touch-manipulation"
+          className="flex flex-col items-center justify-center gap-0.5 rounded-2xl shadow-xl transition-transform active:scale-95 touch-manipulation"
           style={{
             background: 'var(--color-accent)',
             color: 'var(--color-bg)',
+            width: '64px',
+            height: '56px',
+            boxShadow: '0 4px 16px color-mix(in srgb, var(--color-accent) 50%, transparent)',
           }}
           aria-label="Quick Generate"
         >
-          <Zap size={22} />
+          <Zap size={20} fill="currentColor" />
+          <span className="text-[9px] font-bold tracking-wide leading-none">Generate</span>
         </button>
       </div>
 
