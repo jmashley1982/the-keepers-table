@@ -9,12 +9,12 @@ import MobileDrawer from './MobileDrawer'
 import MobileNav from './MobileNav'
 import QuickGenerate from '../generate/QuickGenerate'
 import ScratchTray from '../generate/ScratchTray'
-import { FlaskConical, Zap } from 'lucide-react'
+import { FlaskConical } from 'lucide-react'
 
 export default function AppShell() {
   const { campaignId } = useParams()
   const navigate = useNavigate()
-  const { setActiveCampaignId, quickGenerateOpen, setQuickGenerateOpen, activeCampaignId } = useUIStore()
+  const { setActiveCampaignId, quickGenerateOpen, setQuickGenerateOpen } = useUIStore()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const { data: meData } = useQuery({
@@ -38,8 +38,6 @@ export default function AppShell() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [setQuickGenerateOpen])
-
-  const cid = campaignId ?? activeCampaignId
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-bg">
@@ -76,24 +74,6 @@ export default function AppShell() {
 
       {/* Mobile bottom navigation */}
       <MobileNav />
-
-      {/* Mobile FAB — Quick Generate, above the bottom nav bar */}
-      {cid && (
-        <button
-          onClick={() => setQuickGenerateOpen(true)}
-          className="md:hidden fixed bottom-20 right-4 z-20 flex items-center justify-center w-13 h-13 rounded-full shadow-xl transition-transform active:scale-95 touch-manipulation"
-          style={{
-            background: 'var(--color-accent)',
-            color: 'var(--color-bg)',
-            width: '52px',
-            height: '52px',
-            marginBottom: 'env(safe-area-inset-bottom)',
-          }}
-          aria-label="Quick Generate"
-        >
-          <Zap size={22} />
-        </button>
-      )}
 
       {quickGenerateOpen && (
         <QuickGenerate onClose={() => setQuickGenerateOpen(false)} campaignId={campaignId} />
