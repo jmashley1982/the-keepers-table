@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router, type Request, type Response } from 'express'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { decrypt } from '../lib/crypto.js'
@@ -247,7 +247,7 @@ const KIND_SCHEMAS: Record<string, string> = {
 
 // ── Text generation ───────────────────────────────────────────────────────────
 
-generateRouter.post('/text', async (req, res) => {
+async function handleTextGenerate(req: Request, res: Response): Promise<void> {
   const userId = res.locals.user.id
   const schema = z.object({
     kind: z.enum(['npc', 'encounter', 'treasure', 'dialogue', 'faction', 'plot_thread', 'session_wrap', 'quick', 'prep_suggestions', 'enemy']),
@@ -423,6 +423,14 @@ REQUEST: ${prompt}`
       res.status(500).json({ error: msg })
     }
   }
+}
+
+generateRouter.post('/text', handleTextGenerate)
+
+// POST /api/generate/enemy — dedicated SSE endpoint for enemy generation
+generateRouter.post('/enemy', (req: Request, res: Response) => {
+  req.body = { ...req.body, kind: 'enemy', stream: req.body.stream ?? true }
+  return handleTextGenerate(req, res)
 })
 
 // ── World / Region map context (Claude summary from campaign locations) ────────

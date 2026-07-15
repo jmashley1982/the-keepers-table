@@ -38,11 +38,14 @@ function EnemyCard({
   enemy: EnemyResult
   systemTemplateId: string
   scratchMode?: boolean
-  onSave?: () => void
+  onSave?: (patch: Partial<EnemyResult>) => void
   saved?: boolean
   onRegenerate?: () => void
 }) {
   const [expanded, setExpanded] = useState(true)
+  const [editName, setEditName] = useState(enemy.name)
+  const [editType, setEditType] = useState(enemy.enemyType)
+  const [editDesc, setEditDesc] = useState(enemy.description)
   const sb = enemy.statBlock ?? {}
   const is5e = systemTemplateId === 'builtin-d-d-5e'
   const isDw = systemTemplateId === 'builtin-dungeon-world'
@@ -147,21 +150,38 @@ function EnemyCard({
       )}
 
       {scratchMode && (
-        <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+        <div className="mt-3 pt-3 border-t border-border space-y-3">
           {!saved ? (
             <>
-              <button
-                className="btn-primary flex-1 justify-center text-sm"
-                onClick={onSave}
-              >
-                <Save size={14} /> Save to Campaign
-              </button>
-              <button
-                className="btn-ghost text-ink-muted text-sm"
-                onClick={onRegenerate}
-              >
-                <RefreshCw size={13} /> Regenerate
-              </button>
+              {/* Editable fields before saving */}
+              <div className="space-y-2">
+                <div>
+                  <label className="label text-xs">Name</label>
+                  <input className="input text-sm" value={editName} onChange={e => setEditName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label text-xs">Creature Type</label>
+                  <input className="input text-sm" value={editType} onChange={e => setEditType(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label text-xs">Description</label>
+                  <textarea className="textarea text-sm h-16" value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  className="btn-primary flex-1 justify-center text-sm"
+                  onClick={() => onSave?.({ name: editName, enemyType: editType, description: editDesc })}
+                >
+                  <Save size={14} /> Save to Campaign
+                </button>
+                <button
+                  className="btn-ghost text-ink-muted text-sm"
+                  onClick={onRegenerate}
+                >
+                  <RefreshCw size={13} /> Regenerate
+                </button>
+              </div>
             </>
           ) : (
             <p className="text-xs text-green-500 flex items-center gap-1 w-full justify-center">
@@ -278,8 +298,8 @@ export default function EnemyGeneratorPage() {
   }
 
   const saveResult = useMutation({
-    mutationFn: async ({ data: enemy, index }: { data: EnemyResult; index: number }) => {
-      await api.post(`/api/campaigns/${campaignId}/enemies`, { ...enemy, source: 'generated' })
+    mutationFn: async ({ data: enemy, patch, index }: { data: EnemyResult; patch: Partial<EnemyResult>; index: number }) => {
+      await api.post(`/api/campaigns/${campaignId}/enemies`, { ...enemy, ...patch, source: 'generated' })
       return index
     },
     onSuccess: (index) => {
@@ -378,7 +398,7 @@ export default function EnemyGeneratorPage() {
               systemTemplateId={systemTemplateId}
               scratchMode={!result.saved}
               saved={result.saved}
-              onSave={() => saveResult.mutate({ data: result.data, index: i })}
+              onSave={(patch) => saveResult.mutate({ data: result.data, patch: patch ?? {}, index: i })}
               onRegenerate={generate}
             />
           ))}

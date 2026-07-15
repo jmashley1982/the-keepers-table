@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useState } from 'react'
 import { cn } from '../../lib/cn'
-import { Plus, Search, ChevronDown, ChevronRight, Trash2, BookOpen, Swords } from 'lucide-react'
+import { Plus, Search, ChevronDown, ChevronRight, Trash2, BookOpen, Swords, Edit2, Check, X } from 'lucide-react'
 
 interface Enemy {
   id: string
@@ -61,13 +61,19 @@ function AbilityScore({ label, value }: { label: string; value: number }) {
 function EnemyCard({
   enemy,
   onDelete,
+  onEdit,
   systemTemplateId,
 }: {
   enemy: Enemy
   onDelete?: () => void
+  onEdit?: (patch: { name: string; description: string; enemyType: string }) => void
   systemTemplateId: string
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState(enemy.name)
+  const [editDesc, setEditDesc] = useState(enemy.description)
+  const [editType, setEditType] = useState(enemy.enemyType)
   const sb = enemy.statBlock ?? {}
 
   const is5e = systemTemplateId === 'builtin-d-d-5e'
@@ -86,19 +92,16 @@ function EnemyCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="display-font text-base font-bold text-ink">{enemy.name}</h3>
-            {enemy.source === 'srd' && systemTemplateId === 'builtin-d-d-5e' && (
+            {enemy.isBuiltin && systemTemplateId === 'builtin-d-d-5e' && (
               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent">D&D 5e SRD</span>
             )}
-            {enemy.source === 'srd' && systemTemplateId === 'builtin-dungeon-world' && (
+            {enemy.isBuiltin && systemTemplateId === 'builtin-dungeon-world' && (
               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent">DW SRD</span>
             )}
-            {enemy.source === 'srd' && systemTemplateId !== 'builtin-d-d-5e' && systemTemplateId !== 'builtin-dungeon-world' && (
+            {enemy.isBuiltin && systemTemplateId !== 'builtin-d-d-5e' && systemTemplateId !== 'builtin-dungeon-world' && (
               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent">SRD</span>
             )}
-            {enemy.source === 'generated' && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-2 text-ink-muted">AI</span>
-            )}
-            {(enemy.source === 'manual' || (!enemy.source && !enemy.isBuiltin)) && (
+            {!enemy.isBuiltin && (
               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-2 text-ink-muted">Campaign</span>
             )}
           </div>
@@ -121,17 +124,56 @@ function EnemyCard({
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {onEdit && !editing && (
+            <button
+              className="p-1.5 rounded hover:bg-accent/10 hover:text-accent transition-colors text-ink-muted"
+              onClick={e => { e.stopPropagation(); setEditName(enemy.name); setEditDesc(enemy.description); setEditType(enemy.enemyType); setEditing(true); setExpanded(true) }}
+              title="Edit"
+            >
+              <Edit2 size={13} />
+            </button>
+          )}
           {onDelete && (
             <button
               className="p-1.5 rounded hover:bg-danger/10 hover:text-danger transition-colors text-ink-muted"
               onClick={e => { e.stopPropagation(); onDelete() }}
+              title="Delete"
             >
               <Trash2 size={13} />
             </button>
           )}
-          {expanded ? <ChevronDown size={15} className="text-ink-muted" /> : <ChevronRight size={15} className="text-ink-muted" />}
+          {!editing && (expanded ? <ChevronDown size={15} className="text-ink-muted" /> : <ChevronRight size={15} className="text-ink-muted" />)}
         </div>
       </div>
+
+      {/* Inline edit form */}
+      {editing && (
+        <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-in" onClick={e => e.stopPropagation()}>
+          <div>
+            <label className="label text-xs">Name</label>
+            <input className="input text-sm" value={editName} onChange={e => setEditName(e.target.value)} />
+          </div>
+          <div>
+            <label className="label text-xs">Creature Type</label>
+            <input className="input text-sm" value={editType} onChange={e => setEditType(e.target.value)} placeholder="undead, beast, humanoid…" />
+          </div>
+          <div>
+            <label className="label text-xs">Description</label>
+            <textarea className="textarea text-sm h-16" value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="btn-primary flex-1 justify-center text-sm"
+              onClick={() => { onEdit!({ name: editName.trim() || enemy.name, description: editDesc, enemyType: editType }); setEditing(false) }}
+            >
+              <Check size={13} /> Save
+            </button>
+            <button className="btn-ghost text-sm" onClick={() => setEditing(false)}>
+              <X size={13} /> Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {expanded && (
         <div className="mt-3 pt-3 border-t border-border animate-fade-in space-y-3">
@@ -236,6 +278,13 @@ export default function EnemiesPage() {
     onError: (e) => alert(apiError(e)),
   })
 
+  const editEnemy = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: { name: string; description: string; enemyType: string } }) =>
+      api.patch(`/api/campaigns/${campaignId}/enemies/${id}`, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['enemies', campaignId] }),
+    onError: (e) => alert(apiError(e)),
+  })
+
   const srdEnemies: Enemy[] = data?.srdEnemies ?? []
   const customEnemies: Enemy[] = data?.customEnemies ?? []
   const systemTemplateId: string = data?.systemTemplateId ?? ''
@@ -336,6 +385,7 @@ export default function EnemiesPage() {
                       enemy={enemy}
                       systemTemplateId={systemTemplateId}
                       onDelete={() => deleteEnemy.mutate(enemy.id)}
+                      onEdit={(patch) => editEnemy.mutate({ id: enemy.id, patch })}
                     />
                   ))}
                 </div>

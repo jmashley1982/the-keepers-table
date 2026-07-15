@@ -115,9 +115,9 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
             </div>
             {navLink(`/campaign/${campaignId}`, <LayoutDashboard size={15} />, 'Dashboard', true)}
             {navLink(`/campaign/${campaignId}/library`, <BookOpen size={15} />, 'Library')}
+            {navLink(`/campaign/${campaignId}/enemies`, <Swords size={15} />, 'Enemies')}
             {navLink(`/campaign/${campaignId}/players`, <Users size={15} />, 'Players')}
             {navLink(`/campaign/${campaignId}/maps`, <Map size={15} />, 'Maps')}
-            {navLink(`/campaign/${campaignId}/enemies`, <Swords size={15} />, 'Enemies')}
             {navLink(`/campaign/${campaignId}/log`, <Scroll size={15} />, 'Session Log')}
             {navLink(`/campaign/${campaignId}/settings`, <Settings size={15} />, 'Campaign Settings')}
           </>
