@@ -3,12 +3,26 @@ import { LayoutDashboard, BookOpen, Users, Map, Scroll, Zap, Swords, Settings, P
 import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
 
+// Routes where the bottom nav is hidden entirely (full-screen or immersive experiences)
+const HIDDEN_NAV_PATTERNS: RegExp[] = [
+  /^\/campaign\/[^/]+\/session\/[^/]+/, // live session page
+]
+
+// Routes where only the minimal nav (Campaigns + Settings) is shown
+const MINIMAL_NAV_PATTERNS: RegExp[] = [
+  /^\/campaigns$/,
+  /^\/settings/,
+]
+
 export default function MobileNav() {
   const { campaignId } = useParams()
   const { activeCampaignId, setQuickGenerateOpen } = useUIStore()
   const { pathname } = useLocation()
 
-  const isMinimalRoute = pathname === '/campaigns' || pathname.startsWith('/settings')
+  const isHidden = HIDDEN_NAV_PATTERNS.some(p => p.test(pathname))
+  if (isHidden) return null
+
+  const isMinimalRoute = MINIMAL_NAV_PATTERNS.some(p => p.test(pathname))
   const cid = isMinimalRoute ? null : (campaignId ?? activeCampaignId)
 
   const tab = (to: string, icon: React.ReactNode, label: string, end?: boolean) => (
