@@ -1,4 +1,4 @@
-import { NavLink, useParams } from 'react-router-dom'
+import { NavLink, useParams, useLocation } from 'react-router-dom'
 import { LayoutDashboard, BookOpen, Users, Map, Scroll, Zap, Swords, Settings, Plus } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
@@ -6,7 +6,10 @@ import { cn } from '../../lib/cn'
 export default function MobileNav() {
   const { campaignId } = useParams()
   const { activeCampaignId, setQuickGenerateOpen } = useUIStore()
-  const cid = campaignId ?? activeCampaignId
+  const { pathname } = useLocation()
+
+  const isMinimalRoute = pathname === '/campaigns' || pathname.startsWith('/settings')
+  const cid = isMinimalRoute ? null : (campaignId ?? activeCampaignId)
 
   const tab = (to: string, icon: React.ReactNode, label: string, end?: boolean) => (
     <NavLink
