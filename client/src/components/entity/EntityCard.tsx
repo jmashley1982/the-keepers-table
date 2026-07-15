@@ -148,7 +148,10 @@ export default function EntityCard({
   const [editing, setEditing] = useState(false)
   const [showSecrets, setShowSecrets] = useState(false)
   const [draft, setDraft] = useState(entity)
+  const [tagInput, setTagInput] = useState((entity.tags ?? []).join(', '))
   const [itemLookupOpen, setItemLookupOpen] = useState(false)
+
+  const isNpc = entityType === 'npc'
 
   function handleBestiarySelect(creature: { id: string; name: string; statBlock: Record<string, unknown>; enemyType?: string; tags?: string[] }) {
     setDraft(d => ({
@@ -165,6 +168,24 @@ export default function EntityCard({
     setDraft(d => ({ ...d, bestiaryEntityId: null, bestiaryEntityName: null }))
   }
 
+  function startEditing() {
+    setDraft(entity)
+    setTagInput((entity.tags ?? []).join(', '))
+    setEditing(true)
+    setExpanded(true)
+  }
+
+  function cancelEditing() {
+    setEditing(false)
+    setDraft(entity)
+    setTagInput((entity.tags ?? []).join(', '))
+  }
+
+  function buildSavePayload(): Partial<EntityCardData> {
+    const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean)
+    return { ...draft, tags }
+  }
+
   const { data: campaignData } = useQuery({
     queryKey: ['campaign', campaignId],
     queryFn: () => api.get(`/api/campaigns/${campaignId}`).then(r => r.data),
@@ -179,7 +200,7 @@ export default function EntityCard({
     mutationFn: (data: Partial<EntityCardData>) =>
       api.patch(`/api/entities/${campaignId}/${entityPath}/${entity.id}`, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
+      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType], exact: false })
       setEditing(false)
     },
   })
@@ -187,7 +208,7 @@ export default function EntityCard({
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/api/entities/${campaignId}/${entityPath}/${entity.id}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })
+      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType], exact: false })
       onSaved?.()
     },
   })
@@ -206,13 +227,14 @@ export default function EntityCard({
       {/* Header */}
       <div className="flex items-start gap-3">
         {supportsArt && !scratchMode && artKind ? (
-          <div className="flex flex-col gap-1 flex-shrink-0">
+          <div className="flex flex-col gap-1.5 flex-shrink-0 w-24">
             <EntityAvatarWithArt
               assetId={currentAssetId}
               portraitUrl={entity.portraitUrl}
               imageUrl={entity.imageUrl}
               entityType={entityType}
               altText={entity.portraitAsset?.altText ?? entity.imageAsset?.altText ?? displayName}
+              size="lg"
             />
             <GenerateArtButton
               kind={artKind}
@@ -220,7 +242,7 @@ export default function EntityCard({
               campaignId={campaignId}
               entityType={entityType as 'npc' | 'item' | 'location'}
               currentAssetId={currentAssetId}
-              onGenerated={() => qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType] })}
+              onGenerated={() => qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType], exact: false })}
             />
           </div>
         ) : entity.portraitUrl ?? entity.imageUrl ? (
@@ -236,46 +258,106 @@ export default function EntityCard({
         )}
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between">
-            {editing ? (
-              <input
-                className="input text-sm font-semibold py-0.5"
-                value={draft.name}
-                onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
-              />
-            ) : (
-              <h3 className="display-font font-semibold text-ink text-base leading-tight truncate">{displayName}</h3>
-            )}
-          </div>
+          {/* Name */}
+          {editing ? (
+            <input
+              className="input text-sm font-semibold py-0.5 w-full"
+              value={draft.name}
+              onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
+            />
+          ) : (
+            <h3 className="display-font font-semibold text-ink text-base leading-tight truncate">{displayName}</h3>
+          )}
 
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            {entity.role && <span className="text-xs text-ink-muted">{entity.role}</span>}
-            {entity.status && (
-              <span className={cn('text-xs font-medium', STATUS_COLOR[entity.status] ?? 'text-ink-muted')}>
-                {entity.status}
-              </span>
-            )}
-            {entity.dispositionToParty && (
-              <span className={cn('text-xs', DISPOSITION_COLOR[entity.dispositionToParty] ?? 'text-ink-muted')}>
-                {entity.dispositionToParty}
-              </span>
-            )}
-            {entity.rarity && (
-              <span className={cn('text-xs font-medium', RARITY_COLOR[entity.rarity] ?? 'text-ink-muted')}>
-                {entity.rarity}
-              </span>
-            )}
-            {entity.difficulty && <span className="text-xs text-orange-400">{entity.difficulty}</span>}
-            {entity.type && <span className="text-xs text-ink-muted capitalize">{entity.type}</span>}
-          </div>
+          {/* Role */}
+          {editing && isNpc ? (
+            <input
+              className="input text-xs mt-1 py-0.5 w-full"
+              placeholder="Role / title…"
+              value={draft.role ?? ''}
+              onChange={e => setDraft(d => ({ ...d, role: e.target.value }))}
+            />
+          ) : entity.role ? (
+            <p className="text-xs text-ink-muted mt-0.5">{entity.role}</p>
+          ) : null}
 
-          {entity.tags && entity.tags.length > 0 && (
+          {/* Status + Disposition badges — always visible for NPCs */}
+          {isNpc && !editing && (entity.status || entity.dispositionToParty) && (
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {entity.status && (
+                <span className={cn('badge text-[10px] font-semibold', STATUS_COLOR[entity.status] ?? 'text-ink-muted')}>
+                  {entity.status}
+                </span>
+              )}
+              {entity.dispositionToParty && (
+                <span className={cn('badge text-[10px]', DISPOSITION_COLOR[entity.dispositionToParty] ?? 'text-ink-muted')}>
+                  {entity.dispositionToParty}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* NPC status + disposition selects in edit mode */}
+          {editing && isNpc && (
+            <div className="flex gap-1.5 mt-1.5 flex-wrap">
+              <select
+                className="input text-xs py-0.5 flex-1 min-w-[90px]"
+                value={draft.status ?? ''}
+                onChange={e => setDraft(d => ({ ...d, status: e.target.value || undefined }))}
+              >
+                <option value="">Status…</option>
+                {['alive', 'dead', 'missing', 'unknown'].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <select
+                className="input text-xs py-0.5 flex-1 min-w-[110px]"
+                value={draft.dispositionToParty ?? ''}
+                onChange={e => setDraft(d => ({ ...d, dispositionToParty: e.target.value || undefined }))}
+              >
+                <option value="">Disposition…</option>
+                {['hostile', 'wary', 'neutral', 'friendly', 'complicated'].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Non-NPC metadata */}
+          {!isNpc && (entity.rarity || entity.difficulty || entity.type) && (
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              {entity.rarity && (
+                <span className={cn('text-xs font-medium', RARITY_COLOR[entity.rarity] ?? 'text-ink-muted')}>
+                  {entity.rarity}
+                </span>
+              )}
+              {entity.difficulty && <span className="text-xs text-orange-400">{entity.difficulty}</span>}
+              {entity.type && <span className="text-xs text-ink-muted capitalize">{entity.type}</span>}
+            </div>
+          )}
+
+          {/* Tags */}
+          {!editing && entity.tags && entity.tags.length > 0 && (
             <div className="flex gap-1 mt-1 flex-wrap">
               {entity.tags.slice(0, 4).map(tag => (
                 <span key={tag} className="badge bg-surface-2 text-ink-muted text-[10px]">{tag}</span>
               ))}
             </div>
           )}
+
+          {/* Tags edit input */}
+          {editing && (
+            <div className="mt-1.5">
+              <label className="label text-[10px]">Tags (comma-separated)</label>
+              <input
+                className="input text-xs py-0.5 w-full"
+                placeholder="tag1, tag2, …"
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+              />
+            </div>
+          )}
+
           {entityType === 'npc' && entity.bestiaryEntityName && !editing && (
             <div className="flex items-center gap-1 mt-1">
               <span className="badge bg-accent/10 text-accent text-[10px] flex items-center gap-0.5">
@@ -302,7 +384,7 @@ export default function EntityCard({
             </button>
           )}
           {!scratchMode && (
-            <button className="btn-ghost p-1" onClick={() => setEditing(v => !v)} title="Edit">
+            <button className="btn-ghost p-1" onClick={startEditing} title="Edit">
               <Edit2 size={13} />
             </button>
           )}
@@ -324,13 +406,14 @@ export default function EntityCard({
         </div>
       </div>
 
-      {/* Description */}
-      {entity.description && (
+      {/* Description — always show in edit for NPCs */}
+      {(editing || entity.description) && (
         <div className="mt-3">
           {editing ? (
             <textarea
               className="textarea text-sm"
               rows={3}
+              placeholder="Description…"
               value={draft.description ?? ''}
               onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
             />
@@ -343,16 +426,32 @@ export default function EntityCard({
       {/* Expanded details */}
       {expanded && (
         <div className="mt-3 space-y-3 border-t border-border pt-3 animate-fade-in">
-          {entity.appearance && (
+
+          {/* NPC-specific fields: always shown in edit mode */}
+          {isNpc && (editing || entity.appearance) && (
+            <NpcField label="Appearance" fieldVal={editing ? (draft.appearance ?? '') : (entity.appearance ?? '')} editing={editing} onChange={v => setDraft(d => ({ ...d, appearance: v }))} />
+          )}
+          {isNpc && (editing || entity.personality) && (
+            <NpcField label="Personality" fieldVal={editing ? (draft.personality ?? '') : (entity.personality ?? '')} editing={editing} onChange={v => setDraft(d => ({ ...d, personality: v }))} />
+          )}
+          {isNpc && (editing || entity.motivations) && (
+            <NpcField label="Motivations" fieldVal={editing ? (draft.motivations ?? '') : (entity.motivations ?? '')} editing={editing} onChange={v => setDraft(d => ({ ...d, motivations: v }))} />
+          )}
+          {isNpc && (editing || entity.voiceNotes) && (
+            <NpcField label="Voice Notes" fieldVal={editing ? (draft.voiceNotes ?? '') : (entity.voiceNotes ?? '')} editing={editing} onChange={v => setDraft(d => ({ ...d, voiceNotes: v }))} />
+          )}
+
+          {/* Non-NPC text fields — only show if populated */}
+          {!isNpc && entity.appearance && (
             <Field label="Appearance" value={entity.appearance} editing={editing} onChange={v => setDraft(d => ({ ...d, appearance: v }))} draft={draft.appearance} />
           )}
-          {entity.personality && (
+          {!isNpc && entity.personality && (
             <Field label="Personality" value={entity.personality} editing={editing} onChange={v => setDraft(d => ({ ...d, personality: v }))} draft={draft.personality} />
           )}
-          {entity.motivations && (
+          {!isNpc && entity.motivations && (
             <Field label="Motivations" value={entity.motivations} editing={editing} onChange={v => setDraft(d => ({ ...d, motivations: v }))} draft={draft.motivations} />
           )}
-          {entity.voiceNotes && (
+          {!isNpc && entity.voiceNotes && (
             <Field label="Voice" value={entity.voiceNotes} editing={editing} onChange={v => setDraft(d => ({ ...d, voiceNotes: v }))} draft={draft.voiceNotes} />
           )}
           {entity.mechanicalEffect && (
@@ -405,35 +504,50 @@ export default function EntityCard({
             </div>
           )}
 
-          {entity.secrets && (
+          {/* Secrets — always editable for NPCs in edit mode */}
+          {(editing && isNpc) || entity.secrets ? (
             <div className="gm-secret p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="label text-gm-secret mb-0">Secrets (DM only)</span>
-                <button className="btn-ghost p-0.5" onClick={() => setShowSecrets(v => !v)}>
-                  {showSecrets ? <EyeOff size={12} /> : <Eye size={12} />}
-                </button>
+                {!editing && entity.secrets && (
+                  <button className="btn-ghost p-0.5" onClick={() => setShowSecrets(v => !v)}>
+                    {showSecrets ? <EyeOff size={12} /> : <Eye size={12} />}
+                  </button>
+                )}
               </div>
-              {showSecrets ? (
-                editing ? (
-                  <textarea className="textarea text-sm" rows={2} value={draft.secrets ?? ''} onChange={e => setDraft(d => ({ ...d, secrets: e.target.value }))} />
-                ) : (
-                  <p className="text-sm text-ink">{entity.secrets}</p>
-                )
+              {editing ? (
+                <textarea
+                  className="textarea text-sm"
+                  rows={2}
+                  placeholder="Hidden info, true identity, plot hooks…"
+                  value={draft.secrets ?? ''}
+                  onChange={e => setDraft(d => ({ ...d, secrets: e.target.value }))}
+                />
+              ) : showSecrets ? (
+                <p className="text-sm text-ink">{entity.secrets}</p>
               ) : (
-                <p className="text-sm text-ink-muted italic">Hidden — click to reveal</p>
+                <p className="text-sm text-ink-muted italic">Hidden — click eye to reveal</p>
               )}
             </div>
-          )}
-          {entity.dmOnlyNotes && (
+          ) : null}
+
+          {/* DM Notes — always editable for NPCs in edit mode */}
+          {(editing && isNpc) || entity.dmOnlyNotes ? (
             <div className="gm-secret p-3">
               <span className="label text-gm-secret">DM Notes</span>
               {editing ? (
-                <textarea className="textarea text-sm" rows={2} value={draft.dmOnlyNotes ?? ''} onChange={e => setDraft(d => ({ ...d, dmOnlyNotes: e.target.value }))} />
+                <textarea
+                  className="textarea text-sm"
+                  rows={2}
+                  placeholder="Private GM notes…"
+                  value={draft.dmOnlyNotes ?? ''}
+                  onChange={e => setDraft(d => ({ ...d, dmOnlyNotes: e.target.value }))}
+                />
               ) : (
                 <p className="text-sm text-ink">{entity.dmOnlyNotes}</p>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -442,18 +556,44 @@ export default function EntityCard({
         <div className="flex gap-2 mt-3 pt-3 border-t border-border">
           <button
             className="btn-primary text-xs py-1.5"
-            onClick={() => updateMutation.mutate(draft)}
+            onClick={() => updateMutation.mutate(buildSavePayload())}
             disabled={updateMutation.isPending}
           >
             {updateMutation.isPending ? 'Saving…' : 'Save changes'}
           </button>
-          <button className="btn-secondary text-xs py-1.5" onClick={() => { setEditing(false); setDraft(entity) }}>
+          <button className="btn-secondary text-xs py-1.5" onClick={cancelEditing}>
             Cancel
           </button>
         </div>
       )}
 
       {itemLookupOpen && <ItemLookupPanel onClose={() => setItemLookupOpen(false)} />}
+    </div>
+  )
+}
+
+function NpcField({
+  label, fieldVal, editing, onChange,
+}: {
+  label: string
+  fieldVal: string
+  editing: boolean
+  onChange: (v: string) => void
+}) {
+  return (
+    <div>
+      <span className="label">{label}</span>
+      {editing ? (
+        <textarea
+          className="textarea text-sm"
+          rows={2}
+          placeholder={`${label}…`}
+          value={fieldVal}
+          onChange={e => onChange(e.target.value)}
+        />
+      ) : (
+        <p className="text-sm text-ink leading-relaxed">{fieldVal}</p>
+      )}
     </div>
   )
 }

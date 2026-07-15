@@ -5,17 +5,22 @@ import { cn } from '../../lib/cn'
 import { useJobStatus } from '../../lib/useJobStatus'
 import {
   Sparkles, RotateCcw, AlertCircle, ChevronDown, ChevronUp,
-  Check, X, Loader, Wand2,
+  Check, X, Loader, Wand2, ImagePlus, RefreshCw,
 } from 'lucide-react'
 
 const ENTITY_EMOJI: Record<string, string> = {
   npc: '🧙', item: '⚔️', location: '🗺️',
 }
 
+const ART_LABEL: Record<string, string> = {
+  portrait_npc: 'Portrait', portrait_pc: 'Portrait', item_art: 'Image', location_art: 'Image',
+}
+
 type GenerateOpts = { prompt?: string; stylePreset?: string; model?: string; aspectRatio?: AspectRatio }
 
 type Phase =
   | { name: 'idle' }
+  | { name: 'regen_panel'; promptDraft: string; promptLoading: boolean }
   | { name: 'confirm'; estimate: number; softCap: number; pendingOpts: GenerateOpts }
   | { name: 'generating'; jobId: string }
   | { name: 'await_replace'; newAssetId: string; prevAssetId: string }
@@ -55,7 +60,6 @@ export default function GenerateArtButton({
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [aspectRatio] = useState<AspectRatio>('portrait')
-  const [isPreviewing, setIsPreviewing] = useState(false)
 
   const { data: authData } = useQuery({
     queryKey: ['me'],
@@ -95,6 +99,8 @@ export default function GenerateArtButton({
   const invalidateKey = isPc
     ? ['player-characters', campaignId]
     : ['entities', campaignId, entityType]
+
+  const artLabel = ART_LABEL[kind] ?? 'Image'
 
   const jobId = phase.name === 'generating' ? phase.jobId : null
   const jobStatus = useJobStatus(jobId, () => setPhase({ name: 'idle' }))
@@ -168,8 +174,32 @@ export default function GenerateArtButton({
     },
   })
 
-  function handleQuickGenerate() {
+  function handleFirstGenerate() {
+    generateMutation.mutate({ stylePreset: selectedPreset ?? undefined, aspectRatio })
+  }
+
+  async function handleRegenClick() {
+    setPhase({ name: 'regen_panel', promptDraft: '', promptLoading: true })
+    try {
+      const res = await api.post<{ prompt: string }>('/api/generate/preview-prompt', {
+        kind, entityId, campaignId,
+      })
+      setPhase(prev => prev.name === 'regen_panel'
+        ? { name: 'regen_panel', promptDraft: res.data.prompt, promptLoading: false }
+        : prev
+      )
+    } catch {
+      setPhase(prev => prev.name === 'regen_panel'
+        ? { name: 'regen_panel', promptDraft: '', promptLoading: false }
+        : prev
+      )
+    }
+  }
+
+  function handleRegenConfirm() {
+    if (phase.name !== 'regen_panel') return
     generateMutation.mutate({
+      prompt: phase.promptDraft.trim() || undefined,
       stylePreset: selectedPreset ?? undefined,
       aspectRatio,
     })
@@ -185,27 +215,20 @@ export default function GenerateArtButton({
   }
 
   async function handlePreviewPrompt() {
-    setIsPreviewing(true)
     try {
       const res = await api.post<{ prompt: string }>('/api/generate/preview-prompt', {
-        kind,
-        entityId,
-        campaignId,
+        kind, entityId, campaignId,
         stylePreset: selectedPreset ?? undefined,
       })
       setCustomPrompt(res.data.prompt)
     } catch {
-      // silently ignore preview errors — user can still type manually
-    } finally {
-      setIsPreviewing(false)
+      // silently ignore
     }
   }
 
   function handleUseNew() {
     if (phase.name !== 'await_replace') return
-    const { prevAssetId } = phase
-    // Delete the superseded (old) asset from storage
-    deleteAssetMutation.mutate(prevAssetId)
+    deleteAssetMutation.mutate(phase.prevAssetId)
     qc.invalidateQueries({ queryKey: invalidateKey })
     setPhase({ name: 'idle' })
     onGenerated?.()
@@ -218,10 +241,7 @@ export default function GenerateArtButton({
 
   function handleRetry() {
     setPhase({ name: 'idle' })
-    generateMutation.mutate({
-      stylePreset: selectedPreset ?? undefined,
-      aspectRatio,
-    })
+    generateMutation.mutate({ stylePreset: selectedPreset ?? undefined, aspectRatio })
   }
 
   const isSubmitting = generateMutation.isPending
@@ -229,27 +249,44 @@ export default function GenerateArtButton({
   if (!canGenerateImage) return null
 
   return (
-    <div className="flex flex-col gap-0.5">
-      {/* ── Generate / state chip row ──────────────────────────────────────── */}
-      {phase.name === 'idle' && (
+    <div className="flex flex-col gap-1 w-full">
+
+      {/* ── IDLE: no portrait → prominent first-gen button ─────────────────── */}
+      {phase.name === 'idle' && !currentAssetId && (
+        <button
+          onClick={handleFirstGenerate}
+          disabled={isSubmitting}
+          className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-card text-xs font-semibold transition-all disabled:opacity-50"
+          style={{
+            background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+            color: 'var(--color-accent)',
+            border: '1.5px solid color-mix(in srgb, var(--color-accent) 35%, transparent)',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 25%, transparent)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 15%, transparent)')}
+          title={`Generate ${artLabel}`}
+        >
+          {isSubmitting ? <Loader size={11} className="animate-spin" /> : <ImagePlus size={11} />}
+          Generate {artLabel}
+        </button>
+      )}
+
+      {/* ── IDLE: has portrait → regen + advanced ──────────────────────────── */}
+      {phase.name === 'idle' && currentAssetId && (
         <div className="flex items-center gap-0.5">
           <button
-            onClick={handleQuickGenerate}
+            onClick={handleRegenClick}
             disabled={isSubmitting}
-            className="flex items-center gap-0.5 text-[10px] text-ink-muted hover:text-accent bg-surface-2 hover:bg-accent/10 border border-border hover:border-accent/40 rounded px-1.5 py-0.5 transition-colors leading-none"
-            title={currentAssetId ? 'Regenerate art' : 'Generate art'}
+            className="flex items-center gap-1 flex-1 px-2 py-1 rounded text-[11px] font-medium text-ink-muted hover:text-accent bg-surface-2 hover:bg-accent/10 border border-border hover:border-accent/30 transition-colors leading-none"
+            title="Regenerate portrait"
           >
-            {isSubmitting ? (
-              <Loader size={9} className="animate-spin" />
-            ) : (
-              <Sparkles size={9} />
-            )}
-            <span>{currentAssetId ? 'Regen' : 'Gen'}</span>
+            {isSubmitting ? <Loader size={9} className="animate-spin" /> : <RefreshCw size={9} />}
+            Regenerate
           </button>
           <button
             onClick={() => setShowAdvanced(v => !v)}
             className={cn(
-              'text-ink-muted hover:text-ink bg-surface-2 hover:bg-surface border border-border rounded px-0.5 py-0.5 transition-colors',
+              'text-ink-muted hover:text-ink bg-surface-2 hover:bg-surface border border-border rounded px-1 py-1 transition-colors',
               showAdvanced && 'bg-surface border-accent/40 text-accent'
             )}
             title="Advanced options"
@@ -259,23 +296,66 @@ export default function GenerateArtButton({
         </div>
       )}
 
+      {/* ── REGEN PANEL: prompt preview + edit ─────────────────────────────── */}
+      {phase.name === 'regen_panel' && (
+        <div className="p-2 bg-surface-2 border border-border/60 rounded-card space-y-2">
+          <p className="text-[10px] font-medium text-ink-muted uppercase tracking-wide">Prompt before regenerating</p>
+          {phase.promptLoading ? (
+            <div className="flex items-center gap-1.5 text-[11px] text-ink-muted py-1">
+              <Loader size={10} className="animate-spin" />
+              <span>Loading prompt…</span>
+            </div>
+          ) : (
+            <textarea
+              className="w-full text-[11px] bg-surface border border-border rounded p-1.5 text-ink placeholder-ink-muted resize-none focus:outline-none focus:border-accent/60"
+              rows={3}
+              value={phase.promptDraft}
+              onChange={e => setPhase({ name: 'regen_panel', promptDraft: e.target.value, promptLoading: false })}
+              placeholder="Leave blank for AI to decide…"
+              autoFocus
+            />
+          )}
+          <div className="flex gap-1">
+            <button
+              onClick={handleRegenConfirm}
+              disabled={isSubmitting || phase.promptLoading}
+              className="flex items-center gap-1 flex-1 justify-center px-2 py-1 rounded text-[11px] font-semibold transition-colors disabled:opacity-50"
+              style={{
+                background: 'var(--color-accent)',
+                color: '#fff',
+              }}
+            >
+              {isSubmitting ? <Loader size={9} className="animate-spin" /> : <Sparkles size={9} />}
+              Generate
+            </button>
+            <button
+              onClick={() => setPhase({ name: 'idle' })}
+              className="flex items-center gap-1 px-2 py-1 rounded text-[11px] text-ink-muted bg-surface border border-border hover:text-ink transition-colors"
+            >
+              <X size={9} /> Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── COST CONFIRM ───────────────────────────────────────────────────── */}
       {phase.name === 'confirm' && (
-        <div className="flex flex-col gap-0.5">
-          <p className="text-[9px] text-amber-400 leading-tight">
+        <div className="flex flex-col gap-1">
+          <p className="text-[10px] text-amber-400 leading-tight">
             ~${phase.estimate.toFixed(2)} &gt; ${phase.softCap.toFixed(2)} cap
           </p>
-          <div className="flex gap-0.5">
+          <div className="flex gap-1">
             <button
               onClick={() => generateMutation.mutate({ ...phase.pendingOpts, confirmed: true })}
               disabled={generateMutation.isPending}
-              className="flex items-center gap-0.5 text-[10px] text-accent bg-accent/10 hover:bg-accent/20 border border-accent/30 rounded px-1 py-0.5 transition-colors"
+              className="flex items-center gap-1 flex-1 justify-center text-[11px] font-medium text-accent bg-accent/10 hover:bg-accent/20 border border-accent/30 rounded px-2 py-1 transition-colors"
             >
               {generateMutation.isPending ? <Loader size={9} className="animate-spin" /> : <Sparkles size={9} />}
               Proceed
             </button>
             <button
               onClick={() => setPhase({ name: 'idle' })}
-              className="text-[10px] text-ink-muted bg-surface-2 hover:bg-surface border border-border rounded px-1 py-0.5 transition-colors"
+              className="text-[11px] text-ink-muted bg-surface-2 hover:bg-surface border border-border rounded px-2 py-1 transition-colors"
             >
               Cancel
             </button>
@@ -283,27 +363,29 @@ export default function GenerateArtButton({
         </div>
       )}
 
+      {/* ── GENERATING ─────────────────────────────────────────────────────── */}
       {phase.name === 'generating' && (
-        <div className="flex items-center gap-1 text-[10px] text-accent bg-accent/10 rounded px-1.5 py-0.5">
-          <Loader size={9} className="animate-spin shrink-0" />
-          <span className="truncate">Generating…</span>
+        <div className="flex items-center gap-1.5 text-[11px] text-accent bg-accent/10 rounded-card px-2 py-1.5 border border-accent/20">
+          <Loader size={10} className="animate-spin shrink-0" />
+          <span>Generating {artLabel.toLowerCase()}…</span>
         </div>
       )}
 
+      {/* ── NEW ART READY ──────────────────────────────────────────────────── */}
       {phase.name === 'await_replace' && (
-        <div className="flex flex-col gap-0.5">
-          <p className="text-[9px] text-ink-muted leading-tight">New art ready</p>
-          <div className="flex gap-0.5">
+        <div className="p-2 bg-green-500/10 border border-green-500/25 rounded-card space-y-1.5">
+          <p className="text-[11px] font-semibold text-green-400">✦ New {artLabel.toLowerCase()} ready!</p>
+          <div className="flex gap-1">
             <button
               onClick={handleUseNew}
-              className="flex items-center gap-0.5 text-[10px] text-green-500 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded px-1 py-0.5 transition-colors"
+              className="flex items-center gap-1 flex-1 justify-center text-[11px] font-semibold text-green-500 bg-green-500/15 hover:bg-green-500/25 border border-green-500/30 rounded px-2 py-1 transition-colors"
             >
               <Check size={9} /> Use new
             </button>
             <button
               onClick={handleKeepOld}
               disabled={revertMutation.isPending}
-              className="flex items-center gap-0.5 text-[10px] text-ink-muted bg-surface-2 hover:bg-surface border border-border rounded px-1 py-0.5 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-ink-muted bg-surface-2 hover:bg-surface border border-border rounded px-2 py-1 transition-colors"
             >
               {revertMutation.isPending ? <Loader size={9} className="animate-spin" /> : <X size={9} />}
               Keep old
@@ -312,51 +394,50 @@ export default function GenerateArtButton({
         </div>
       )}
 
+      {/* ── FAILED ─────────────────────────────────────────────────────────── */}
       {phase.name === 'failed' && (
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-0.5">
-            <div className="flex items-center gap-0.5 text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-1 py-0.5 min-w-0">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-1.5 py-0.5 flex-1 min-w-0">
               <AlertCircle size={9} className="shrink-0" />
-              <span className="truncate">Failed</span>
+              <span className="truncate">Generation failed</span>
             </div>
             <button
               onClick={handleRetry}
               disabled={generateMutation.isPending}
-              className="text-[10px] text-ink-muted hover:text-accent bg-surface-2 hover:bg-surface border border-border rounded px-1 py-0.5 transition-colors flex items-center gap-0.5"
-              title="Retry generation"
+              className="text-[11px] text-ink-muted hover:text-accent bg-surface-2 hover:bg-surface border border-border rounded px-1.5 py-0.5 transition-colors flex items-center gap-1"
+              title="Retry"
             >
               {generateMutation.isPending ? <Loader size={9} className="animate-spin" /> : <RotateCcw size={9} />}
             </button>
             <button
               onClick={() => setShowRawError(v => !v)}
-              className="text-ink-muted hover:text-ink"
-              title="Show error detail"
+              className="text-ink-muted hover:text-ink p-0.5"
+              title="Show error"
             >
               {showRawError ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
             </button>
           </div>
           {showRawError && (
-            <p className="text-[9px] text-red-400 bg-red-500/5 rounded p-1 leading-tight break-all max-w-[150px]">
+            <p className="text-[9px] text-red-400 bg-red-500/5 rounded p-1 leading-tight break-all">
               {phase.error}
             </p>
           )}
         </div>
       )}
 
-      {/* ── Advanced panel ─────────────────────────────────────────────────── */}
+      {/* ── ADVANCED PANEL ─────────────────────────────────────────────────── */}
       {showAdvanced && phase.name === 'idle' && (
-        <div className="mt-1 p-2 bg-surface-2 border border-border rounded-card space-y-2 w-52 text-[11px]">
-          {/* Art Director prompt preview */}
+        <div className="p-2 bg-surface-2 border border-border rounded-card space-y-2 text-[11px]">
           <div>
             <div className="flex items-center justify-between mb-1">
               <p className="text-ink-muted font-medium uppercase text-[9px] tracking-wide">Prompt</p>
               <button
                 onClick={handlePreviewPrompt}
-                disabled={isPreviewing}
                 className="flex items-center gap-0.5 text-[9px] text-accent hover:text-accent/80 transition-colors"
-                title="Let Art Director suggest a prompt"
+                title="AI preview"
               >
-                {isPreviewing ? <Loader size={8} className="animate-spin" /> : <Wand2 size={8} />}
+                <Wand2 size={8} />
                 <span>AI preview</span>
               </button>
             </div>
@@ -365,11 +446,10 @@ export default function GenerateArtButton({
               rows={3}
               value={customPrompt}
               onChange={e => setCustomPrompt(e.target.value)}
-              placeholder="Leave empty for Art Director, or click AI preview to load suggestion…"
+              placeholder="Leave empty for Art Director…"
             />
           </div>
 
-          {/* Style preset */}
           {presets.length > 0 && (
             <div>
               <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Style</p>
@@ -393,7 +473,6 @@ export default function GenerateArtButton({
             </div>
           )}
 
-          {/* Quality / model picker */}
           <div>
             <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Quality</p>
             <div className="flex gap-0.5">
@@ -417,12 +496,8 @@ export default function GenerateArtButton({
                 </button>
               ))}
             </div>
-            <p className="text-[8px] text-ink-muted/60 mt-0.5 leading-tight">
-              {selectedModel === 'gpt-image-2-ultra' ? 'GPT Image 2 (1K Med)' : selectedModel === 'gpt-image-2' ? 'GPT Image 2 (1K Low)' : selectedModel === 'krea-2-turbo' ? 'Krea 2 Turbo (1K)' : selectedModel === 'z-image' ? 'Z Image' : 'From your preferences'}
-            </p>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-1 pt-0.5">
             <button
               onClick={handleAdvancedGenerate}
@@ -452,6 +527,7 @@ export function EntityAvatarWithArt({
   entityType,
   isGenerating,
   altText,
+  size = 'sm',
 }: {
   assetId?: string | null
   portraitUrl?: string | null
@@ -459,6 +535,7 @@ export function EntityAvatarWithArt({
   entityType: string
   isGenerating?: boolean
   altText?: string | null
+  size?: 'sm' | 'lg'
 }) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
@@ -476,23 +553,31 @@ export function EntityAvatarWithArt({
     return () => window.removeEventListener('keydown', onKey)
   }, [lightboxOpen])
 
+  const sizeClass = size === 'lg'
+    ? 'w-24 h-32'
+    : 'w-12 h-12'
+  const imgClass = size === 'lg'
+    ? 'w-24 h-32 rounded-card object-cover hover:scale-105 transition-transform'
+    : 'w-12 h-12 rounded-card object-cover hover:scale-105 transition-transform'
+  const emojiFontSize = size === 'lg' ? 'text-4xl' : 'text-xl'
+
   return (
     <>
-      <div className="relative w-12 h-12 flex-shrink-0">
+      <div className={cn('relative flex-shrink-0', sizeClass)}>
         {src ? (
           <button
             onClick={() => setLightboxOpen(true)}
-            className="block w-12 h-12 rounded-card overflow-hidden cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-accent/60"
+            className={cn('block rounded-card overflow-hidden cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-accent/60', sizeClass)}
             title="Click to enlarge"
           >
             <img
               src={src}
               alt={altText ?? `${entityType} art`}
-              className="w-12 h-12 rounded-card object-cover hover:scale-105 transition-transform"
+              className={imgClass}
             />
           </button>
         ) : (
-          <div className="w-12 h-12 rounded-card bg-surface-2 flex items-center justify-center text-xl">
+          <div className={cn('rounded-card bg-surface-2 flex items-center justify-center', sizeClass, emojiFontSize)}>
             {ENTITY_EMOJI[entityType] ?? '📄'}
           </div>
         )}
