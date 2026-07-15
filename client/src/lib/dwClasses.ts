@@ -32,7 +32,12 @@ export const DW_CLASSES: DWClassTemplate[] = [
       { name: 'Human', move: 'When you return from the dungeon with treasure, you may hold 1 instead of using the standard Carouse move.' },
       { name: 'Outsider', move: 'You may be of any non-human race. When you use your Herculean Appetites move, you have +1d4 hold.' },
     ],
-    looks: [],
+    looks: [
+      ['Wild Eyes', 'Dead Eyes', 'Bright Eyes'],
+      ['Shaggy Hair', 'Braided Hair', 'Mohawk', 'Bald'],
+      ['Massive Body', 'Lithe Body', 'Battle-Scarred Body'],
+      ['Animal Skins', 'Stitched Leathers', 'Furs and Bones'],
+    ],
     startingMoves: `HERCULEAN APPETITES
 You have a d8 hold over your Appetites (hunger, lust, wanderlust). When you indulge an Appetite, hold fades as the GM dictates.
 

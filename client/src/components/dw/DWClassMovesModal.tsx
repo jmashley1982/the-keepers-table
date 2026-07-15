@@ -155,6 +155,23 @@ export default function DWClassMovesModal({
             {selected.name} — {selected.damageDie} damage, {selected.hpBase}+CON HP, Load {selected.loadBase}
           </div>
 
+          {selected.looks.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-ink-muted pb-1.5">Looks</div>
+              <div className="border border-border rounded-card p-3 bg-surface-2 space-y-1.5">
+                {selected.looks.map((row, i) => (
+                  <div key={i} className="flex flex-wrap gap-1.5">
+                    {row.map(opt => (
+                      <span key={opt} className="text-xs px-2 py-0.5 rounded bg-surface border border-border text-ink-muted">
+                        {opt}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <button
               className="w-full flex items-center justify-between text-left py-1.5"
