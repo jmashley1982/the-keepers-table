@@ -18,6 +18,7 @@ import {
   useDnd5eRaces,
 } from '../../hooks/useDnd5eApi'
 import SpellLookupModal from '../../components/dnd5e/SpellLookupModal'
+import DWClassMovesModal from '../../components/dw/DWClassMovesModal'
 import {
   DndContext,
   closestCenter,
@@ -390,6 +391,7 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld, syste
 }) {
   const qc = useQueryClient()
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [movesModalClass, setMovesModalClass] = useState<string | null>(null)
   const [spellModalOpen, setSpellModalOpen] = useState(false)
   const [draft, setDraft] = useState<PCDraft>({
     name: pc.name, playerName: pc.playerName, race: pc.race,
@@ -518,24 +520,35 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld, syste
                       Dungeon World Classes
                     </p>
                     {DW_CLASSES.map(cls => (
-                      <button
-                        key={cls.name}
-                        className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-surface-2 transition-colors flex items-center justify-between"
-                        onClick={() => {
-                          const t = applyDWTemplate(cls)
-                          applyExtracted({
-                            class: t.class,
-                            features: t.features,
-                            notes: t.notes,
-                            equipment: t.equipment,
-                            combatStats: { ...draft.combatStats, ...t.combatStats },
-                          })
-                          setTemplateOpen(false)
-                        }}
-                      >
-                        <span>{cls.name}</span>
-                        <span className="text-ink-muted text-[10px]">{cls.damageDie} | {cls.hpBase}+CON HP</span>
-                      </button>
+                      <div key={cls.name} className="flex items-center hover:bg-surface-2 transition-colors">
+                        <button
+                          className="flex-1 text-left px-3 py-2 text-sm text-ink flex items-center justify-between"
+                          onClick={() => {
+                            const t = applyDWTemplate(cls)
+                            applyExtracted({
+                              class: t.class,
+                              features: t.features,
+                              notes: t.notes,
+                              equipment: t.equipment,
+                              combatStats: { ...draft.combatStats, ...t.combatStats },
+                            })
+                            setTemplateOpen(false)
+                          }}
+                        >
+                          <span>{cls.name}</span>
+                          <span className="text-ink-muted text-[10px]">{cls.damageDie} | {cls.hpBase}+CON HP</span>
+                        </button>
+                        <button
+                          className="px-2 py-2 text-ink-muted hover:text-accent"
+                          title={`View ${cls.name} moves & level progression`}
+                          onClick={() => {
+                            setMovesModalClass(cls.name)
+                            setTemplateOpen(false)
+                          }}
+                        >
+                          <BookOpen size={12} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -553,6 +566,13 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld, syste
             <button className="btn-ghost p-1.5" onClick={onClose}><X size={16} /></button>
           </div>
         </div>
+
+        {movesModalClass && (
+          <DWClassMovesModal
+            initialClass={movesModalClass}
+            onClose={() => setMovesModalClass(null)}
+          />
+        )}
 
         {spellModalOpen && (
           <SpellLookupModal
@@ -820,6 +840,7 @@ export default function PlayersPage() {
   const [newName, setNewName] = useState('')
   const [newPlayerName, setNewPlayerName] = useState('')
   const [newClass, setNewClass] = useState('')
+  const [movesRefOpen, setMovesRefOpen] = useState(false)
 
   const { data: campaignData } = useQuery({
     queryKey: ['campaign', campaignId],
@@ -926,6 +947,13 @@ export default function PlayersPage() {
         </div>
       </div>
 
+      {movesRefOpen && (
+        <DWClassMovesModal
+          initialClass={newClass || undefined}
+          onClose={() => setMovesRefOpen(false)}
+        />
+      )}
+
       {/* Add character inline form */}
       {creating && (
         <div className="px-8 py-4 border-b border-border bg-surface-2">
@@ -955,6 +983,14 @@ export default function PlayersPage() {
               <div className="min-w-40">
                 <label className="label flex items-center gap-1">
                   <BookOpen size={11} className="text-accent" /> DW Class Template
+                  <button
+                    type="button"
+                    className="ml-1 text-[10px] text-accent hover:underline"
+                    onClick={() => setMovesRefOpen(true)}
+                    title="View class moves & level progression"
+                  >
+                    View moves
+                  </button>
                 </label>
                 <select
                   className="input text-sm"
