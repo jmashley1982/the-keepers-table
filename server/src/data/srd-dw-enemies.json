@@ -4,7 +4,11 @@
     "name": "Goblin",
     "enemyType": "humanoid",
     "description": "Goblins are small, wiry creatures that lurk in dark places and ambush unwary travelers.",
-    "tags": ["horde", "small", "organized"],
+    "tags": [
+      "horde",
+      "small",
+      "organized"
+    ],
     "statBlock": {
       "hp": 3,
       "armor": 1,
@@ -19,7 +23,11 @@
     "name": "Goblin War Rider",
     "enemyType": "humanoid",
     "description": "Goblins mounted on wolf-back, swooping across the plains to terrorize travelers.",
-    "tags": ["group", "small", "mounted"],
+    "tags": [
+      "group",
+      "small",
+      "mounted"
+    ],
     "statBlock": {
       "hp": 6,
       "armor": 1,
@@ -34,7 +42,11 @@
     "name": "Goblin Shaman",
     "enemyType": "humanoid",
     "description": "The spiritual leader of a goblin tribe, calling on dark powers to bless raids and curse enemies.",
-    "tags": ["solitary", "small", "magical"],
+    "tags": [
+      "solitary",
+      "small",
+      "magical"
+    ],
     "statBlock": {
       "hp": 9,
       "armor": 0,
@@ -49,7 +61,11 @@
     "name": "Orc Warrior",
     "enemyType": "humanoid",
     "description": "Hard-muscled warriors who paint their bodies before battle and fight with brutal efficiency.",
-    "tags": ["horde", "organized", "warrior"],
+    "tags": [
+      "horde",
+      "organized",
+      "warrior"
+    ],
     "statBlock": {
       "hp": 6,
       "armor": 1,
@@ -64,7 +80,11 @@
     "name": "Orc Bloodwarrior",
     "enemyType": "humanoid",
     "description": "The most fearsome of orc fighters, capable of entering a blood frenzy that makes them near unstoppable.",
-    "tags": ["solitary", "large", "warrior"],
+    "tags": [
+      "solitary",
+      "large",
+      "warrior"
+    ],
     "statBlock": {
       "hp": 16,
       "armor": 2,
@@ -79,7 +99,11 @@
     "name": "Orc Shaman",
     "enemyType": "humanoid",
     "description": "Calls upon the dark gods of the orc clans, drawing power from blood and sacrifice.",
-    "tags": ["solitary", "magical", "religious"],
+    "tags": [
+      "solitary",
+      "magical",
+      "religious"
+    ],
     "statBlock": {
       "hp": 12,
       "armor": 0,
@@ -94,7 +118,10 @@
     "name": "Skeleton",
     "enemyType": "undead",
     "description": "The animated remains of the dead, kept moving by necromantic energy and an empty will.",
-    "tags": ["horde", "undead"],
+    "tags": [
+      "horde",
+      "undead"
+    ],
     "statBlock": {
       "hp": 4,
       "armor": 1,
@@ -109,7 +136,11 @@
     "name": "Skeleton Archer",
     "enemyType": "undead",
     "description": "Animated bones that wield bows with mechanical precision, never tiring, never missing cover.",
-    "tags": ["horde", "undead", "ranged"],
+    "tags": [
+      "horde",
+      "undead",
+      "ranged"
+    ],
     "statBlock": {
       "hp": 4,
       "armor": 0,
@@ -124,7 +155,11 @@
     "name": "Zombie",
     "enemyType": "undead",
     "description": "Rotting corpses shuffling forward driven by necrotic hunger, silent and relentless.",
-    "tags": ["horde", "undead", "slow"],
+    "tags": [
+      "horde",
+      "undead",
+      "slow"
+    ],
     "statBlock": {
       "hp": 8,
       "armor": 1,
@@ -139,7 +174,11 @@
     "name": "Ghoul",
     "enemyType": "undead",
     "description": "Once a person cursed for desecrating the dead; now a ravenous, paralysis-inflicting predator.",
-    "tags": ["group", "undead", "cunning"],
+    "tags": [
+      "group",
+      "undead",
+      "cunning"
+    ],
     "statBlock": {
       "hp": 12,
       "armor": 1,
@@ -154,7 +193,11 @@
     "name": "Wight",
     "enemyType": "undead",
     "description": "A warrior bound by dark oaths beyond death, retaining some intellect and terrible purpose.",
-    "tags": ["solitary", "undead", "intelligent"],
+    "tags": [
+      "solitary",
+      "undead",
+      "intelligent"
+    ],
     "statBlock": {
       "hp": 16,
       "armor": 3,
@@ -169,7 +212,12 @@
     "name": "Lich",
     "enemyType": "undead",
     "description": "An ancient wizard who sacrificed their own soul to cheat death, now nearly immortal and immeasurably powerful.",
-    "tags": ["solitary", "undead", "magical", "divine"],
+    "tags": [
+      "solitary",
+      "undead",
+      "magical",
+      "divine"
+    ],
     "statBlock": {
       "hp": 30,
       "armor": 3,
@@ -184,7 +232,12 @@
     "name": "Vampire",
     "enemyType": "undead",
     "description": "An ageless predator wrapped in aristocratic grace, the vampire feeds on the blood of the living.",
-    "tags": ["solitary", "undead", "magical", "stealthy"],
+    "tags": [
+      "solitary",
+      "undead",
+      "magical",
+      "stealthy"
+    ],
     "statBlock": {
       "hp": 24,
       "armor": 2,
@@ -199,7 +252,11 @@
     "name": "Cave Rat",
     "enemyType": "beast",
     "description": "Fat rodents the size of small dogs with matted gray fur and yellow, too-long teeth.",
-    "tags": ["horde", "small", "beast"],
+    "tags": [
+      "horde",
+      "small",
+      "beast"
+    ],
     "statBlock": {
       "hp": 3,
       "armor": 0,
@@ -214,7 +271,12 @@
     "name": "Stirge",
     "enemyType": "beast",
     "description": "Blood-drinking flying pests with a trumpet-like snout — an annoyance to some, deadly in a swarm.",
-    "tags": ["horde", "tiny", "beast", "flying"],
+    "tags": [
+      "horde",
+      "tiny",
+      "beast",
+      "flying"
+    ],
     "statBlock": {
       "hp": 3,
       "armor": 0,
@@ -229,7 +291,11 @@
     "name": "Dire Wolf",
     "enemyType": "beast",
     "description": "A massive predatory wolf the size of a cart horse, with thick black fur and glowing amber eyes.",
-    "tags": ["group", "large", "beast"],
+    "tags": [
+      "group",
+      "large",
+      "beast"
+    ],
     "statBlock": {
       "hp": 16,
       "armor": 1,
@@ -244,7 +310,11 @@
     "name": "Cave Bear",
     "enemyType": "beast",
     "description": "Enormous prehistoric bears that make their lairs in deep cavern systems.",
-    "tags": ["solitary", "large", "beast"],
+    "tags": [
+      "solitary",
+      "large",
+      "beast"
+    ],
     "statBlock": {
       "hp": 24,
       "armor": 1,
@@ -259,7 +329,12 @@
     "name": "Giant Spider",
     "enemyType": "beast",
     "description": "A spider the size of a horse, spinning webs that can trap a man whole.",
-    "tags": ["solitary", "large", "beast", "stealthy"],
+    "tags": [
+      "solitary",
+      "large",
+      "beast",
+      "stealthy"
+    ],
     "statBlock": {
       "hp": 16,
       "armor": 1,
@@ -274,7 +349,11 @@
     "name": "Giant Scorpion",
     "enemyType": "beast",
     "description": "An armored arthropod the size of a horse, with crushing claws and a deadly venomous stinger.",
-    "tags": ["group", "large", "beast"],
+    "tags": [
+      "group",
+      "large",
+      "beast"
+    ],
     "statBlock": {
       "hp": 18,
       "armor": 3,
@@ -289,7 +368,11 @@
     "name": "Troll",
     "enemyType": "giant",
     "description": "A massive, regenerating creature of hunger with crude intelligence. Fire and acid alone stop its healing.",
-    "tags": ["solitary", "large", "regenerating"],
+    "tags": [
+      "solitary",
+      "large",
+      "regenerating"
+    ],
     "statBlock": {
       "hp": 28,
       "armor": 1,
@@ -304,7 +387,11 @@
     "name": "Ogre",
     "enemyType": "giant",
     "description": "A lumbering, brutish giant that smashes first and thinks never. Lives to fight and eat.",
-    "tags": ["group", "large", "warrior"],
+    "tags": [
+      "group",
+      "large",
+      "warrior"
+    ],
     "statBlock": {
       "hp": 20,
       "armor": 1,
@@ -319,7 +406,10 @@
     "name": "Cyclops",
     "enemyType": "giant",
     "description": "A one-eyed giant with poor depth perception but terrifying strength.",
-    "tags": ["solitary", "large"],
+    "tags": [
+      "solitary",
+      "large"
+    ],
     "statBlock": {
       "hp": 24,
       "armor": 2,
@@ -334,7 +424,11 @@
     "name": "Ankheg",
     "enemyType": "monstrosity",
     "description": "A car-sized insectoid that burrows under farmland and sprays acid on prey.",
-    "tags": ["solitary", "large", "tunneler"],
+    "tags": [
+      "solitary",
+      "large",
+      "tunneler"
+    ],
     "statBlock": {
       "hp": 19,
       "armor": 3,
@@ -349,7 +443,11 @@
     "name": "Owlbear",
     "enemyType": "monstrosity",
     "description": "What magic birthed this abomination? Half bear, half owl, all violence.",
-    "tags": ["solitary", "large", "monstrosity"],
+    "tags": [
+      "solitary",
+      "large",
+      "monstrosity"
+    ],
     "statBlock": {
       "hp": 20,
       "armor": 1,
@@ -364,7 +462,11 @@
     "name": "Minotaur",
     "enemyType": "monstrosity",
     "description": "A bull-headed warrior with supernatural strength and a perfect sense of labyrinthine space.",
-    "tags": ["solitary", "large", "monstrosity"],
+    "tags": [
+      "solitary",
+      "large",
+      "monstrosity"
+    ],
     "statBlock": {
       "hp": 20,
       "armor": 2,
@@ -379,7 +481,11 @@
     "name": "Basilisk",
     "enemyType": "monstrosity",
     "description": "A low, slow reptile whose gaze turns flesh to stone — one of the oldest and most feared curses.",
-    "tags": ["solitary", "medium", "monstrosity"],
+    "tags": [
+      "solitary",
+      "medium",
+      "monstrosity"
+    ],
     "statBlock": {
       "hp": 16,
       "armor": 2,
@@ -394,7 +500,11 @@
     "name": "Manticore",
     "enemyType": "monstrosity",
     "description": "A lion with a human face and a tail covered in venomous spikes it launches at prey.",
-    "tags": ["solitary", "large", "flying"],
+    "tags": [
+      "solitary",
+      "large",
+      "flying"
+    ],
     "statBlock": {
       "hp": 20,
       "armor": 1,
@@ -409,7 +519,11 @@
     "name": "Harpy",
     "enemyType": "monstrosity",
     "description": "Part woman, part vulture, harassing and luring prey with a terrible song.",
-    "tags": ["group", "flying", "monstrosity"],
+    "tags": [
+      "group",
+      "flying",
+      "monstrosity"
+    ],
     "statBlock": {
       "hp": 12,
       "armor": 1,
@@ -424,7 +538,11 @@
     "name": "Hydra",
     "enemyType": "monstrosity",
     "description": "A seven-headed serpentine predator that grows two heads for every one that is cut off.",
-    "tags": ["solitary", "large", "monstrosity"],
+    "tags": [
+      "solitary",
+      "large",
+      "monstrosity"
+    ],
     "statBlock": {
       "hp": 28,
       "armor": 2,
@@ -439,7 +557,12 @@
     "name": "Wyvern",
     "enemyType": "dragon",
     "description": "A lesser dragon kin with two legs and powerful wings, its venomous stinger tail as deadly as its jaws.",
-    "tags": ["solitary", "large", "flying", "dragon"],
+    "tags": [
+      "solitary",
+      "large",
+      "flying",
+      "dragon"
+    ],
     "statBlock": {
       "hp": 24,
       "armor": 2,
@@ -454,7 +577,12 @@
     "name": "Black Dragon",
     "enemyType": "dragon",
     "description": "A swamp-dwelling dragon of cruelty and acid, hoarding misery as much as treasure.",
-    "tags": ["solitary", "huge", "dragon", "acid"],
+    "tags": [
+      "solitary",
+      "huge",
+      "dragon",
+      "acid"
+    ],
     "statBlock": {
       "hp": 32,
       "armor": 3,
@@ -469,7 +597,12 @@
     "name": "Red Dragon",
     "enemyType": "dragon",
     "description": "The greatest and most feared of dragons, a creature of fire and towering pride.",
-    "tags": ["solitary", "huge", "dragon", "fire"],
+    "tags": [
+      "solitary",
+      "huge",
+      "dragon",
+      "fire"
+    ],
     "statBlock": {
       "hp": 36,
       "armor": 4,
@@ -484,7 +617,11 @@
     "name": "Demon Soldier",
     "enemyType": "fiend",
     "description": "A lesser demon conscripted into an army from the Abyss — vicious, brutal, and nearly mindless.",
-    "tags": ["horde", "medium", "fiend"],
+    "tags": [
+      "horde",
+      "medium",
+      "fiend"
+    ],
     "statBlock": {
       "hp": 8,
       "armor": 1,
@@ -499,7 +636,12 @@
     "name": "Balor",
     "enemyType": "fiend",
     "description": "A massive demon general trailing fire and wielding a flaming sword and lightning whip.",
-    "tags": ["solitary", "huge", "fiend", "boss"],
+    "tags": [
+      "solitary",
+      "huge",
+      "fiend",
+      "boss"
+    ],
     "statBlock": {
       "hp": 34,
       "armor": 3,
@@ -514,7 +656,12 @@
     "name": "Imp",
     "enemyType": "fiend",
     "description": "A tiny devil that serves a master, carrying messages, spying, and tempting mortals.",
-    "tags": ["solitary", "tiny", "fiend", "stealthy"],
+    "tags": [
+      "solitary",
+      "tiny",
+      "fiend",
+      "stealthy"
+    ],
     "statBlock": {
       "hp": 6,
       "armor": 1,
@@ -529,7 +676,11 @@
     "name": "Bandit",
     "enemyType": "humanoid",
     "description": "Desperate or greedy road agents who prey on travelers in lawless lands.",
-    "tags": ["horde", "medium", "humanoid"],
+    "tags": [
+      "horde",
+      "medium",
+      "humanoid"
+    ],
     "statBlock": {
       "hp": 6,
       "armor": 1,
@@ -544,7 +695,12 @@
     "name": "Bandit King",
     "enemyType": "humanoid",
     "description": "The charismatic or terrifying leader of a large bandit gang, with military experience.",
-    "tags": ["solitary", "medium", "humanoid", "leader"],
+    "tags": [
+      "solitary",
+      "medium",
+      "humanoid",
+      "leader"
+    ],
     "statBlock": {
       "hp": 16,
       "armor": 2,
@@ -559,7 +715,12 @@
     "name": "Cultist",
     "enemyType": "humanoid",
     "description": "True believers willing to die — and kill — for a dark power they only half understand.",
-    "tags": ["horde", "medium", "humanoid", "religious"],
+    "tags": [
+      "horde",
+      "medium",
+      "humanoid",
+      "religious"
+    ],
     "statBlock": {
       "hp": 6,
       "armor": 0,
@@ -574,7 +735,12 @@
     "name": "Dark Priest",
     "enemyType": "humanoid",
     "description": "A servant of dark gods who wields divine power corrupted by ambition and cruelty.",
-    "tags": ["solitary", "medium", "humanoid", "magical"],
+    "tags": [
+      "solitary",
+      "medium",
+      "humanoid",
+      "magical"
+    ],
     "statBlock": {
       "hp": 14,
       "armor": 1,
@@ -589,7 +755,11 @@
     "name": "Mud Golem",
     "enemyType": "construct",
     "description": "A hulking construct of animated earth that returns to a pile when destroyed — until someone makes it again.",
-    "tags": ["group", "large", "construct"],
+    "tags": [
+      "group",
+      "large",
+      "construct"
+    ],
     "statBlock": {
       "hp": 18,
       "armor": 1,
@@ -604,7 +774,11 @@
     "name": "Clay Golem",
     "enemyType": "construct",
     "description": "A humanoid construct of hardened clay, slow but nearly indestructible.",
-    "tags": ["solitary", "large", "construct"],
+    "tags": [
+      "solitary",
+      "large",
+      "construct"
+    ],
     "statBlock": {
       "hp": 20,
       "armor": 3,
@@ -619,7 +793,11 @@
     "name": "Shadow",
     "enemyType": "undead",
     "description": "A creature of pure darkness born when someone dies in total despair. It drains life just by touching.",
-    "tags": ["solitary", "undead", "stealthy"],
+    "tags": [
+      "solitary",
+      "undead",
+      "stealthy"
+    ],
     "statBlock": {
       "hp": 12,
       "armor": 4,
@@ -634,7 +812,11 @@
     "name": "Crocodilian",
     "enemyType": "beast",
     "description": "A massive, armored reptile lurking in murky swamp water, completely still until prey is in reach.",
-    "tags": ["group", "large", "beast"],
+    "tags": [
+      "group",
+      "large",
+      "beast"
+    ],
     "statBlock": {
       "hp": 18,
       "armor": 3,
@@ -649,7 +831,11 @@
     "name": "Swamp Troll",
     "enemyType": "monstrosity",
     "description": "A hungrier, fouler troll from the swamps, reeking of decay and bristling with moss and fungi.",
-    "tags": ["solitary", "large", "regenerating"],
+    "tags": [
+      "solitary",
+      "large",
+      "regenerating"
+    ],
     "statBlock": {
       "hp": 24,
       "armor": 1,
@@ -664,7 +850,12 @@
     "name": "Will-o'-Wisp",
     "enemyType": "undead",
     "description": "A ghostly light that lures travelers into bogs and drowning pits, feasting on their despair.",
-    "tags": ["solitary", "tiny", "flying", "stealthy"],
+    "tags": [
+      "solitary",
+      "tiny",
+      "flying",
+      "stealthy"
+    ],
     "statBlock": {
       "hp": 6,
       "armor": 4,
@@ -679,7 +870,11 @@
     "name": "Gnoll",
     "enemyType": "humanoid",
     "description": "Hyena-headed raiders touched by demonic power, who roam in frenzied war packs leaving nothing alive.",
-    "tags": ["horde", "medium", "humanoid"],
+    "tags": [
+      "horde",
+      "medium",
+      "humanoid"
+    ],
     "statBlock": {
       "hp": 8,
       "armor": 1,
@@ -694,7 +889,11 @@
     "name": "Centaur",
     "enemyType": "monstrosity",
     "description": "Half human, half horse — proud warriors of the open plains who defend their tribal lands.",
-    "tags": ["group", "large", "intelligent"],
+    "tags": [
+      "group",
+      "large",
+      "intelligent"
+    ],
     "statBlock": {
       "hp": 16,
       "armor": 1,
@@ -709,7 +908,11 @@
     "name": "Mummy",
     "enemyType": "undead",
     "description": "An ancient priest or noble preserved and bound by ritual to guard a tomb forever.",
-    "tags": ["solitary", "medium", "undead"],
+    "tags": [
+      "solitary",
+      "medium",
+      "undead"
+    ],
     "statBlock": {
       "hp": 20,
       "armor": 2,
@@ -724,7 +927,12 @@
     "name": "Death Knight",
     "enemyType": "undead",
     "description": "A paladin brought back by oath-breaking and dark power, clad in black armor radiating cold dread.",
-    "tags": ["solitary", "medium", "undead", "warrior"],
+    "tags": [
+      "solitary",
+      "medium",
+      "undead",
+      "warrior"
+    ],
     "statBlock": {
       "hp": 28,
       "armor": 4,
@@ -739,7 +947,12 @@
     "name": "Treant",
     "enemyType": "plant",
     "description": "An ancient tree given will and voice. They war against those who burn the forest.",
-    "tags": ["solitary", "huge", "intelligent", "plant"],
+    "tags": [
+      "solitary",
+      "huge",
+      "intelligent",
+      "plant"
+    ],
     "statBlock": {
       "hp": 28,
       "armor": 3,
@@ -754,7 +967,12 @@
     "name": "Unicorn",
     "enemyType": "fey",
     "description": "A horse of pure magic whose horn can heal or kill. Protects sacred forests with divine wrath.",
-    "tags": ["solitary", "large", "magical", "divine"],
+    "tags": [
+      "solitary",
+      "large",
+      "magical",
+      "divine"
+    ],
     "statBlock": {
       "hp": 20,
       "armor": 2,
@@ -769,7 +987,12 @@
     "name": "Blink Dog",
     "enemyType": "fey",
     "description": "A dog-like fey creature that teleports short distances to evade and flank its quarry.",
-    "tags": ["group", "small", "fey", "magical"],
+    "tags": [
+      "group",
+      "small",
+      "fey",
+      "magical"
+    ],
     "statBlock": {
       "hp": 10,
       "armor": 1,
@@ -777,6 +1000,509 @@
       "instinct": "To run down and disrupt",
       "moves": "Teleport to flank\nBite and vanish\nCoordinate with pack through barking",
       "tags": "Group, Small, Magical, Organized, Animal"
+    }
+  },
+  {
+    "id": "srd-dw-frost-dragon",
+    "name": "Frost Dragon",
+    "enemyType": "Dragon",
+    "description": "A great serpent of ice, coiled in glacial caves. Its breath turns living flesh to ice.",
+    "tags": [
+      "dragon",
+      "cold",
+      "large"
+    ],
+    "statBlock": {
+      "hp": 16,
+      "armor": 4,
+      "damage": "b[2d10]+5 cold",
+      "instinct": "to lair in the coldest places",
+      "moves": "Breathe killing ice\nCall blizzards to ground foes\nShatter frozen foes like glass"
+    }
+  },
+  {
+    "id": "srd-dw-sea-serpent",
+    "name": "Sea Serpent",
+    "enemyType": "Beast",
+    "description": "Vast coiling creature of the deep, large enough to swamp sailing vessels and devour their crews.",
+    "tags": [
+      "beast",
+      "aquatic",
+      "huge"
+    ],
+    "statBlock": {
+      "hp": 20,
+      "armor": 3,
+      "damage": "b[2d12]+7",
+      "instinct": "to rule the deeps",
+      "moves": "Capsize a vessel\nCoil around a target and crush\nDrag prey beneath the waves"
+    }
+  },
+  {
+    "id": "srd-dw-storm-giant",
+    "name": "Storm Giant",
+    "enemyType": "Giant",
+    "description": "Enormous humanoids who dwell among storm clouds, able to call lightning from clear skies. They see mortals as toys.",
+    "tags": [
+      "giant",
+      "lightning",
+      "huge"
+    ],
+    "statBlock": {
+      "hp": 20,
+      "armor": 2,
+      "damage": "b[2d10]+5 lightning",
+      "instinct": "to control weather and fate",
+      "moves": "Call down a lightning bolt\nThrow boulders from above\nSummon gale-force winds"
+    }
+  },
+  {
+    "id": "srd-dw-hill-giant",
+    "name": "Hill Giant",
+    "enemyType": "Giant",
+    "description": "Massive, dimwitted brutes who consume everything in their path and hurl enormous boulders at enemies.",
+    "tags": [
+      "giant",
+      "brute",
+      "large"
+    ],
+    "statBlock": {
+      "hp": 14,
+      "armor": 1,
+      "damage": "b[2d10]+5",
+      "instinct": "to eat everything",
+      "moves": "Hurl a boulder\nStomp the ground flat\nSeize a creature in one hand"
+    }
+  },
+  {
+    "id": "srd-dw-stone-giant",
+    "name": "Stone Giant",
+    "enemyType": "Giant",
+    "description": "Giants carved from living granite, dwelling in mountain caves. They view the surface world as a dream and all its creatures as prey.",
+    "tags": [
+      "giant",
+      "stone",
+      "reclusive"
+    ],
+    "statBlock": {
+      "hp": 16,
+      "armor": 4,
+      "damage": "b[2d10]+5",
+      "instinct": "to guard the mountains",
+      "moves": "Throw a boulder with perfect aim\nSummon rockslide\nMeld into stone"
+    }
+  },
+  {
+    "id": "srd-dw-griffin",
+    "name": "Griffin",
+    "enemyType": "Monstrosity",
+    "description": "Half eagle, half lion, all predator. Griffins are territorial hunters that can be tamed as mounts by those bold enough.",
+    "tags": [
+      "monstrosity",
+      "flying",
+      "mount"
+    ],
+    "statBlock": {
+      "hp": 10,
+      "armor": 2,
+      "damage": "b[2d8]+2",
+      "instinct": "to hunt from above",
+      "moves": "Dive-bomb a target\nPin prey beneath powerful talons\nCarry off prey in flight"
+    }
+  },
+  {
+    "id": "srd-dw-pegasus",
+    "name": "Pegasus",
+    "enemyType": "Celestial",
+    "description": "A magnificent winged horse, pure white, untameable except by the truly noble of heart. Prized by paladins and heroes.",
+    "tags": [
+      "celestial",
+      "flying",
+      "mount"
+    ],
+    "statBlock": {
+      "hp": 10,
+      "armor": 1,
+      "damage": "b[2d8]+1",
+      "instinct": "to roam freely",
+      "moves": "Fly beyond arrow range\nKick with divine force\nCall other pegasi"
+    }
+  },
+  {
+    "id": "srd-dw-cockatrice",
+    "name": "Cockatrice",
+    "enemyType": "Monstrosity",
+    "description": "A small magical beast with a rooster's head and a serpentine body. A single peck turns flesh to stone.",
+    "tags": [
+      "monstrosity",
+      "petrification"
+    ],
+    "statBlock": {
+      "hp": 6,
+      "armor": 1,
+      "damage": "b[2d4] petrifying",
+      "instinct": "to petrify threats",
+      "moves": "Peck and begin petrification\nFlap wings to flee\nPeck at petrified prey"
+    }
+  },
+  {
+    "id": "srd-dw-roper",
+    "name": "Roper",
+    "enemyType": "Monstrosity",
+    "description": "A cave-dwelling predator that resembles a stalactite until it strikes. Its strands pull prey into a tooth-filled maw.",
+    "tags": [
+      "monstrosity",
+      "cave",
+      "ambush"
+    ],
+    "statBlock": {
+      "hp": 16,
+      "armor": 2,
+      "damage": "b[2d8]+4",
+      "instinct": "to wait and ambush",
+      "moves": "Shoot out sticky strands\nReel prey toward its maw\nBite to drain strength"
+    }
+  },
+  {
+    "id": "srd-dw-aboleth",
+    "name": "Aboleth",
+    "enemyType": "Aberration",
+    "description": "An ancient, alien intelligence lurking in deep water. Aboleth are immortal tyrants who enslave lesser minds and remember the time before gods.",
+    "tags": [
+      "aberration",
+      "psionic",
+      "aquatic"
+    ],
+    "statBlock": {
+      "hp": 18,
+      "armor": 2,
+      "damage": "b[2d10]+5 psychic",
+      "instinct": "to dominate and remember",
+      "moves": "Enslave a mind with a touch\nControl the enslaved from miles away\nReveal forbidden, mind-shattering truths"
+    }
+  },
+  {
+    "id": "srd-dw-werewolf",
+    "name": "Werewolf",
+    "enemyType": "Humanoid",
+    "description": "A human afflicted with lycanthropy who transforms into a deadly wolf under the full moon. The bite spreads the curse.",
+    "tags": [
+      "humanoid",
+      "shapechanger",
+      "cursed"
+    ],
+    "statBlock": {
+      "hp": 10,
+      "armor": 1,
+      "damage": "b[2d8]+2",
+      "instinct": "to spread the curse",
+      "moves": "Bite and pass on the lycanthropy\nHowl to call the pack\nTransform in rage"
+    }
+  },
+  {
+    "id": "srd-dw-werebear",
+    "name": "Werebear",
+    "enemyType": "Humanoid",
+    "description": "A powerful lycanthrope who takes the form of a great bear. Unlike most lycanthropes, werebears can be forces of protection.",
+    "tags": [
+      "humanoid",
+      "shapechanger",
+      "bear"
+    ],
+    "statBlock": {
+      "hp": 12,
+      "armor": 2,
+      "damage": "b[2d10]+4",
+      "instinct": "to protect the wild",
+      "moves": "Maul with massive paws\nShrug off arrows\nRoar to drive away threats"
+    }
+  },
+  {
+    "id": "srd-dw-doppelganger",
+    "name": "Doppelganger",
+    "enemyType": "Monstrosity",
+    "description": "A shapeshifting predator that reads minds and takes the form of those it hunts, infiltrating communities before striking.",
+    "tags": [
+      "monstrosity",
+      "shapechanger",
+      "deceptive"
+    ],
+    "statBlock": {
+      "hp": 10,
+      "armor": 0,
+      "damage": "b[2d8]+2",
+      "instinct": "to infiltrate and devour",
+      "moves": "Assume any humanoid form\nRead surface thoughts\nReplace a trusted ally"
+    }
+  },
+  {
+    "id": "srd-dw-witch",
+    "name": "Witch",
+    "enemyType": "Humanoid",
+    "description": "An outcast human who bargained with dark powers for magical knowledge. Witches brew cursed concoctions and keep monstrous familiars.",
+    "tags": [
+      "humanoid",
+      "magic",
+      "caster"
+    ],
+    "statBlock": {
+      "hp": 8,
+      "armor": 0,
+      "damage": "b[2d6] fire or curse",
+      "instinct": "to gather power",
+      "moves": "Cast a lasting hex\nBrew a cursed potion\nSummon a familiar"
+    }
+  },
+  {
+    "id": "srd-dw-fire-elemental",
+    "name": "Fire Elemental",
+    "enemyType": "Elemental",
+    "description": "A creature of pure fire summoned from the Elemental Plane. It burns everything it touches and cannot be harmed by fire.",
+    "tags": [
+      "elemental",
+      "fire",
+      "summoned"
+    ],
+    "statBlock": {
+      "hp": 10,
+      "armor": 0,
+      "damage": "b[2d8]+3 fire",
+      "instinct": "to burn all fuel",
+      "moves": "Set surroundings ablaze\nSplit into smaller elementals\nIgnite a flammable creature"
+    }
+  },
+  {
+    "id": "srd-dw-ice-elemental",
+    "name": "Ice Elemental",
+    "enemyType": "Elemental",
+    "description": "A being of glacial cold, slow and inexorable. Its touch freezes flesh and its breath can encase creatures in ice.",
+    "tags": [
+      "elemental",
+      "cold",
+      "summoned"
+    ],
+    "statBlock": {
+      "hp": 12,
+      "armor": 3,
+      "damage": "b[2d8]+3 cold",
+      "instinct": "to freeze all warmth",
+      "moves": "Encase a limb in ice\nCreate an ice wall\nCall a blizzard"
+    }
+  },
+  {
+    "id": "srd-dw-naga",
+    "name": "Naga",
+    "enemyType": "Monstrosity",
+    "description": "Serpentine beings of great intelligence who guard ancient temples. Some are good, some evil, but all are dangerous.",
+    "tags": [
+      "monstrosity",
+      "serpent",
+      "magical"
+    ],
+    "statBlock": {
+      "hp": 12,
+      "armor": 2,
+      "damage": "b[2d8]+2 poison",
+      "instinct": "to guard ancient secrets",
+      "moves": "Crush in coils\nSpit venom at range\nCast ancient magic"
+    }
+  },
+  {
+    "id": "srd-dw-spriggan",
+    "name": "Spriggan",
+    "enemyType": "Fey",
+    "description": "Malicious fey who guard treasure and cursed places. They can grow to enormous size and are always angry.",
+    "tags": [
+      "fey",
+      "cursed",
+      "size-change"
+    ],
+    "statBlock": {
+      "hp": 8,
+      "armor": 1,
+      "damage": "b[2d6]+2",
+      "instinct": "to guard and hoard",
+      "moves": "Grow to enormous size\nCurse those who steal\nVanish into vegetation"
+    }
+  },
+  {
+    "id": "srd-dw-kelpie",
+    "name": "Kelpie",
+    "enemyType": "Fey",
+    "description": "A fey predator that resembles a beautiful horse at rest and a drowning horror in the water. It lures victims to watery deaths.",
+    "tags": [
+      "fey",
+      "aquatic",
+      "lure"
+    ],
+    "statBlock": {
+      "hp": 10,
+      "armor": 0,
+      "damage": "b[2d8]+2",
+      "instinct": "to lure the unwary to drown",
+      "moves": "Appear as a beautiful horse\nDrag prey into deep water\nDissolve into water"
+    }
+  },
+  {
+    "id": "srd-dw-bone-dragon",
+    "name": "Bone Dragon",
+    "enemyType": "Dragon",
+    "description": "An undead dragon animated by dark necromancy. It breathes not fire but clouds of necrotic energy that wither life.",
+    "tags": [
+      "dragon",
+      "undead",
+      "necrotic"
+    ],
+    "statBlock": {
+      "hp": 16,
+      "armor": 3,
+      "damage": "b[2d10]+5 necrotic",
+      "instinct": "to slay the living",
+      "moves": "Breathe necrotic cloud\nReanimate the slain as undead\nFly silently in darkness"
+    }
+  },
+  {
+    "id": "srd-dw-iron-golem",
+    "name": "Iron Golem",
+    "enemyType": "Construct",
+    "description": "A massive construct forged from enchanted iron, bound to obey its creator's every command. Nearly impervious to normal weapons.",
+    "tags": [
+      "construct",
+      "golem",
+      "huge"
+    ],
+    "statBlock": {
+      "hp": 20,
+      "armor": 5,
+      "damage": "b[2d10]+5",
+      "instinct": "to obey",
+      "moves": "Smash through obstacles\nBreathe poisonous gas\nReform from damage"
+    }
+  },
+  {
+    "id": "srd-dw-deep-dweller",
+    "name": "Deep Dweller",
+    "enemyType": "Aberration",
+    "description": "Fishlike beings from far beneath the sea, servant-creatures of an ancient submerged power. They raid coastal villages.",
+    "tags": [
+      "aberration",
+      "aquatic",
+      "underdark"
+    ],
+    "statBlock": {
+      "hp": 10,
+      "armor": 2,
+      "damage": "b[2d8]+2",
+      "instinct": "to serve what lies below",
+      "moves": "Rise from the depths at night\nCall in the tide\nDrag prey into dark water"
+    }
+  },
+  {
+    "id": "srd-dw-elemental-shaman",
+    "name": "Elemental Shaman",
+    "enemyType": "Humanoid",
+    "description": "A tribal spellcaster who communes with elemental spirits. The shaman directs the elements themselves as a weapon.",
+    "tags": [
+      "humanoid",
+      "shaman",
+      "elemental"
+    ],
+    "statBlock": {
+      "hp": 8,
+      "armor": 0,
+      "damage": "b[2d8] elemental",
+      "instinct": "to balance the elements",
+      "moves": "Call lightning or fire\nSummon a spirit to fight\nCurse with elemental wrath"
+    }
+  },
+  {
+    "id": "srd-dw-bandit-assassin",
+    "name": "Bandit Assassin",
+    "enemyType": "Humanoid",
+    "description": "A trained killer who blends into crowds, striking swiftly with poison and disappearing before retaliation.",
+    "tags": [
+      "humanoid",
+      "assassin",
+      "stealthy"
+    ],
+    "statBlock": {
+      "hp": 8,
+      "armor": 1,
+      "damage": "b[2d8]+3 poison",
+      "instinct": "to kill for coin",
+      "moves": "Strike from the shadows\nPoisoned blade\nVanish into the crowd"
+    }
+  },
+  {
+    "id": "srd-dw-swamp-witch",
+    "name": "Swamp Witch",
+    "enemyType": "Humanoid",
+    "description": "An outcast who dwells in fetid swamps, mastering the dark art of hexes and dealing in foul bargains with travelers.",
+    "tags": [
+      "humanoid",
+      "witch",
+      "swamp"
+    ],
+    "statBlock": {
+      "hp": 8,
+      "armor": 0,
+      "damage": "b[2d6] necrotic",
+      "instinct": "to collect debts",
+      "moves": "Lay a lasting hex\nSummon swamp spirits\nBargain with desperate travelers"
+    }
+  },
+  {
+    "id": "srd-dw-vampire-lord",
+    "name": "Vampire Lord",
+    "enemyType": "Undead",
+    "description": "An ancient vampire of terrible power who rules over a domain of fear. Far more dangerous than a common vampire spawn.",
+    "tags": [
+      "undead",
+      "vampire",
+      "powerful"
+    ],
+    "statBlock": {
+      "hp": 18,
+      "armor": 2,
+      "damage": "b[2d10]+5 necrotic",
+      "instinct": "to rule eternally",
+      "moves": "Charm and dominate a victim\nTransform into mist or bats\nDrain life to restore strength"
+    }
+  },
+  {
+    "id": "srd-dw-sand-worm",
+    "name": "Sand Worm",
+    "enemyType": "Monstrosity",
+    "description": "A massive subterranean predator that burrows through desert sand. The vibrations of walking creatures draw it to the surface.",
+    "tags": [
+      "monstrosity",
+      "desert",
+      "huge"
+    ],
+    "statBlock": {
+      "hp": 18,
+      "armor": 3,
+      "damage": "b[2d12]+7",
+      "instinct": "to consume from below",
+      "moves": "Burst from the sand beneath prey\nSwallow a target whole\nCreate tremors to disorient"
+    }
+  },
+  {
+    "id": "srd-dw-spectral-knight",
+    "name": "Spectral Knight",
+    "enemyType": "Undead",
+    "description": "The ghost of a warrior who refused to rest, bound to the battlefield where it fell. It commands lesser undead and challenges champions to honorable combat.",
+    "tags": [
+      "undead",
+      "ghost",
+      "warrior"
+    ],
+    "statBlock": {
+      "hp": 12,
+      "armor": 3,
+      "damage": "b[2d10]+3 cold",
+      "instinct": "to seek an honorable end",
+      "moves": "Challenge a warrior to single combat\nRaise fallen foes as skeletons\nPass through barriers untouched"
     }
   }
 ]

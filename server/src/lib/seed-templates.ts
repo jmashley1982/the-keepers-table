@@ -1,4 +1,5 @@
 import { prisma } from './prisma.js'
+import { Prisma } from '@prisma/client'
 
 const BUILTIN_TEMPLATES = [
   {
@@ -190,7 +191,7 @@ export async function seedEnemies(): Promise<void> {
         enemyType: e.enemyType ?? '',
         size: e.size ?? '',
         cr: e.cr ?? null,
-        statBlock: e.statBlock ?? {},
+        statBlock: (e.statBlock ?? {}) as Prisma.InputJsonValue,
         tags: e.tags ?? [],
         source: 'srd',
         isBuiltin: true,
@@ -210,7 +211,7 @@ export async function seedEnemies(): Promise<void> {
         enemyType: e.enemyType ?? '',
         size: e.size ?? '',
         cr: null,
-        statBlock: (e.statBlock as Record<string, unknown>) ?? {},
+        statBlock: (e.statBlock ?? {}) as Prisma.InputJsonValue,
         tags: e.tags ?? [],
         source: 'srd',
         isBuiltin: true,

@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useRef } from 'react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
@@ -118,12 +118,12 @@ function EnemyCard({
               <div className="flex gap-4 flex-wrap">
                 {sb.hp !== undefined && <div className="text-xs"><span className="font-semibold text-ink-muted mr-1">HP</span><span className="text-ink">{String(sb.hp)}</span></div>}
                 {sb.armor !== undefined && <div className="text-xs"><span className="font-semibold text-ink-muted mr-1">Armor</span><span className="text-ink">{String(sb.armor)}</span></div>}
-                {sb.damage && <div className="text-xs"><span className="font-semibold text-ink-muted mr-1">Damage</span><span className="text-ink">{String(sb.damage)}</span></div>}
+                {!!sb.damage && <div className="text-xs"><span className="font-semibold text-ink-muted mr-1">Damage</span><span className="text-ink">{String(sb.damage)}</span></div>}
               </div>
-              {sb.instinct && (
+              {!!sb.instinct && (
                 <div className="text-xs"><span className="font-semibold text-ink-muted mr-1">Instinct</span><span className="text-ink">{String(sb.instinct)}</span></div>
               )}
-              {sb.moves && (
+              {!!sb.moves && (
                 <div>
                   <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide mb-1">Moves</p>
                   {(sb.moves as string).split('\n').filter(Boolean).map((m, i) => (
@@ -131,7 +131,7 @@ function EnemyCard({
                   ))}
                 </div>
               )}
-              {sb.tags && (
+              {!!sb.tags && (
                 <div className="text-xs"><span className="font-semibold text-ink-muted mr-1">Tags</span><span className="text-ink">{String(sb.tags)}</span></div>
               )}
             </div>
@@ -176,6 +176,7 @@ function EnemyCard({
 
 export default function EnemyGeneratorPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
+  const navigate = useNavigate()
   const qc = useQueryClient()
 
   const { data: campaignData } = useQuery({
@@ -284,6 +285,7 @@ export default function EnemyGeneratorPage() {
     onSuccess: (index) => {
       setResults(r => r.map((item, i) => i === index ? { ...item, saved: true } : item))
       qc.invalidateQueries({ queryKey: ['enemies', campaignId] })
+      setTimeout(() => navigate(`/campaign/${campaignId}/enemies`), 800)
     },
     onError: (e) => alert(apiError(e)),
   })

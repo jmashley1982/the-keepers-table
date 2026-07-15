@@ -86,14 +86,20 @@ function EnemyCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="display-font text-base font-bold text-ink">{enemy.name}</h3>
-            {enemy.source === 'srd' && (
+            {enemy.source === 'srd' && systemTemplateId === 'builtin-d-d-5e' && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent">D&D 5e SRD</span>
+            )}
+            {enemy.source === 'srd' && systemTemplateId === 'builtin-dungeon-world' && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent">DW SRD</span>
+            )}
+            {enemy.source === 'srd' && systemTemplateId !== 'builtin-d-d-5e' && systemTemplateId !== 'builtin-dungeon-world' && (
               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent">SRD</span>
             )}
             {enemy.source === 'generated' && (
               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-2 text-ink-muted">AI</span>
             )}
-            {enemy.source === 'manual' && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-2 text-ink-muted">Custom</span>
+            {(enemy.source === 'manual' || (!enemy.source && !enemy.isBuiltin)) && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-2 text-ink-muted">Campaign</span>
             )}
           </div>
           <p className="text-xs text-ink-muted mt-0.5 capitalize">
@@ -173,10 +179,10 @@ function EnemyCard({
               <div className="flex gap-4 flex-wrap">
                 {sb.hp !== undefined && <StatBlockRow label="HP" value={sb.hp as number} />}
                 {sb.armor !== undefined && <StatBlockRow label="Armor" value={sb.armor as number} />}
-                {sb.damage && <StatBlockRow label="Damage" value={sb.damage as string} />}
+                {!!sb.damage && <StatBlockRow label="Damage" value={sb.damage as string} />}
               </div>
-              {sb.instinct && <StatBlockRow label="Instinct" value={sb.instinct as string} />}
-              {sb.moves && (
+              {!!sb.instinct && <StatBlockRow label="Instinct" value={sb.instinct as string} />}
+              {!!sb.moves && (
                 <div>
                   <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wide mb-1">Moves</p>
                   <div className="space-y-0.5">
@@ -186,7 +192,7 @@ function EnemyCard({
                   </div>
                 </div>
               )}
-              {sb.tags && <StatBlockRow label="Tags" value={sb.tags as string} />}
+              {!!sb.tags && <StatBlockRow label="Tags" value={sb.tags as string} />}
             </div>
           )}
 

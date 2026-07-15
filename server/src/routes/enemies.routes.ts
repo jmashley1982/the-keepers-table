@@ -124,6 +124,47 @@ enemiesRouter.post('/:campaignId/enemies', async (req, res) => {
   res.json({ enemy })
 })
 
+// ── Update a custom enemy ─────────────────────────────────────────────────────
+
+enemiesRouter.patch('/:campaignId/enemies/:enemyId', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId, enemyId } = req.params
+
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: campaignId, ownerUserId: userId, deletedAt: null },
+    select: { id: true },
+  })
+  if (!campaign) {
+    res.status(404).json({ error: 'Campaign not found' })
+    return
+  }
+
+  const existing = await prisma.enemy.findFirst({
+    where: { id: enemyId, campaignId, isBuiltin: false, deletedAt: null },
+  })
+  if (!existing) {
+    res.status(404).json({ error: 'Enemy not found' })
+    return
+  }
+
+  const { name, description, enemyType, size, cr, statBlock, tags } = req.body
+
+  const enemy = await prisma.enemy.update({
+    where: { id: enemyId },
+    data: {
+      ...(name !== undefined ? { name: String(name).trim() } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(enemyType !== undefined ? { enemyType } : {}),
+      ...(size !== undefined ? { size } : {}),
+      ...(cr !== undefined ? { cr } : {}),
+      ...(statBlock !== undefined ? { statBlock } : {}),
+      ...(tags !== undefined ? { tags: Array.isArray(tags) ? tags : [] } : {}),
+    },
+  })
+
+  res.json({ enemy })
+})
+
 // ── Delete a custom enemy ─────────────────────────────────────────────────────
 
 enemiesRouter.delete('/:campaignId/enemies/:enemyId', async (req, res) => {
