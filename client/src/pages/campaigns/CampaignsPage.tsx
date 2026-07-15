@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { Plus, BookOpen, Archive, MoreHorizontal, Trash2 } from 'lucide-react'
@@ -7,8 +7,17 @@ import { cn } from '../../lib/cn'
 
 export default function CampaignsPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const qc = useQueryClient()
   const [creating, setCreating] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('create') === '1') {
+      setCreating(true)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams])
+
   const [newName, setNewName] = useState('')
   const [newTemplate, setNewTemplate] = useState('')
 

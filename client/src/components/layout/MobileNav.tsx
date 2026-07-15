@@ -40,8 +40,7 @@ export default function MobileNav() {
 
         {/* Center placeholder — create campaign */}
         <NavLink
-          to="/campaigns"
-          end
+          to="/campaigns?create=1"
           className="flex flex-col items-center justify-center flex-1 py-1"
           aria-label="New Campaign"
         >
