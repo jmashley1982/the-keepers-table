@@ -4,6 +4,7 @@ import { api } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
 import { useEffect, useState } from 'react'
 import Sidebar from './Sidebar'
+import RightSidebar from './RightSidebar'
 import MobileTopBar from './MobileTopBar'
 import MobileDrawer from './MobileDrawer'
 import MobileNav from './MobileNav'
@@ -63,13 +64,16 @@ export default function AppShell() {
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar — hidden on mobile */}
+        {/* Left sidebar — hidden on mobile */}
         <Sidebar campaignId={campaignId} />
 
         {/* Main content — full width on mobile, padded bottom for nav bar */}
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0 min-w-0">
           <Outlet />
         </main>
+
+        {/* Right Quick-Gen sidebar — desktop only, campaign-scoped */}
+        <RightSidebar campaignId={campaignId} />
       </div>
 
       {/* Mobile bottom navigation */}

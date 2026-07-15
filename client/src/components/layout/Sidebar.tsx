@@ -7,6 +7,7 @@ import {
   LayoutDashboard, BookOpen, Map, Scroll,
   Settings, LogOut, ChevronDown, Zap, Users,
   Contrast, Flame, Skull, Rocket, Terminal, Swords, Shield,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useState } from 'react'
 import { themeLogo } from '../../lib/themeLogo'
@@ -14,18 +15,18 @@ import RulesReferencePanel from '../dnd5e/RulesReferencePanel'
 import FriendQuotaBar from './FriendQuotaBar'
 
 const THEME_OPTIONS = [
-  { id: 'candlelight',  label: 'Candlelight',   icon: Flame },
-  { id: 'eldritch',    label: 'Eldritch',       icon: Skull },
-  { id: 'icarus',      label: 'Icarus',         icon: Rocket },
-  { id: 'neon',        label: 'Neon',           icon: Terminal },
-  { id: 'parchment',   label: 'Parchment',      icon: Scroll },
+  { id: 'candlelight',   label: 'Candlelight',   icon: Flame },
+  { id: 'eldritch',     label: 'Eldritch',       icon: Skull },
+  { id: 'icarus',       label: 'Icarus',         icon: Rocket },
+  { id: 'neon',         label: 'Neon',           icon: Terminal },
+  { id: 'parchment',    label: 'Parchment',      icon: Scroll },
   { id: 'high-contrast', label: 'High Contrast', icon: Contrast },
 ] as const
 
 export default function Sidebar({ campaignId }: { campaignId?: string }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const { theme, setTheme, setQuickGenerateOpen } = useUIStore()
+  const { theme, setTheme, setQuickGenerateOpen, leftSidebarCollapsed, setLeftSidebarCollapsed } = useUIStore()
   const [themeOpen, setThemeOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
 
@@ -51,70 +52,127 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
   const campaign = campaignData?.campaign
   const user = meData?.user
   const isDnd5e = campaign?.systemTemplateId === 'builtin-d-d-5e'
+  const collapsed = leftSidebarCollapsed
 
   const navLink = (to: string, icon: React.ReactNode, label: string, end?: boolean) => (
     <NavLink
       to={to}
       end={end}
+      title={collapsed ? label : undefined}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-2.5 px-3 py-2 text-sm transition-all duration-150 rounded-card border-l-2',
+          'flex items-center rounded-card transition-all duration-150',
+          collapsed
+            ? 'justify-center p-2'
+            : 'gap-2.5 px-3 py-2 text-sm border-l-2',
           isActive
-            ? 'border-accent bg-accent/10 text-accent font-semibold'
-            : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/5',
+            ? collapsed
+              ? 'text-accent bg-accent/10'
+              : 'border-accent bg-accent/10 text-accent font-semibold'
+            : collapsed
+              ? 'text-ink-muted hover:text-ink hover:bg-white/5'
+              : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/5',
         )
       }
     >
       {icon}
-      <span>{label}</span>
+      {!collapsed && <span>{label}</span>}
     </NavLink>
   )
 
   return (
-    <aside className="hidden md:flex w-56 flex-col h-full overflow-y-auto flex-shrink-0"
-      style={{ background: 'linear-gradient(180deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-surface) 95%, var(--color-bg)) 100%)', borderRight: '1px solid var(--color-border)' }}
+    <aside
+      className={cn(
+        'hidden md:flex flex-col h-full overflow-y-auto flex-shrink-0 relative transition-all duration-200',
+        collapsed ? 'w-12' : 'w-56',
+      )}
+      style={{
+        background: 'linear-gradient(180deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-surface) 95%, var(--color-bg)) 100%)',
+        borderRight: '1px solid var(--color-border)',
+      }}
     >
+      {/* Toggle button — right edge */}
+      <button
+        onClick={() => setLeftSidebarCollapsed(!collapsed)}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className="absolute -right-3 top-4 w-6 h-6 rounded-full border border-border bg-surface flex items-center justify-center text-ink-muted hover:text-ink transition-colors z-20 shadow-sm"
+      >
+        {collapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
+      </button>
+
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-border">
-        <img
-          src={themeLogo(theme)}
-          alt="The Keeper's Table"
-          className="w-full h-auto logo-theme"
-        />
-        {user && (
-          <p className="text-xs text-ink-muted mt-1.5 truncate">{user.displayName}</p>
+      <div className={cn(
+        'border-b border-border shrink-0',
+        collapsed ? 'px-1 py-3 flex justify-center' : 'px-4 py-4',
+      )}>
+        {collapsed ? (
+          <img
+            src={themeLogo(theme)}
+            alt="KT"
+            className="w-7 h-7 object-contain logo-theme"
+          />
+        ) : (
+          <>
+            <img
+              src={themeLogo(theme)}
+              alt="The Keeper's Table"
+              className="w-full h-auto logo-theme"
+            />
+            {user && (
+              <p className="text-xs text-ink-muted mt-1.5 truncate">{user.displayName}</p>
+            )}
+          </>
         )}
       </div>
 
       {/* Quick Generate */}
-      <div className="px-3 pt-3">
-        <button
-          onClick={() => setQuickGenerateOpen(true)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-card text-sm font-semibold transition-colors"
-          style={{
-            background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)',
-            color: 'var(--color-accent)',
-            border: '1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)',
-          }}
-        >
-          <Zap size={14} />
-          Quick Generate
-          <span className="ml-auto text-xs opacity-50">⌘K</span>
-        </button>
+      <div className={cn('pt-3', collapsed ? 'px-1 flex justify-center' : 'px-3')}>
+        {collapsed ? (
+          <button
+            onClick={() => setQuickGenerateOpen(true)}
+            title="Quick Generate (⌘K)"
+            className="w-8 h-8 rounded-card flex items-center justify-center transition-colors"
+            style={{
+              background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)',
+              color: 'var(--color-accent)',
+              border: '1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)',
+            }}
+          >
+            <Zap size={15} />
+          </button>
+        ) : (
+          <button
+            onClick={() => setQuickGenerateOpen(true)}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-card text-sm font-semibold transition-colors"
+            style={{
+              background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)',
+              color: 'var(--color-accent)',
+              border: '1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)',
+            }}
+          >
+            <Zap size={14} />
+            Quick Generate
+            <span className="ml-auto text-xs opacity-50">⌘K</span>
+          </button>
+        )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-3 flex flex-col gap-0.5">
+      <nav className={cn('flex-1 py-3 flex flex-col gap-0.5', collapsed ? 'px-1' : 'px-3')}>
         {navLink('/campaigns', <LayoutDashboard size={15} />, 'Campaigns', true)}
 
         {campaign && (
           <>
-            <div className="pt-4 pb-1.5 px-1">
-              <p className="display-font text-sm font-semibold truncate leading-tight" title={campaign.name}>
-                {campaign.name}
-              </p>
-              <div className="mt-1 h-px" style={{ background: 'linear-gradient(to right, var(--color-accent), transparent)', opacity: 0.3 }} />
-            </div>
+            {!collapsed && (
+              <div className="pt-4 pb-1.5 px-1">
+                <p className="display-font text-sm font-semibold truncate leading-tight" title={campaign.name}>
+                  {campaign.name}
+                </p>
+                <div className="mt-1 h-px" style={{ background: 'linear-gradient(to right, var(--color-accent), transparent)', opacity: 0.3 }} />
+              </div>
+            )}
+            {collapsed && <div className="my-2 mx-1 h-px bg-border opacity-40" />}
+
             {navLink(`/campaign/${campaignId}`, <LayoutDashboard size={15} />, 'Dashboard', true)}
             {navLink(`/campaign/${campaignId}/library`, <BookOpen size={15} />, 'Library')}
             {navLink(`/campaign/${campaignId}/enemies`, <Swords size={15} />, 'Bestiary')}
@@ -126,46 +184,60 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
             {isDnd5e && (
               <button
                 onClick={() => setRulesOpen(true)}
-                className="flex items-center gap-2.5 px-3 py-2 text-sm transition-all duration-150 rounded-card border-l-2 border-transparent text-ink-muted hover:text-ink hover:bg-white/5 w-full text-left"
+                title={collapsed ? '5e Rules' : undefined}
+                className={cn(
+                  'flex items-center rounded-card transition-all duration-150 border-transparent text-ink-muted hover:text-ink hover:bg-white/5 w-full text-left',
+                  collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2 text-sm border-l-2',
+                )}
               >
                 <Shield size={15} />
-                <span>5e Rules</span>
+                {!collapsed && <span>5e Rules</span>}
               </button>
             )}
           </>
         )}
 
-        <div className="pt-4 pb-1 px-1">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted opacity-60">Account</p>
+        <div className={cn('pb-1', collapsed ? 'pt-2' : 'pt-4 px-1')}>
+          {!collapsed && (
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted opacity-60">Account</p>
+          )}
+          {collapsed && <div className="h-px bg-border opacity-40" />}
         </div>
         {navLink('/settings', <Settings size={15} />, 'Settings', true)}
       </nav>
 
       {/* Friend quota */}
-      <FriendQuotaBar />
+      {!collapsed && <FriendQuotaBar />}
 
       {/* Theme picker */}
-      <div className="px-3 pb-2">
-        <button
-          onClick={() => setThemeOpen(v => !v)}
-          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors"
-        >
-          {(() => {
-            const CurrentIcon = THEME_OPTIONS.find(o => o.id === theme)?.icon ?? Flame
-            return <CurrentIcon size={11} />
-          })()}
-          <span className="capitalize">{theme}</span>
-          <ChevronDown size={11} className={cn('ml-auto transition-transform', themeOpen && 'rotate-180')} />
-        </button>
+      <div className={cn('pb-2', collapsed ? 'px-1 flex justify-center' : 'px-3')}>
+        {collapsed ? (
+          <button
+            onClick={() => setThemeOpen(v => !v)}
+            title={`Theme: ${theme}`}
+            className="w-8 h-8 rounded-card flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors"
+          >
+            {(() => { const I = THEME_OPTIONS.find(o => o.id === theme)?.icon ?? Flame; return <I size={13} /> })()}
+          </button>
+        ) : (
+          <button
+            onClick={() => setThemeOpen(v => !v)}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors"
+          >
+            {(() => { const I = THEME_OPTIONS.find(o => o.id === theme)?.icon ?? Flame; return <I size={11} /> })()}
+            <span className="capitalize">{theme}</span>
+            <ChevronDown size={11} className={cn('ml-auto transition-transform', themeOpen && 'rotate-180')} />
+          </button>
+        )}
         {themeOpen && (
-          <div className="mt-1 card py-1 px-0 animate-fade-in">
+          <div className={cn('mt-1 card py-1 px-0 animate-fade-in', collapsed ? 'absolute left-12 bottom-10 z-30 w-36' : '')}>
             {THEME_OPTIONS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => { setTheme(id); setThemeOpen(false) }}
                 className={cn(
                   'w-full text-left px-3 py-1.5 text-xs rounded flex items-center gap-2 transition-colors',
-                  theme === id ? 'text-accent font-semibold' : 'text-ink-muted hover:text-ink hover:bg-surface-2'
+                  theme === id ? 'text-accent font-semibold' : 'text-ink-muted hover:text-ink hover:bg-surface-2',
                 )}
               >
                 <Icon size={11} />
@@ -177,13 +249,17 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
       </div>
 
       {/* Logout */}
-      <div className="px-3 pb-4">
+      <div className={cn('pb-4', collapsed ? 'px-1 flex justify-center' : 'px-3')}>
         <button
           onClick={() => logout.mutate()}
-          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-danger transition-colors"
+          title={collapsed ? 'Sign out' : undefined}
+          className={cn(
+            'flex items-center rounded-card text-xs text-ink-muted hover:text-danger transition-colors',
+            collapsed ? 'w-8 h-8 justify-center' : 'w-full gap-2 px-3 py-1.5',
+          )}
         >
-          <LogOut size={11} />
-          Sign out
+          <LogOut size={collapsed ? 13 : 11} />
+          {!collapsed && 'Sign out'}
         </button>
       </div>
 

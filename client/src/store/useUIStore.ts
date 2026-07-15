@@ -23,6 +23,12 @@ export interface UIState {
 
   activeCampaignId: string | null
   setActiveCampaignId: (id: string | null) => void
+
+  leftSidebarCollapsed: boolean
+  setLeftSidebarCollapsed: (v: boolean) => void
+
+  rightSidebarCollapsed: boolean
+  setRightSidebarCollapsed: (v: boolean) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -50,10 +56,21 @@ export const useUIStore = create<UIState>()(
 
       activeCampaignId: null,
       setActiveCampaignId: (activeCampaignId) => set({ activeCampaignId }),
+
+      leftSidebarCollapsed: false,
+      setLeftSidebarCollapsed: (leftSidebarCollapsed) => set({ leftSidebarCollapsed }),
+
+      rightSidebarCollapsed: false,
+      setRightSidebarCollapsed: (rightSidebarCollapsed) => set({ rightSidebarCollapsed }),
     }),
     {
       name: 'kt-ui',
-      partialize: (s) => ({ theme: s.theme, activeCampaignId: s.activeCampaignId }),
+      partialize: (s) => ({
+        theme: s.theme,
+        activeCampaignId: s.activeCampaignId,
+        leftSidebarCollapsed: s.leftSidebarCollapsed,
+        rightSidebarCollapsed: s.rightSidebarCollapsed,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state?.theme) {
           document.documentElement.setAttribute('data-theme', state.theme)
