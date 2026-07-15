@@ -244,23 +244,22 @@ Prompt: ${userPrompt}`,
           const isWorldOrRegionMap = kind === 'map_world' || kind === 'map_region'
           const scopeLabel = kind === 'map_world' ? 'WORLD' : 'REGION'
           const artDirectorContent = isWorldOrRegionMap
-            ? `You are an art director for a tabletop RPG. Generate a detailed image prompt for a PAINTED FANTASY ${scopeLabel} MAP.
+            ? `You are an art director for a tabletop RPG. Generate an image prompt for a PAINTED FANTASY ${scopeLabel} MAP.
 
 Map context: ${JSON.stringify(entityData)}
 Art style: ${styleFragment}
 
-STRICT RULES — all must be followed:
-- Painterly fantasy cartography style — hand-illustrated, antique, evocative
-- FICTIONAL invented geography ONLY — the landmasses must be original and imaginary, never Earth's continents or any recognizable real-world geography
-- Bird's eye geographic overview — NOT photorealistic or orthographic grid
-- NO text, NO labels, NO legends, NO compass roses, NO map borders or cartouches
-- Show natural terrain: mountains as stylised peaks, forests as clusters of illustrated trees, rivers as winding blue lines, coastlines with surf detail
-- Warm parchment or aged tones unless the style preset specifies otherwise
-- Settlements shown as small illustrated icons (tiny rooftops or towers), NOT labeled
-- ${kind === 'map_region' ? 'Focus on a single region at moderate zoom — roads, villages, rivers, a notable landmark or two clearly visible' : 'Wide view of an entire continent or world — macro geography, biome zones, major mountain ranges, ocean regions'}
+ABSOLUTE RULES — every single one must be obeyed:
+- FLAT 2D TOP-DOWN overhead view ONLY — strictly NO isometric, NO 3D perspective, NO angled camera, NO horizon line, NO sky
+- Hand-painted fantasy cartography — like Tolkien's Middle-earth map or old illustrated atlases; flat illustrated symbols, NOT photorealistic terrain
+- Mountains shown as small flat triangular ink sketches; forests as round cluster icons; deserts as stippled texture; rivers as thin winding lines — ALL 2D SYMBOLS
+- COMPLETELY INVENTED fictional geography — create entirely original, asymmetric landmass shapes with irregular coastlines, bays, peninsulas; ABSOLUTELY NO resemblance to Earth, Europe, Africa, Britain, the Mediterranean, or any real continent or sea
+- ${kind === 'map_world' ? 'One or two large fictional continents with ocean around them; varied biomes visible as flat illustrated zones' : 'A single inland region at moderate zoom — roads, villages, rivers, a notable landmark clearly visible as flat 2D icons'}
+- Aged parchment background tone unless style specifies otherwise
+- NO text, NO labels, NO compass rose, NO legend, NO grid, NO border, NO cartouche
 
 Return ONLY valid JSON — no prose, no markdown:
-{"prompt":"<detailed painterly ${kind === 'map_world' ? 'world' : 'region'} map description, 40-80 words>","negative_prompt":"<things to avoid>"}`
+{"prompt":"<flat 2D overhead painted cartography, 60-100 words, describe invented landmass shape and biomes>","negative_prompt":"isometric, 3D, perspective view, angled, horizon, sky, photorealistic terrain, earth continents, europe, africa, real world geography, recognizable coastlines, text, labels, compass, grid, border"}`
             : isBattleMap
             ? `You are an art director for a tabletop RPG. Generate a detailed image prompt for a TOP-DOWN ORTHOGRAPHIC battle map.
 
