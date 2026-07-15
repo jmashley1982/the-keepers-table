@@ -79,7 +79,14 @@ friendsRouter.post('/login', async (req, res) => {
   })
 
   req.session.friendUsername = username
-  res.json({ username: friend.username, claudeUsed: friend.claudeUsed, imageUsed: friend.imageUsed })
+  req.session.save((err) => {
+    if (err) {
+      console.error('[friends/login] session save error', err)
+      res.status(500).json({ error: 'Session could not be saved' })
+      return
+    }
+    res.json({ username: friend.username, claudeUsed: friend.claudeUsed, imageUsed: friend.imageUsed })
+  })
 })
 
 friendsRouter.get('/me', requireFriend, async (req, res) => {
