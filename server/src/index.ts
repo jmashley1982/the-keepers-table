@@ -21,6 +21,7 @@ import { mapsRouter } from './routes/maps.routes.js'
 import { playerCharactersRouter } from './routes/player-characters.routes.js'
 import { enemiesRouter } from './routes/enemies.routes.js'
 import { dnd5eRouter } from './routes/dnd5e.routes.js'
+import { friendsRouter } from './routes/friends.routes.js'
 import { startWorker, stopWorker } from './lib/worker.js'
 import { seedBuiltinPresets } from './lib/seed-presets.js'
 import { seedSystemTemplates, seedEnemies } from './lib/seed-templates.js'
@@ -80,6 +81,7 @@ app.use('/api/campaigns/:campaignId/maps', mapsRouter)
 app.use('/api/campaigns', playerCharactersRouter)
 app.use('/api/campaigns', enemiesRouter)
 app.use('/api/dnd5e', dnd5eRouter)
+app.use('/api/friends', friendsRouter)
 
 // Health (no session required)
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))

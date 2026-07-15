@@ -5,6 +5,8 @@ import { useUIStore } from './store/useUIStore'
 import { useEffect } from 'react'
 
 // Pages
+import FriendsLoginPage from './pages/friends/FriendsLoginPage'
+import FriendsPortalPage from './pages/friends/FriendsPortalPage'
 import LoginPage from './pages/auth/LoginPage'
 import OnboardingPage from './pages/auth/OnboardingPage'
 import CampaignsPage from './pages/campaigns/CampaignsPage'
@@ -23,6 +25,23 @@ import SettingsPage from './pages/SettingsPage'
 import EnemiesPage from './pages/campaign/EnemiesPage'
 import EnemyGeneratorPage from './pages/campaign/EnemyGeneratorPage'
 import AppShell from './components/layout/AppShell'
+
+function RequireFriend({ children }: { children: React.ReactNode }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['friends-me'],
+    queryFn: () => api.get('/api/friends/me').then(r => r.data),
+    retry: false,
+  })
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+  if (!data?.username) return <Navigate to="/friends" replace />
+  return <>{children}</>
+}
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { data, isLoading } = useQuery({
@@ -55,6 +74,10 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Friends portal */}
+      <Route path="/friends" element={<FriendsLoginPage />} />
+      <Route path="/friends/portal" element={<RequireFriend><FriendsPortalPage /></RequireFriend>} />
+
       {/* Public */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<Navigate to="/login" replace />} />
