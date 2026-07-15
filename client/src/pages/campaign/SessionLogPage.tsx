@@ -4,6 +4,7 @@ import { api } from '../../lib/api'
 import { useState } from 'react'
 import { cn } from '../../lib/cn'
 import { ChevronDown, ChevronUp, Play } from 'lucide-react'
+import MentionText from '../../components/session/MentionText'
 
 export default function SessionLogPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
@@ -82,7 +83,11 @@ export default function SessionLogPage() {
                   {s.generatedSummary && (
                     <div>
                       <p className="label">Summary</p>
-                      <p className="text-sm text-ink leading-relaxed">{s.generatedSummary}</p>
+                      <MentionText
+                        text={s.generatedSummary}
+                        campaignId={campaignId!}
+                        className="text-sm text-ink leading-relaxed"
+                      />
                     </div>
                   )}
 
@@ -92,7 +97,8 @@ export default function SessionLogPage() {
                       <ul className="space-y-1">
                         {(s.keyEvents as string[]).map((ev, i) => (
                           <li key={i} className="text-sm text-ink flex gap-2">
-                            <span className="text-accent flex-shrink-0">◆</span>{ev}
+                            <span className="text-accent flex-shrink-0">◆</span>
+                            <MentionText text={ev} campaignId={campaignId!} />
                           </li>
                         ))}
                       </ul>
@@ -104,7 +110,10 @@ export default function SessionLogPage() {
                       <p className="label">Hooks for Next Session</p>
                       <ul className="space-y-1">
                         {(s.hooksForNext as string[]).map((h, i) => (
-                          <li key={i} className="text-sm text-ink flex gap-2"><span>→</span>{h}</li>
+                          <li key={i} className="text-sm text-ink flex gap-2">
+                            <span>→</span>
+                            <MentionText text={h} campaignId={campaignId!} />
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -113,7 +122,11 @@ export default function SessionLogPage() {
                   {s.dmRawNotes && (
                     <div>
                       <p className="label">DM Notes</p>
-                      <p className="text-sm text-ink-muted whitespace-pre-wrap">{s.dmRawNotes}</p>
+                      <MentionText
+                        text={s.dmRawNotes}
+                        campaignId={campaignId!}
+                        className="text-sm text-ink-muted"
+                      />
                     </div>
                   )}
                 </div>
