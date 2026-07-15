@@ -32,6 +32,10 @@ interface PlayerCharacter {
   portraitAsset?: { id: string }
 }
 
+// ─── constants ────────────────────────────────────────────────────────────────
+const PANELS = ['notes', 'entities', 'peek'] as const
+type Panel = typeof PANELS[number]
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const SECTION_ICONS: Record<string, React.ReactNode> = {
   players: <Shield size={14} />, npcs: <Users size={14} />, encounters: <Swords size={14} />,
@@ -69,8 +73,24 @@ export default function LiveSessionPage() {
   const [elapsed, setElapsed] = useState(0)
 
   // ── Mobile panel switcher (Notes | Entities | Peek) ──
-  const [activePanel, setActivePanel] = useState<'notes' | 'entities' | 'peek'>('notes')
+  const [activePanel, setActivePanel] = useState<Panel>('notes')
   const [notesStripOpen, setNotesStripOpen] = useState(false)
+  const touchStartX = useRef<number>(0)
+  const touchStartY = useRef<number>(0)
+
+  function handlePanelTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  function handlePanelTouchEnd(e: React.TouchEvent) {
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    const dy = e.changedTouches[0].clientY - touchStartY.current
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return
+    const idx = PANELS.indexOf(activePanel)
+    if (dx < 0 && idx < PANELS.length - 1) setActivePanel(PANELS[idx + 1])
+    else if (dx > 0 && idx > 0) setActivePanel(PANELS[idx - 1])
+  }
 
   // ── Section rail state ──
   const [activeSection, setActiveSection] = useState<string>('players')
@@ -257,25 +277,37 @@ export default function LiveSessionPage() {
       </div>
 
       {/* ── Mobile panel tab strip ───────────────────────────────────── */}
-      <div className="md:hidden flex border-b border-border bg-surface shrink-0">
-        {(['notes', 'entities', 'peek'] as const).map(panel => (
-          <button
-            key={panel}
-            onClick={() => setActivePanel(panel)}
-            className={cn(
-              'flex-1 py-3 text-xs font-semibold capitalize transition-colors touch-manipulation min-h-[44px] border-b-2',
-              activePanel === panel
-                ? 'text-accent border-accent bg-accent/5'
-                : 'text-ink-muted border-transparent hover:text-ink',
-            )}
-          >
-            {panel === 'notes' ? '📝 Notes' : panel === 'entities' ? '👥 Entities' : '🔍 Peek'}
-          </button>
-        ))}
+      <div className="md:hidden flex flex-col border-b border-border bg-surface shrink-0">
+        <div className="flex relative">
+          {PANELS.map(panel => (
+            <button
+              key={panel}
+              onClick={() => setActivePanel(panel)}
+              className={cn(
+                'flex-1 py-3 text-xs font-semibold capitalize transition-colors touch-manipulation min-h-[44px]',
+                activePanel === panel ? 'text-accent' : 'text-ink-muted hover:text-ink',
+              )}
+            >
+              {panel === 'notes' ? '📝 Notes' : panel === 'entities' ? '👥 Entities' : '🔍 Peek'}
+            </button>
+          ))}
+          {/* Sliding active indicator */}
+          <div
+            className="absolute bottom-0 h-0.5 bg-accent transition-transform duration-200 ease-out"
+            style={{
+              width: `${100 / PANELS.length}%`,
+              transform: `translateX(${PANELS.indexOf(activePanel) * 100}%)`,
+            }}
+          />
+        </div>
       </div>
 
       {/* ── Main 3-column layout ─────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
+      <div
+        className="flex-1 flex overflow-hidden"
+        onTouchStart={handlePanelTouchStart}
+        onTouchEnd={handlePanelTouchEnd}
+      >
 
         {/* ── LEFT: Section rail + entity list ─────────────────── */}
         <div className={cn(
