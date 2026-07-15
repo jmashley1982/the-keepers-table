@@ -3,6 +3,8 @@
     "seedream-5":                     0.03,
     "seedream-4.5":                   0.03,
     "gpt-image-2":                    0.01,
+    "krea-2-turbo":                   0.02,
+    "z-image":                        0.01,
     "nano-banana-2-lite":             0.02,
     "nano-banana-2":                  0.03,
     "nano-banana-pro":                0.06,
@@ -10,7 +12,7 @@
     "flux-dev":                       0.02,
     "stable-diffusion-3.5-large":     0.03
   },
-  "_comment": "Estimated cost per image in USD (EvoLink). gpt-image-2 is pinned to 1K/low quality by the worker (~$0.003 actual). Edit this file to update pricing without a redeploy.",
+  "_comment": "Estimated cost per image in USD (EvoLink). gpt-image-2 and krea-2-turbo are pinned to 1K quality by the worker. Edit this file to update pricing without a redeploy.",
   "defaultCostPerImage": 0.04,
   "minimumConfirmThreshold": 0.05
 }

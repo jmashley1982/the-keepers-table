@@ -442,7 +442,7 @@ export default function WorldMapGeneratorPage() {
             <div>
               <label className="label">Quality</label>
               <div className="flex gap-1 bg-surface-2 rounded-card p-1">
-                {([['gpt-image-2', 'High'], ['nano-banana-2-lite', 'Low']] as const).map(([v, label]) => (
+                {([['gpt-image-2', 'High'], ['krea-2-turbo', 'Med'], ['z-image', 'Low']] as const).map(([v, label]) => (
                   <button
                     key={v}
                     onClick={() => setSelectedModel(v)}

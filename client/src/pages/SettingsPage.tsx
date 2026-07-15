@@ -205,8 +205,9 @@ const TEXT_TASK_OPTIONS = [
 ]
 
 const IMAGE_MODEL_OPTIONS = [
-  { value: 'gpt-image-2',        label: 'High — GPT2 (1K)' },
-  { value: 'nano-banana-2-lite', label: 'Low — Google Nano Banana 2 Lite (1K)' },
+  { value: 'gpt-image-2',    label: 'High — GPT Image 2 (1K)' },
+  { value: 'krea-2-turbo',   label: 'Medium — Krea 2 Turbo (1K)' },
+  { value: 'z-image',        label: 'Low — Z Image' },
 ]
 
 const IMAGE_CATEGORIES = [

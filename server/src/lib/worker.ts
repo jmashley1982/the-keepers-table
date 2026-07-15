@@ -12,6 +12,8 @@ let boss: PgBoss | null = null
 const EVOLINK_MODEL_MAP: Record<string, string> = {
   'gpt2':             'gpt-image-2',
   'gpt-image-2':      'gpt-image-2',
+  'krea-2-turbo':     'krea-2-turbo',
+  'z-image':          'z-image',
   'nano-banana-2-lite': 'gemini-3.1-flash-lite-image',
   'nano-banana-2':    'gemini-3.1-flash-image-preview',
   'nano-banana-pro':  'gemini-3-pro-image-preview',
@@ -365,6 +367,8 @@ Return ONLY valid JSON — no prose, no markdown:
       // Pin GPT Image 2 to 1K / low rendering quality — EvoLink defaults to
       // `medium`, which bills ~9x more for negligible gain at tabletop sizes.
       submitBody.quality = 'low'
+      submitBody.resolution = '1K'
+    } else if (evolinkModel === 'krea-2-turbo') {
       submitBody.resolution = '1K'
     }
     const submitRes = await fetch('https://api.evolink.ai/v1/images/generations', {
