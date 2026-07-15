@@ -571,6 +571,14 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld, syste
           <DWClassMovesModal
             initialClass={movesModalClass}
             onClose={() => setMovesModalClass(null)}
+            currentFeatures={draft.features ?? ''}
+            onAddToFeatures={(move) => {
+              const entry = `${move.name}\n${move.description}`
+              setDraft(d => ({
+                ...d,
+                features: d.features ? `${d.features}\n\n${entry}` : entry,
+              }))
+            }}
           />
         )}
 
