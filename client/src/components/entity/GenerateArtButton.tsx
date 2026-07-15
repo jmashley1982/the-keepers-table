@@ -96,9 +96,10 @@ export default function GenerateArtButton({
   const patchBase = isPc
     ? `/api/campaigns/${campaignId}/player-characters`
     : `/api/entities/${campaignId}/${entityPath}`
+  // entityPath is plural ('npcs', 'items', 'locations') — matches LibraryPage queryKey third element
   const invalidateKey = isPc
     ? ['player-characters', campaignId]
-    : ['entities', campaignId, entityType]
+    : ['entities', campaignId, entityPath]
 
   const artLabel = ART_LABEL[kind] ?? 'Image'
 

@@ -200,7 +200,8 @@ export default function EntityCard({
     mutationFn: (data: Partial<EntityCardData>) =>
       api.patch(`/api/entities/${campaignId}/${entityPath}/${entity.id}`, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType], exact: false })
+      // entityPath is plural (e.g. 'npcs') — matches LibraryPage queryKey third element
+      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityPath], exact: false })
       setEditing(false)
     },
   })
@@ -208,7 +209,7 @@ export default function EntityCard({
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/api/entities/${campaignId}/${entityPath}/${entity.id}`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType], exact: false })
+      qc.invalidateQueries({ queryKey: ['entities', campaignId, entityPath], exact: false })
       onSaved?.()
     },
   })
@@ -242,7 +243,7 @@ export default function EntityCard({
               campaignId={campaignId}
               entityType={entityType as 'npc' | 'item' | 'location'}
               currentAssetId={currentAssetId}
-              onGenerated={() => qc.invalidateQueries({ queryKey: ['entities', campaignId, entityType], exact: false })}
+              onGenerated={() => qc.invalidateQueries({ queryKey: ['entities', campaignId, entityPath], exact: false })}
             />
           </div>
         ) : entity.portraitUrl ?? entity.imageUrl ? (
