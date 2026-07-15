@@ -6,7 +6,7 @@ import { cn } from '../../lib/cn'
 import EntityCard from '../../components/entity/EntityCard'
 import MapViewer from '../../components/map/MapViewer'
 import PinLayer from '../../components/map/PinLayer'
-import MentionTextarea from '../../components/session/MentionTextarea'
+import MentionTextarea, { MentionText } from '../../components/session/MentionTextarea'
 import {
   Save, Loader, Clock, X, CheckCircle, Play, StopCircle,
   Search, Users, Swords, MapPin, ChevronRight, Plus,
@@ -661,11 +661,12 @@ export default function LiveSessionPage() {
                 <>
                   <div>
                     <label className="label">Session Summary</label>
-                    <textarea
+                    <MentionTextarea
                       className="textarea text-sm"
-                      rows={5}
                       value={wrapResult.generated_summary}
-                      onChange={e => setWrapResult(r => r ? { ...r, generated_summary: e.target.value } : r)}
+                      onChange={v => setWrapResult(r => r ? { ...r, generated_summary: v } : r)}
+                      campaignId={campaignId!}
+                      placeholder=""
                     />
                   </div>
 
@@ -674,7 +675,10 @@ export default function LiveSessionPage() {
                       <label className="label">Key Events</label>
                       <ul className="space-y-1">
                         {wrapResult.key_events.map((ev, i) => (
-                          <li key={i} className="text-sm text-ink flex gap-2"><span className="text-accent">◆</span>{ev}</li>
+                          <li key={i} className="text-sm text-ink flex gap-2">
+                            <span className="text-accent shrink-0">◆</span>
+                            <MentionText text={ev} campaignId={campaignId!} />
+                          </li>
                         ))}
                       </ul>
                     </div>

@@ -579,3 +579,78 @@ export default function MentionTextarea({ value, onChange, campaignId, className
     </div>
   )
 }
+
+// ── MentionText ────────────────────────────────────────────────────────────────
+// Read-only renderer: parses @TYPE:Name tokens into clickable chips that open
+// EntityMentionOverlay. Suitable for display-only contexts (e.g. wrap summary).
+
+interface MentionTextProps {
+  text: string
+  campaignId: string
+  className?: string
+}
+
+export function MentionText({ text, campaignId, className }: MentionTextProps) {
+  const [overlayTarget, setOverlayTarget] = useState<OverlayTarget | null>(null)
+
+  const { data: npcData }     = useQuery({ queryKey: ['entities', campaignId, 'npcs'],      queryFn: () => api.get(`/api/entities/${campaignId}/npcs`).then(r => r.data),      enabled: !!campaignId })
+  const { data: locData }     = useQuery({ queryKey: ['entities', campaignId, 'locations'], queryFn: () => api.get(`/api/entities/${campaignId}/locations`).then(r => r.data), enabled: !!campaignId })
+  const { data: itemData }    = useQuery({ queryKey: ['entities', campaignId, 'items'],     queryFn: () => api.get(`/api/entities/${campaignId}/items`).then(r => r.data),     enabled: !!campaignId })
+  const { data: factionData } = useQuery({ queryKey: ['entities', campaignId, 'factions'], queryFn: () => api.get(`/api/entities/${campaignId}/factions`).then(r => r.data), enabled: !!campaignId })
+  const { data: pcData }      = useQuery({ queryKey: ['player-characters', campaignId],    queryFn: () => api.get(`/api/campaigns/${campaignId}/player-characters`).then(r => r.data), enabled: !!campaignId })
+
+  const allEntities: MentionEntity[] = useMemo(() => [
+    ...(pcData?.items      ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'pc'       as const })),
+    ...(npcData?.items     ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'npc'      as const })),
+    ...(locData?.items     ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'location' as const })),
+    ...(itemData?.items    ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'item'     as const })),
+    ...(factionData?.items ?? []).map((e: RawEntity) => ({ id: e.id, name: e.name, type: 'faction'  as const })),
+  ], [pcData, npcData, locData, itemData, factionData])
+
+  const rawMap = useMemo(() => {
+    const map = new Map<string, RawEntity>()
+    for (const e of pcData?.items      ?? []) map.set(`pc:${e.name}`,       e as RawEntity)
+    for (const e of npcData?.items     ?? []) map.set(`npc:${e.name}`,      e as RawEntity)
+    for (const e of locData?.items     ?? []) map.set(`location:${e.name}`, e as RawEntity)
+    for (const e of itemData?.items    ?? []) map.set(`item:${e.name}`,     e as RawEntity)
+    for (const e of factionData?.items ?? []) map.set(`faction:${e.name}`,  e as RawEntity)
+    return map
+  }, [pcData, npcData, locData, itemData, factionData])
+
+  const segments = useMemo(() => parseMentions(text, allEntities), [text, allEntities])
+
+  return (
+    <>
+      <span className={className}>
+        {segments.map((seg, i) =>
+          seg.kind === 'text' ? (
+            <span key={i}>{seg.value}</span>
+          ) : (
+            <button
+              key={i}
+              onClick={e => { e.stopPropagation(); setOverlayTarget({ entityType: seg.entityType, name: seg.name }) }}
+              className={cn(
+                'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium mx-0.5 cursor-pointer transition-colors',
+                seg.resolved
+                  ? CHIP_COLORS[seg.entityType]
+                  : 'bg-surface-2 text-ink-muted border border-border hover:bg-surface',
+              )}
+            >
+              {TYPE_ICONS[seg.entityType]}
+              {seg.name}
+            </button>
+          )
+        )}
+      </span>
+
+      {overlayTarget && (
+        <EntityMentionOverlay
+          target={overlayTarget}
+          rawMap={rawMap}
+          campaignId={campaignId}
+          onClose={() => setOverlayTarget(null)}
+        />
+      )}
+    </>
+  )
+}
