@@ -9,9 +9,9 @@ import PinLayer from '../../components/map/PinLayer'
 import MentionTextarea, { MentionText } from '../../components/session/MentionTextarea'
 import {
   Save, Loader, Clock, X, CheckCircle, Play, StopCircle,
-  Search, Users, Swords, MapPin, ChevronRight, Plus,
+  Search, Users, Swords, MapPin, ChevronRight, ChevronDown, Plus,
   BookOpen, Scroll, AlertTriangle, Map as MapIcon, Shield, AtSign,
-  Heart, Sword,
+  Heart, Sword, FileText,
 } from 'lucide-react'
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -70,6 +70,7 @@ export default function LiveSessionPage() {
 
   // ── Mobile panel switcher (Notes | Entities | Peek) ──
   const [activePanel, setActivePanel] = useState<'notes' | 'entities' | 'peek'>('notes')
+  const [notesStripOpen, setNotesStripOpen] = useState(false)
 
   // ── Section rail state ──
   const [activeSection, setActiveSection] = useState<string>('players')
@@ -352,7 +353,7 @@ export default function LiveSessionPage() {
           )}
 
           {/* Entity / PC list */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {activeSection === 'maps' ? null
               : activeSection === 'players' ? (
                 filteredPCs.length === 0 ? (
@@ -431,6 +432,47 @@ export default function LiveSessionPage() {
                 ))
               )
             }
+          </div>
+
+          {/* ── Quick Notes strip — mobile only, bottom of Entities panel ── */}
+          <div className="md:hidden border-t border-border bg-surface shrink-0">
+            <button
+              className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-medium text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors touch-manipulation min-h-[44px]"
+              onClick={() => setNotesStripOpen(o => !o)}
+            >
+              <span className="flex items-center gap-1.5">
+                <FileText size={12} className="text-accent/70" />
+                <span className="text-ink-muted">Quick Notes</span>
+                {notes.trim() && (
+                  <span className="text-[10px] text-ink-muted/60 font-normal">
+                    · {notes.trim().split('\n').filter(l => l.trim()).length} {notes.trim().split('\n').filter(l => l.trim()).length === 1 ? 'line' : 'lines'}
+                  </span>
+                )}
+              </span>
+              <ChevronDown
+                size={13}
+                className={cn('text-ink-muted/60 transition-transform duration-200', notesStripOpen ? 'rotate-180' : '')}
+              />
+            </button>
+            {notesStripOpen && (
+              <div className="px-3 pb-3 space-y-2">
+                {notes.trim() ? (
+                  <div className="bg-bg rounded-md border border-border/60 max-h-28 overflow-y-auto">
+                    <p className="px-2.5 py-2 text-[11px] font-mono text-ink leading-relaxed whitespace-pre-wrap break-words">
+                      {notes.trim().split('\n').filter(l => l.trim()).slice(-6).join('\n')}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-ink-muted italic">No notes written yet.</p>
+                )}
+                <button
+                  className="text-[11px] text-accent font-medium underline underline-offset-2 touch-manipulation"
+                  onClick={() => setActivePanel('notes')}
+                >
+                  Open full notes →
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
