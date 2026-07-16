@@ -51,7 +51,10 @@
       "@prisma/engines",
       "esbuild",
       "prisma"
-    ]
+    ],
+    "overrides": {
+      "uuid": "^11.0.0"
+    }
   },
   "devDependencies": {
     "@types/connect-pg-simple": "^7.0.3",
