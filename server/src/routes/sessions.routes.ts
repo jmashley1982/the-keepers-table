@@ -55,6 +55,19 @@ sessionsRouter.post('/:campaignId/sessions', async (req, res) => {
   res.json({ session })
 })
 
+sessionsRouter.get('/:campaignId/sessions/active', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
+  const session = await prisma.gameSession.findFirst({
+    where: { campaignId, status: 'in_progress' },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!session) { res.status(404).json({ error: 'No active session' }); return }
+  res.json({ session })
+})
+
 sessionsRouter.get('/:campaignId/sessions/:sessionId', async (req, res) => {
   const userId = res.locals.user.id
   const { campaignId, sessionId } = req.params
@@ -110,7 +123,29 @@ sessionsRouter.post('/:campaignId/sessions/:sessionId/start', async (req, res) =
   res.json({ session })
 })
 
-// ── Entity touch logging ─────────────────────────────────────────────────────
+sessionsRouter.post('/:campaignId/sessions/:sessionId/notes/append', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId, sessionId } = req.params
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
+  const schema = z.object({ text: z.string().min(1) })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Text is required' }); return }
+
+  const existing = await prisma.gameSession.findUnique({ where: { id: sessionId } })
+  if (!existing || existing.campaignId !== campaignId) { res.status(404).json({ error: 'Session not found' }); return }
+
+  const now = new Date()
+  const ts = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const prefix = `\n\n[${ts}] `
+  const newNotes = (existing.dmRawNotes ?? '') + prefix + parsed.data.text
+
+  const session = await prisma.gameSession.update({
+    where: { id: sessionId },
+    data: { dmRawNotes: newNotes },
+  })
+  res.json({ session })
+})
 
 sessionsRouter.post('/:campaignId/sessions/:sessionId/touch', async (req, res) => {
   const userId = res.locals.user.id
