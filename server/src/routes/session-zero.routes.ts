@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { z } from 'zod'
-import Anthropic from '@anthropic-ai/sdk'
+import { getAnthropicClient } from '../lib/anthropic.js'
 
 export const sessionZeroRouter = Router()
 
@@ -74,8 +74,14 @@ Write or refine the elevator pitch for this campaign.`
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
 
+  const client = await getAnthropicClient(userId)
+  if (!client) {
+    res.write(`data: ${JSON.stringify({ error: 'No AI key configured' })}\n\n`)
+    res.end()
+    return
+  }
+
   try {
-    const client = new Anthropic()
     const stream = await client.messages.stream({
       model: modelId,
       max_tokens: 300,
@@ -415,10 +421,16 @@ Existing notes: ${entry.detail || '(none)'}
 
 Write a full expanded description for this entry.`
 
-  const anthropic = new Anthropic()
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
+
+  const anthropic = await getAnthropicClient(user.id)
+  if (!anthropic) {
+    res.write(`data: ${JSON.stringify({ error: 'No AI key configured' })}\n\n`)
+    res.end()
+    return
+  }
 
   let fullText = ''
   try {

@@ -3,10 +3,9 @@ import { requireAuth } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { z } from 'zod'
 import multer from 'multer'
-import Anthropic from '@anthropic-ai/sdk'
-import { decrypt } from '../lib/crypto.js'
 import { StorageService } from '../lib/storage.js'
 import type { Prisma } from '@prisma/client'
+import { getAnthropicClient } from '../lib/anthropic.js'
 
 export const playerCharactersRouter = Router()
 playerCharactersRouter.use(requireAuth)
@@ -19,27 +18,6 @@ async function verifyCampaign(campaignId: string, userId: string) {
   })
 }
 
-async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
-  const anthropicCred = await prisma.apiCredential.findUnique({
-    where: { userId_provider: { userId, provider: 'anthropic' } },
-  })
-  if (anthropicCred?.encryptedKey) {
-    try {
-      const key = decrypt(anthropicCred.encryptedKey)
-      return new Anthropic({ apiKey: key })
-    } catch { /* fall through */ }
-  }
-  const evolinkCred = await prisma.apiCredential.findUnique({
-    where: { userId_provider: { userId, provider: 'evolink' } },
-  })
-  if (evolinkCred?.encryptedKey) {
-    try {
-      const key = decrypt(evolinkCred.encryptedKey)
-      return new Anthropic({ apiKey: key, baseURL: 'https://api.evolink.ai/v1' })
-    } catch { return null }
-  }
-  return null
-}
 
 const pcCreateSchema = z.object({
   name: z.string().min(1),

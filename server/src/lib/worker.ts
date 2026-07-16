@@ -6,6 +6,7 @@ import { decrypt } from './crypto.js'
 import { creditsToUsd } from './pricing.js'
 import sharp from 'sharp'
 import Anthropic from '@anthropic-ai/sdk'
+import { getAnthropicClient } from './anthropic.js'
 
 let boss: PgBoss | null = null
 
@@ -203,13 +204,10 @@ async function processImageGenerate(jobId: string): Promise<void> {
       // detail only — never changes the subject or intent. Falls back to the
       // original prompt on any failure or if no Anthropic key is configured.
       let enrichedPrompt = userPrompt
-      const promptCred = await prisma.apiCredential.findUnique({
-        where: { userId_provider: { userId: genJob.userId, provider: 'anthropic' } },
-      })
-      if (promptCred?.encryptedKey) {
+      const promptClient = await getAnthropicClient(genJob.userId)
+      if (promptClient) {
         try {
-          const anthroClient = new Anthropic({ apiKey: decrypt(promptCred.encryptedKey) })
-          const enrichMsg = await anthroClient.messages.create({
+          const enrichMsg = await promptClient.messages.create({
             model: 'claude-sonnet-4-5',
             max_tokens: 300,
             messages: [{
@@ -234,14 +232,10 @@ Prompt: ${userPrompt}`,
       }
       finalPrompt = `${enrichedPrompt}, ${styleFragment}`
     } else {
-      const anthropicCred = await prisma.apiCredential.findUnique({
-        where: { userId_provider: { userId: genJob.userId, provider: 'anthropic' } },
-      })
+      const anthroClient = await getAnthropicClient(genJob.userId)
 
-      if (anthropicCred?.encryptedKey) {
+      if (anthroClient) {
         try {
-          const anthroKey = decrypt(anthropicCred.encryptedKey)
-          const anthroClient = new Anthropic({ apiKey: anthroKey })
           const isBattleMap = kind === 'map_battle'
           const isWorldOrRegionMap = kind === 'map_world' || kind === 'map_region'
           const scopeLabel = kind === 'map_world' ? 'WORLD' : 'REGION'
@@ -647,12 +641,8 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
       const genJob2 = await prisma.generationJob.findUnique({ where: { id: jobId }, select: { userId: true } })
       const userId2 = genJob2?.userId
       if (userId2) {
-        const anthCred = await prisma.apiCredential.findUnique({
-          where: { userId_provider: { userId: userId2, provider: 'anthropic' } },
-        })
-        if (anthCred?.encryptedKey) {
-          const anthKey = decrypt(anthCred.encryptedKey)
-          const anthClient = new Anthropic({ apiKey: anthKey })
+        const anthClient = await getAnthropicClient(userId2)
+        if (anthClient) {
           const base64Thumb = thumbBuffer.toString('base64')
           const altMsg = await anthClient.messages.create({
             model: 'claude-haiku-4-5',

@@ -1,11 +1,10 @@
 import { Router, type Request, type Response } from 'express'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
-import { decrypt } from '../lib/crypto.js'
 import { z } from 'zod'
-import Anthropic from '@anthropic-ai/sdk'
 import { getBoss } from '../lib/worker.js'
 import { getImageCostEstimate, getMinimumConfirmThreshold, getPricingMeta, getArtDirectorCostPerCall, getEvolinkCreditsPerUsd } from '../lib/pricing.js'
+import { getAnthropicClient } from '../lib/anthropic.js'
 
 export const generateRouter = Router()
 generateRouter.use(requireAuth)
@@ -20,42 +19,6 @@ async function isFriendAccount(userId: string): Promise<boolean> {
   return Boolean(user?.email.startsWith('friend_') && user.email.endsWith('@keeper.internal'))
 }
 
-async function getAnthropicClient(userId: string): Promise<Anthropic | null> {
-  const anthropicCred = await prisma.apiCredential.findUnique({
-    where: { userId_provider: { userId, provider: 'anthropic' } },
-  })
-  if (anthropicCred?.encryptedKey) {
-    try {
-      const key = decrypt(anthropicCred.encryptedKey)
-      return new Anthropic({ apiKey: key })
-    } catch {
-      // fall through to Evolink
-    }
-  }
-
-  const evolinkCred = await prisma.apiCredential.findUnique({
-    where: { userId_provider: { userId, provider: 'evolink' } },
-  })
-  if (evolinkCred?.encryptedKey) {
-    try {
-      const key = decrypt(evolinkCred.encryptedKey)
-      return new Anthropic({ apiKey: key, baseURL: 'https://api.evolink.ai/v1' })
-    } catch {
-      // fall through to env var
-    }
-  }
-
-  // Fallback to owner's env-var keys — only for friend accounts
-  if (await isFriendAccount(userId)) {
-    const envClaudeKey = process.env.CLAUDE_API_KEY?.trim()
-    if (envClaudeKey) return new Anthropic({ apiKey: envClaudeKey })
-
-    const envEvolinkKey = process.env.EVOLINK_API_KEY?.trim()
-    if (envEvolinkKey) return new Anthropic({ apiKey: envEvolinkKey, baseURL: 'https://api.evolink.ai/v1' })
-  }
-
-  return null
-}
 
 async function userHasOwnCredentials(userId: string): Promise<boolean> {
   const count = await prisma.apiCredential.count({ where: { userId, encryptedKey: { not: null } } })
