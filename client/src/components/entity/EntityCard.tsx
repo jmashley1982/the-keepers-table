@@ -150,6 +150,7 @@ export default function EntityCard({
   const [draft, setDraft] = useState(entity)
   const [tagInput, setTagInput] = useState((entity.tags ?? []).join(', '))
   const [itemLookupOpen, setItemLookupOpen] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const isNpc = entityType === 'npc'
 
@@ -171,19 +172,34 @@ export default function EntityCard({
   function startEditing() {
     setDraft(entity)
     setTagInput((entity.tags ?? []).join(', '))
+    setSaveError(null)
     setEditing(true)
     setExpanded(true)
   }
 
   function cancelEditing() {
     setEditing(false)
+    setSaveError(null)
     setDraft(entity)
     setTagInput((entity.tags ?? []).join(', '))
   }
 
-  function buildSavePayload(): Partial<EntityCardData> {
+  function buildSavePayload(): Record<string, unknown> {
     const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean)
-    return { ...draft, tags }
+    // Strip nested relation objects (not in server schema) and convert null→undefined
+    // for non-nullable fields — server uses z.string().optional() which rejects null.
+    // Explicitly nullable fields (portraitAssetId, bestiaryEntityId, bestiaryEntityName)
+    // keep their null value so clearing them works correctly.
+    const NULLABLE_KEYS = new Set(['portraitAssetId', 'imageAssetId', 'bestiaryEntityId', 'bestiaryEntityName'])
+    const STRIP_KEYS = new Set(['id', 'pinned', 'portraitAsset', 'imageAsset', 'mapAsset'])
+    const payload: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(draft)) {
+      if (STRIP_KEYS.has(k)) continue
+      if (v === null && !NULLABLE_KEYS.has(k)) continue  // skip null for non-nullable fields
+      payload[k] = v
+    }
+    payload.tags = tags
+    return payload
   }
 
   const { data: campaignData } = useQuery({
@@ -197,12 +213,18 @@ export default function EntityCard({
   const entityPath = entityType === 'plot_thread' ? 'plot-threads' : `${entityType}s`
 
   const updateMutation = useMutation({
-    mutationFn: (data: Partial<EntityCardData>) =>
+    mutationFn: (data: Record<string, unknown>) =>
       api.patch(`/api/entities/${campaignId}/${entityPath}/${entity.id}`, data),
     onSuccess: () => {
+      setSaveError(null)
       // entityPath is plural (e.g. 'npcs') — matches LibraryPage queryKey third element
       qc.invalidateQueries({ queryKey: ['entities', campaignId, entityPath], exact: false })
       setEditing(false)
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        ?? (err instanceof Error ? err.message : 'Save failed')
+      setSaveError(msg)
     },
   })
 
@@ -554,17 +576,24 @@ export default function EntityCard({
 
       {/* Edit save/cancel bar */}
       {editing && (
-        <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-          <button
-            className="btn-primary text-xs py-1.5"
-            onClick={() => updateMutation.mutate(buildSavePayload())}
-            disabled={updateMutation.isPending}
-          >
-            {updateMutation.isPending ? 'Saving…' : 'Save changes'}
-          </button>
-          <button className="btn-secondary text-xs py-1.5" onClick={cancelEditing}>
-            Cancel
-          </button>
+        <div className="mt-3 pt-3 border-t border-border space-y-2">
+          {saveError && (
+            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-1">
+              {saveError}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              className="btn-primary text-xs py-1.5"
+              onClick={() => updateMutation.mutate(buildSavePayload())}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+            </button>
+            <button className="btn-secondary text-xs py-1.5" onClick={cancelEditing}>
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
