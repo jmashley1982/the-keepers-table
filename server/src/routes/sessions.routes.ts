@@ -10,7 +10,26 @@ async function verifyCampaign(campaignId: string, userId: string) {
   return prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId, deletedAt: null } })
 }
 
-// ── Session CRUD ─────────────────────────────────────────────────────────────
+// ── Route-order convention ────────────────────────────────────────────────────
+//
+//  IMPORTANT: Express matches routes in declaration order.
+//  Any static keyword route under /:campaignId/sessions/<keyword> MUST be
+//  registered BEFORE the wildcard /:campaignId/sessions/:sessionId route,
+//  otherwise Express captures the keyword as a sessionId and the static
+//  route becomes unreachable (silently shadowed).
+//
+//  Rule: add all new static keyword routes to STATIC_SESSION_KEYWORDS and
+//  declare them in the "Static keyword routes" section below.  The dynamic
+//  /:sessionId routes must always come last.
+//
+//  A runtime assertion at the bottom of this file verifies this invariant
+//  every time the server starts so the bug cannot survive a deploy.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Every static path segment used directly under …/sessions/<keyword>. */
+const STATIC_SESSION_KEYWORDS = ['active'] as const
+
+// ── Session collection routes ─────────────────────────────────────────────────
 
 sessionsRouter.get('/:campaignId/sessions', async (req, res) => {
   const userId = res.locals.user.id
@@ -55,6 +74,8 @@ sessionsRouter.post('/:campaignId/sessions', async (req, res) => {
   res.json({ session })
 })
 
+// ── Static keyword routes (MUST stay above /:sessionId wildcard) ──────────────
+
 sessionsRouter.get('/:campaignId/sessions/active', async (req, res) => {
   const userId = res.locals.user.id
   const { campaignId } = req.params
@@ -67,6 +88,8 @@ sessionsRouter.get('/:campaignId/sessions/active', async (req, res) => {
   if (!session) { res.status(404).json({ error: 'No active session' }); return }
   res.json({ session })
 })
+
+// ── Dynamic :sessionId routes (MUST stay below static keyword routes) ─────────
 
 sessionsRouter.get('/:campaignId/sessions/:sessionId', async (req, res) => {
   const userId = res.locals.user.id
@@ -240,3 +263,50 @@ sessionsRouter.post('/:campaignId/sessions/:sessionId/wrap/confirm', async (req,
 
   res.json({ ok: true })
 })
+
+// ── Route-order runtime assertion ─────────────────────────────────────────────
+//
+//  Runs once at module load time.  Iterates the router stack and confirms
+//  that every static keyword path (e.g. /active) is registered at a lower
+//  stack index than the first dynamic /:sessionId GET route.  Throws at
+//  startup (not silently at request time) if the invariant is violated.
+//
+//  To add a new static keyword route:
+//    1. Add the keyword string to STATIC_SESSION_KEYWORDS above.
+//    2. Register the route handler in the "Static keyword routes" section.
+//    3. This assertion will tell you if you accidentally put it in the wrong place.
+// ─────────────────────────────────────────────────────────────────────────────
+;(function assertStaticRoutesBeforeDynamic() {
+  type Layer = { route?: { path: string; methods: Record<string, boolean> } }
+  const stack = (sessionsRouter as unknown as { stack: Layer[] }).stack
+
+  // Find the stack index of the first GET /:campaignId/sessions/:sessionId layer
+  const dynamicIndex = stack.findIndex(
+    (l) =>
+      l.route?.methods?.get &&
+      l.route.path === '/:campaignId/sessions/:sessionId',
+  )
+
+  if (dynamicIndex === -1) return // Dynamic route not yet registered (shouldn't happen)
+
+  for (const keyword of STATIC_SESSION_KEYWORDS) {
+    const staticPath = `/:campaignId/sessions/${keyword}`
+    const staticIndex = stack.findIndex(
+      (l) => l.route?.path === staticPath,
+    )
+    if (staticIndex === -1) {
+      throw new Error(
+        `[sessions.routes] Route-order guard: static route "${staticPath}" is listed in ` +
+        `STATIC_SESSION_KEYWORDS but was not registered on the router. ` +
+        `Add the route handler in the "Static keyword routes" section.`,
+      )
+    }
+    if (staticIndex > dynamicIndex) {
+      throw new Error(
+        `[sessions.routes] Route-order guard: static route "${staticPath}" (stack index ${staticIndex}) ` +
+        `is declared AFTER the dynamic "/:campaignId/sessions/:sessionId" route (stack index ${dynamicIndex}). ` +
+        `Move "${staticPath}" above the dynamic route so Express does not shadow it.`,
+      )
+    }
+  }
+})()
