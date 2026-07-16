@@ -7,58 +7,58 @@ import { useUIStore } from '../../store/useUIStore'
 import MentionText from '../../components/session/MentionText'
 
 const CANDLELIGHT_ICONS = {
-  newSession:    '/icons/candlelight/new_sesh.png',
-  generateNpc:   '/icons/candlelight/gen_npc.png',
-  genEncounter:  '/icons/candlelight/gen_enc.png',
-  genTreasure:   '/icons/candlelight/gen_treas.png',
-  npcs:          '/icons/candlelight/npcs.png',
-  items:         '/icons/candlelight/items.png',
-  locations:     '/icons/candlelight/locations.png',
-  sessions:      '/icons/candlelight/sessions.png',
+  newSession:    '/icons/candlelight/new_sesh.webp',
+  generateNpc:   '/icons/candlelight/gen_npc.webp',
+  genEncounter:  '/icons/candlelight/gen_enc.webp',
+  genTreasure:   '/icons/candlelight/gen_treas.webp',
+  npcs:          '/icons/candlelight/npcs.webp',
+  items:         '/icons/candlelight/items.webp',
+  locations:     '/icons/candlelight/locations.webp',
+  sessions:      '/icons/candlelight/sessions.webp',
 } as const
 
 const ELDRITCH_ICONS = {
-  newSession:    '/icons/eldritch/new_sesh.png',
-  generateNpc:   '/icons/eldritch/gen_npc.png',
-  genEncounter:  '/icons/eldritch/gen_enc.png',
-  genTreasure:   '/icons/eldritch/gen_treas.png',
-  npcs:          '/icons/eldritch/npcs.png',
-  items:         '/icons/eldritch/items.png',
-  locations:     '/icons/eldritch/locations.png',
-  sessions:      '/icons/eldritch/sessions.png',
+  newSession:    '/icons/eldritch/new_sesh.webp',
+  generateNpc:   '/icons/eldritch/gen_npc.webp',
+  genEncounter:  '/icons/eldritch/gen_enc.webp',
+  genTreasure:   '/icons/eldritch/gen_treas.webp',
+  npcs:          '/icons/eldritch/npcs.webp',
+  items:         '/icons/eldritch/items.webp',
+  locations:     '/icons/eldritch/locations.webp',
+  sessions:      '/icons/eldritch/sessions.webp',
 } as const
 
 const HAUNT_ICONS = {
-  newSession:    '/icons/haunt/new_sesh.png',
-  generateNpc:   '/icons/haunt/gen_npc.png',
-  genEncounter:  '/icons/haunt/gen_enc.png',
-  genTreasure:   '/icons/haunt/gen_treas.png',
-  npcs:          '/icons/haunt/npcs.png',
-  items:         '/icons/haunt/items.png',
-  locations:     '/icons/haunt/locations.png',
-  sessions:      '/icons/haunt/sessions.png',
+  newSession:    '/icons/haunt/new_sesh.webp',
+  generateNpc:   '/icons/haunt/gen_npc.webp',
+  genEncounter:  '/icons/haunt/gen_enc.webp',
+  genTreasure:   '/icons/haunt/gen_treas.webp',
+  npcs:          '/icons/haunt/npcs.webp',
+  items:         '/icons/haunt/items.webp',
+  locations:     '/icons/haunt/locations.webp',
+  sessions:      '/icons/haunt/sessions.webp',
 } as const
 
 const ICARUS_ICONS = {
-  newSession:    '/icons/icarus/new_sesh.png',
-  generateNpc:   '/icons/icarus/gen_npc.png',
-  genEncounter:  '/icons/icarus/gen_enc.png',
-  genTreasure:   '/icons/icarus/gen_treas.png',
-  npcs:          '/icons/icarus/npcs.png',
-  items:         '/icons/icarus/items.png',
-  locations:     '/icons/icarus/locations.png',
-  sessions:      '/icons/icarus/sessions.png',
+  newSession:    '/icons/icarus/new_sesh.webp',
+  generateNpc:   '/icons/icarus/gen_npc.webp',
+  genEncounter:  '/icons/icarus/gen_enc.webp',
+  genTreasure:   '/icons/icarus/gen_treas.webp',
+  npcs:          '/icons/icarus/npcs.webp',
+  items:         '/icons/icarus/items.webp',
+  locations:     '/icons/icarus/locations.webp',
+  sessions:      '/icons/icarus/sessions.webp',
 } as const
 
 const NEON_ICONS = {
-  newSession:    '/icons/neon/new_sesh.png',
-  generateNpc:   '/icons/neon/gen_npc.png',
-  genEncounter:  '/icons/neon/gen_enc.png',
-  genTreasure:   '/icons/neon/gen_treas.png',
-  npcs:          '/icons/neon/npcs.png',
-  items:         '/icons/neon/items.png',
-  locations:     '/icons/neon/locations.png',
-  sessions:      '/icons/neon/sessions.png',
+  newSession:    '/icons/neon/new_sesh.webp',
+  generateNpc:   '/icons/neon/gen_npc.webp',
+  genEncounter:  '/icons/neon/gen_enc.webp',
+  genTreasure:   '/icons/neon/gen_treas.webp',
+  npcs:          '/icons/neon/npcs.webp',
+  items:         '/icons/neon/items.webp',
+  locations:     '/icons/neon/locations.webp',
+  sessions:      '/icons/neon/sessions.webp',
 } as const
 
 const THEME_ICONS: Partial<Record<string, typeof CANDLELIGHT_ICONS>> = {
