@@ -3,28 +3,38 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../lib/api'
 import { useUIStore } from '../store/useUIStore'
 import { themeBrandIcon } from '../lib/themeBrandIcon'
-import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn, LayoutDashboard, UserPlus } from 'lucide-react'
+import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn, LayoutDashboard, UserPlus, Sparkles, ClipboardList } from 'lucide-react'
 
 const FEATURES = [
   {
+    icon: ClipboardList,
+    title: 'Session Zero Suite',
+    desc: 'Build your campaign before the first session: pitch builder, safety tools, table charter, and a world-building canvas with AI expansion.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Campaign-Aware AI',
+    desc: 'Every generation knows your world — NPCs, factions, plot threads, and recent session notes are automatically woven into Claude\'s context.',
+  },
+  {
     icon: Zap,
     title: 'Quick Generate',
-    desc: 'Spin up NPCs, encounters, locations, and loot mid-session — one prompt, instant results.',
+    desc: 'Spin up NPCs, encounters, locations, and loot mid-session — one prompt, instant results that fit your existing world.',
   },
   {
     icon: Swords,
     title: 'Live Session Tools',
-    desc: 'Track initiative, notes, and entities in real time while you run the table.',
+    desc: 'Track notes and entities in real time while you run the table. Wrap a session and get an AI-written player recap and GM debrief.',
   },
   {
     icon: BookOpen,
     title: 'Campaign Library',
-    desc: 'Organise every NPC, faction, location, and plot thread in one place.',
+    desc: 'Organise every NPC, faction, location, item, and plot thread in one place — with status tags, portraits, and full history.',
   },
   {
     icon: Map,
     title: 'Battle & World Maps',
-    desc: 'Generate evocative maps on demand and pin locations to your world.',
+    desc: 'Generate evocative maps on demand and pin named locations directly to your world.',
   },
 ]
 
@@ -123,7 +133,7 @@ export default function SplashPage() {
 
         <p className="text-ink-muted text-lg max-w-xl mb-10 leading-relaxed">
           The AI-powered command centre for Game Masters.
-          Built for live play — generate anything, track everything, never lose the thread.
+          Plan your campaign, run your sessions, and generate world-consistent content — all in one place.
         </p>
 
         {/* CTAs */}
