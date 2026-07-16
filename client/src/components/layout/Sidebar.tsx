@@ -108,25 +108,25 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
           <img
             src={themeBrandIcon(theme)}
             alt="KT"
-            className="w-7 h-7 object-contain"
+            className="w-8 h-8 object-contain"
           />
         ) : (
           <>
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-col items-center gap-2">
               <img
                 src={themeBrandIcon(theme)}
                 alt=""
-                className="w-8 h-8 object-contain shrink-0"
+                className="w-14 h-14 object-contain"
               />
               <span
-                className="display-font font-bold text-sm leading-tight"
+                className="display-font font-bold text-sm text-center leading-tight"
                 style={{ color: 'var(--color-ink)' }}
               >
                 The Keeper's Table
               </span>
             </div>
             {user && (
-              <p className="text-xs text-ink-muted mt-1.5 truncate">{user.displayName}</p>
+              <p className="text-xs text-ink-muted mt-2 text-center truncate">{user.displayName}</p>
             )}
           </>
         )}
