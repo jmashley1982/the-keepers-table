@@ -18,14 +18,14 @@ const CANDLELIGHT_ICONS = {
 } as const
 
 const ELDRITCH_ICONS = {
-  newSession:    '/icons/eldritch/new_sesh.webp',
-  generateNpc:   '/icons/eldritch/gen_npc.webp',
-  genEncounter:  '/icons/eldritch/gen_enc.webp',
-  genTreasure:   '/icons/eldritch/gen_treas.webp',
-  npcs:          '/icons/eldritch/npcs.webp',
-  items:         '/icons/eldritch/items.webp',
-  locations:     '/icons/eldritch/locations.webp',
-  sessions:      '/icons/eldritch/sessions.webp',
+  newSession:    '/icons/eldritch/new_sesh.png',
+  generateNpc:   '/icons/eldritch/gen_npc.png',
+  genEncounter:  '/icons/eldritch/gen_enc.png',
+  genTreasure:   '/icons/eldritch/gen_treas.png',
+  npcs:          '/icons/eldritch/npcs.png',
+  items:         '/icons/eldritch/items.png',
+  locations:     '/icons/eldritch/locations.png',
+  sessions:      '/icons/eldritch/sessions.png',
 } as const
 
 const HAUNT_ICONS = {
