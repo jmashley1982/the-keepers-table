@@ -140,6 +140,9 @@ model Campaign {
   contentRating    String  @default("")
   sessionToolsUsed String  @default("")
 
+  // ── Session Zero: Table Charter (Module 3) ────────────────────────────────
+  tableCharter     Json    @default("{}")
+
   owner          User           @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   systemTemplate SystemTemplate @relation(fields: [systemTemplateId], references: [id])
   parties        Party[]
@@ -156,9 +159,10 @@ model Campaign {
   assets           Asset[]
   playerCharacters PlayerCharacter[]
   enemies          Enemy[]
-  safetyTopics     SafetyTopic[]
-  safetyShareLink  SafetyShareLink?
-  safetySubmissions AnonymousSafetySubmission[]
+  safetyTopics        SafetyTopic[]
+  safetyShareLink     SafetyShareLink?
+  safetySubmissions   AnonymousSafetySubmission[]
+  worldBuildingEntries WorldBuildingEntry[]
 }
 
 // ─── Parties ────────────────────────────────────────────────────────────────
@@ -626,4 +630,22 @@ model AnonymousSafetySubmission {
 
   campaign  Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   shareLink SafetyShareLink @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
+}
+
+// ─── Session Zero World-Building Canvas (Module 4) ───────────────────────────
+
+model WorldBuildingEntry {
+  id         String   @id @default(cuid())
+  campaignId String
+  category   String   // 'faction' | 'region' | 'npc' | 'pantheon' | 'conflict' | 'secret'
+  name       String
+  summary    String   @default("")
+  detail     String   @default("")
+  entityId   String?  // linked Library entity id after promotion
+  entityType String?  // 'npc' | 'location' | 'faction'
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 }

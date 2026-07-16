@@ -294,3 +294,201 @@ sessionZeroRouter.post('/safety/submit/:token', async (req, res) => {
   })
   res.json({ ok: true })
 })
+
+// ════════════════════════════════════════════════════════════════════════════
+// MODULE 3 — TABLE CHARTER
+// ════════════════════════════════════════════════════════════════════════════
+
+// GET charter (campaign already returned by existing campaign GET — this is a convenience alias)
+sessionZeroRouter.patch('/:campaignId/session-zero/charter', requireAuth, async (req, res) => {
+  const user = (req as any).user
+  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const schema = z.object({
+    tableCharter: z.record(z.string(), z.string()),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid payload' }); return }
+
+  await prisma.campaign.update({
+    where: { id: campaign.id },
+    data: { tableCharter: parsed.data.tableCharter },
+  })
+  res.json({ ok: true })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// MODULE 4 — WORLD-BUILDING CANVAS
+// ════════════════════════════════════════════════════════════════════════════
+
+const WB_CATEGORIES = ['faction', 'region', 'npc', 'pantheon', 'conflict', 'secret'] as const
+
+// GET all entries for a campaign
+sessionZeroRouter.get('/:campaignId/session-zero/world-building', requireAuth, async (req, res) => {
+  const user = (req as any).user
+  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const entries = await prisma.worldBuildingEntry.findMany({
+    where: { campaignId: campaign.id },
+    orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+  })
+  res.json({ entries })
+})
+
+// POST create entry
+sessionZeroRouter.post('/:campaignId/session-zero/world-building', requireAuth, async (req, res) => {
+  const user = (req as any).user
+  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const schema = z.object({
+    name:     z.string().min(1).max(200),
+    category: z.enum(WB_CATEGORIES),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid payload' }); return }
+
+  const entry = await prisma.worldBuildingEntry.create({
+    data: { campaignId: campaign.id, name: parsed.data.name, category: parsed.data.category },
+  })
+  res.json({ entry })
+})
+
+// PATCH update entry fields
+sessionZeroRouter.patch('/:campaignId/session-zero/world-building/:entryId', requireAuth, async (req, res) => {
+  const user = (req as any).user
+  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const schema = z.object({
+    name:    z.string().min(1).max(200).optional(),
+    summary: z.string().max(500).optional(),
+    detail:  z.string().optional(),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid payload' }); return }
+
+  const entry = await prisma.worldBuildingEntry.updateMany({
+    where: { id: req.params.entryId, campaignId: campaign.id },
+    data: parsed.data,
+  })
+  res.json({ ok: true, count: entry.count })
+})
+
+// DELETE entry
+sessionZeroRouter.delete('/:campaignId/session-zero/world-building/:entryId', requireAuth, async (req, res) => {
+  const user = (req as any).user
+  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  await prisma.worldBuildingEntry.deleteMany({
+    where: { id: req.params.entryId, campaignId: campaign.id },
+  })
+  res.json({ ok: true })
+})
+
+// POST expand with AI (SSE)
+sessionZeroRouter.post('/:campaignId/session-zero/world-building/:entryId/expand', requireAuth, async (req, res) => {
+  const user = (req as any).user
+  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const entry = await prisma.worldBuildingEntry.findFirst({
+    where: { id: req.params.entryId, campaignId: campaign.id },
+  })
+  if (!entry) { res.status(404).json({ error: 'Entry not found' }); return }
+
+  const categoryLabels: Record<string, string> = {
+    faction: 'faction/organization', region: 'region or location', npc: 'major NPC',
+    pantheon: 'deity or powerful entity', conflict: 'central conflict or plot', secret: 'secret or mystery',
+  }
+
+  const systemPrompt = `You are an expert TTRPG worldbuilding assistant. Expand the given entry into a rich, evocative description suitable for a GM's campaign bible. Write 2-4 paragraphs covering history, current state, hooks, and secrets. Prose style: vivid but concise. No bullet points.`
+
+  const userPrompt = `Campaign: "${campaign.name}"
+Entry type: ${categoryLabels[entry.category] ?? entry.category}
+Name: ${entry.name}
+One-line summary: ${entry.summary || '(none provided)'}
+Existing notes: ${entry.detail || '(none)'}
+
+Write a full expanded description for this entry.`
+
+  const anthropic = new Anthropic()
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+
+  let fullText = ''
+  try {
+    const stream = anthropic.messages.stream({
+      model: 'claude-opus-4-5',
+      max_tokens: 800,
+      messages: [{ role: 'user', content: userPrompt }],
+      system: systemPrompt,
+    })
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+        const text = chunk.delta.text
+        fullText += text
+        res.write(`data: ${JSON.stringify({ text })}\n\n`)
+      }
+    }
+    // Save expanded text
+    await prisma.worldBuildingEntry.updateMany({
+      where: { id: entry.id, campaignId: campaign.id },
+      data: { detail: fullText },
+    })
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`)
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ error: 'AI expand failed' })}\n\n`)
+  }
+  res.end()
+})
+
+// POST promote to Library
+sessionZeroRouter.post('/:campaignId/session-zero/world-building/:entryId/promote', requireAuth, async (req, res) => {
+  const user = (req as any).user
+  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+
+  const entry = await prisma.worldBuildingEntry.findFirst({
+    where: { id: req.params.entryId, campaignId: campaign.id },
+  })
+  if (!entry) { res.status(404).json({ error: 'Entry not found' }); return }
+  if (entry.entityId) { res.status(400).json({ error: 'Already promoted to Library' }); return }
+
+  const description = [entry.summary, entry.detail].filter(Boolean).join('\n\n')
+  let entityId: string
+  let entityType: string
+
+  if (entry.category === 'npc') {
+    const npc = await prisma.nPC.create({
+      data: { campaignId: campaign.id, name: entry.name, description },
+    })
+    entityId = npc.id
+    entityType = 'npc'
+  } else if (entry.category === 'region') {
+    const loc = await prisma.location.create({
+      data: { campaignId: campaign.id, name: entry.name, description, type: 'region' },
+    })
+    entityId = loc.id
+    entityType = 'location'
+  } else if (entry.category === 'faction') {
+    const faction = await prisma.faction.create({
+      data: { campaignId: campaign.id, name: entry.name, description },
+    })
+    entityId = faction.id
+    entityType = 'faction'
+  } else {
+    res.status(400).json({ error: 'This category cannot be promoted to Library' }); return
+  }
+
+  await prisma.worldBuildingEntry.update({
+    where: { id: entry.id },
+    data: { entityId, entityType },
+  })
+
+  res.json({ ok: true, entry: { ...entry, entityId, entityType } })
+})

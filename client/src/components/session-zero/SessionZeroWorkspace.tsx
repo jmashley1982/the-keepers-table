@@ -4,9 +4,11 @@ import { api, apiError } from '../../lib/api'
 import { Loader, StopCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import PitchModule from './PitchModule'
 import SafetyModule from './SafetyModule'
+import CharterModule from './CharterModule'
+import WorldBuildingModule from './WorldBuildingModule'
 import MentionText from '../session/MentionText'
 
-const TABS = ['Campaign Pitch', 'Safety Tools', 'Notes'] as const
+const TABS = ['Campaign Pitch', 'Safety Tools', 'Table Charter', 'World Canvas', 'Notes'] as const
 type Tab = typeof TABS[number]
 
 interface Session {
@@ -83,12 +85,6 @@ export default function SessionZeroWorkspace({ campaignId, session }: Props) {
     tonCombatRoleplay:     campaign.tonCombatRoleplay     ?? 50,
   } : null
 
-  const completedModules = pitchInitial ? [
-    pitchInitial.pitchElevator || pitchInitial.pitchGenre,
-    false, // safety — can check later
-    !!notes.trim(),
-  ].filter(Boolean).length : 0
-
   return (
     <div className="card border-accent/30 bg-accent/[0.03]">
       {/* Header */}
@@ -101,9 +97,7 @@ export default function SessionZeroWorkspace({ campaignId, session }: Props) {
           <div>
             <p className="font-medium text-ink text-sm">Session Zero — Campaign Planning</p>
             <p className="text-xs text-ink-muted">
-              {session.status === 'complete'
-                ? 'Wrapped'
-                : `${completedModules} of 2 modules started`}
+              {session.status === 'complete' ? 'Wrapped' : '5 planning modules'}
             </p>
           </div>
         </div>
@@ -127,13 +121,13 @@ export default function SessionZeroWorkspace({ campaignId, session }: Props) {
             <CompletedView session={session} campaignId={campaignId} />
           ) : (
             <>
-              {/* Tab bar */}
-              <div className="flex gap-1 mb-5 border-b border-border pb-0">
+              {/* Tab bar — scrollable on small screens */}
+              <div className="flex gap-0 mb-5 border-b border-border overflow-x-auto pb-0">
                 {TABS.map(tab => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px"
+                    className="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap flex-shrink-0"
                     style={activeTab === tab ? {
                       color: 'var(--color-accent)',
                       borderBottomColor: 'var(--color-accent)',
@@ -164,6 +158,14 @@ export default function SessionZeroWorkspace({ campaignId, session }: Props) {
 
                 {activeTab === 'Safety Tools' && (
                   <SafetyModule campaignId={campaignId} />
+                )}
+
+                {activeTab === 'Table Charter' && (
+                  <CharterModule campaignId={campaignId} />
+                )}
+
+                {activeTab === 'World Canvas' && (
+                  <WorldBuildingModule campaignId={campaignId} />
                 )}
 
                 {activeTab === 'Notes' && (
