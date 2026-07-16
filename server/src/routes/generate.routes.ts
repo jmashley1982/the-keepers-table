@@ -94,65 +94,163 @@ async function checkFriendImageQuota(userId: string): Promise<{ allowed: boolean
   return { allowed: true }
 }
 
-async function buildCampaignContext(campaignId: string, query: string): Promise<string> {
+const CONTEXT_CHAR_LIMIT = 12000
+
+interface BuildContextOptions {
+  maxEntities?: number   // default 25 per type
+  includeSessionNotes?: boolean  // default true
+  query?: string
+}
+
+async function buildCampaignContext(campaignId: string, query: string, opts: BuildContextOptions = {}): Promise<string> {
+  const { maxEntities = 25, includeSessionNotes = true } = opts
+  const q = (query ?? '').toLowerCase()
+
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
     include: { systemTemplate: true, parties: { take: 1 } },
   })
   if (!campaign) return ''
 
-  const q = query.toLowerCase()
-
-  const [npcs, locations, factions, threads] = await Promise.all([
-    prisma.nPC.findMany({ where: { campaignId, deletedAt: null }, select: { id: true, name: true, role: true, status: true, description: true } }),
+  const [npcs, locations, factions, threads, recentSessions, playerCharacters] = await Promise.all([
+    prisma.nPC.findMany({ where: { campaignId, deletedAt: null }, select: { id: true, name: true, role: true, status: true, description: true, updatedAt: true } }),
     prisma.location.findMany({ where: { campaignId, deletedAt: null }, select: { id: true, name: true, type: true, description: true } }),
-    prisma.faction.findMany({ where: { campaignId, deletedAt: null }, select: { id: true, name: true, goals: true } }),
-    prisma.plotThread.findMany({ where: { campaignId, deletedAt: null, status: 'active' }, select: { id: true, title: true, description: true } }),
+    prisma.faction.findMany({ where: { campaignId, deletedAt: null }, select: { id: true, name: true, goals: true, description: true, dispositionToParty: true } }),
+    prisma.plotThread.findMany({ where: { campaignId, deletedAt: null }, select: { id: true, title: true, description: true, status: true }, orderBy: { updatedAt: 'desc' } }),
+    includeSessionNotes
+      ? prisma.gameSession.findMany({
+          where: { campaignId, status: { in: ['complete', 'active'] } },
+          select: { id: true, sessionNumber: true, title: true, dmRawNotes: true, status: true, date: true },
+          orderBy: { sessionNumber: 'desc' },
+          take: 4,
+        })
+      : Promise.resolve([]),
+    prisma.playerCharacter.findMany({ where: { campaignId, deletedAt: null }, select: { name: true, characterClass: true, level: true, pronouns: true } }),
   ])
 
-  function score(text: string) {
-    return q.split(' ').filter(w => w.length > 3 && text.toLowerCase().includes(w)).length
+  // Score by query relevance — exact name mentions score highest
+  function score(text: string, name?: string) {
+    let s = q.split(' ').filter(w => w.length > 3 && text.toLowerCase().includes(w)).length
+    if (name && q.includes(name.toLowerCase())) s += 10
+    return s
   }
 
-  const topNpcs = npcs
-    .map(n => ({ ...n, _score: score(n.name + ' ' + (n.role ?? '') + ' ' + (n.description ?? '')) }))
+  const sortedNpcs = npcs
+    .map(n => ({ ...n, _score: score(n.name + ' ' + (n.role ?? '') + ' ' + (n.description ?? ''), n.name) }))
     .sort((a, b) => b._score - a._score)
-    .slice(0, 15)
 
+  // Entities directly mentioned get full description; others get one-liner
+  const topNpcs = sortedNpcs.slice(0, maxEntities)
   const topLocations = locations
-    .map(l => ({ ...l, _score: score(l.name + ' ' + (l.description ?? '')) }))
+    .map(l => ({ ...l, _score: score(l.name + ' ' + (l.description ?? ''), l.name) }))
     .sort((a, b) => b._score - a._score)
-    .slice(0, 8)
+    .slice(0, maxEntities)
 
+  // Party
   const party = campaign.parties[0]
-  const partySnap = party
-    ? `Party "${party.name}": ${JSON.stringify(party.characters)}`
+  type Character = { name?: string; class?: string; level?: number; player?: string }
+  const pcs: Character[] = playerCharacters.length > 0
+    ? playerCharacters.map(pc => ({ name: pc.name, class: pc.characterClass, level: pc.level }))
+    : party ? (party.characters as Character[]) : []
+  const partySnap = pcs.length > 0
+    ? pcs.map(c => `${c.name ?? '?'} (${c.class ?? '?'}, Lv ${c.level ?? '?'}${c.player ? `, player: ${c.player}` : ''})`).join('; ')
     : 'No party defined.'
+
+  // Session Zero pitch / tone
+  const pitchLines: string[] = []
+  if (campaign.pitchElevator) pitchLines.push(`Pitch: ${campaign.pitchElevator}`)
+  if (campaign.pitchGenre) pitchLines.push(`Genre: ${campaign.pitchGenre}`)
+  const toneEntries: string[] = []
+  if (campaign.tonGrimHeroic !== 50) toneEntries.push(campaign.tonGrimHeroic > 50 ? `Heroic (${campaign.tonGrimHeroic})` : `Grim (${100 - campaign.tonGrimHeroic})`)
+  if (campaign.tonGrittyCinematic !== 50) toneEntries.push(campaign.tonGrittyCinematic > 50 ? `Cinematic (${campaign.tonGrittyCinematic})` : `Gritty (${100 - campaign.tonGrittyCinematic})`)
+  if (campaign.tonCombatRoleplay !== 50) toneEntries.push(campaign.tonCombatRoleplay > 50 ? `Roleplay-heavy (${campaign.tonCombatRoleplay})` : `Combat-heavy (${100 - campaign.tonCombatRoleplay})`)
+  if (toneEntries.length) pitchLines.push(`Tone: ${toneEntries.join(', ')}`)
+  if (campaign.pitchWhatIsNot) pitchLines.push(`NOT: ${campaign.pitchWhatIsNot}`)
 
   const templateAddendum = campaign.systemTemplate?.promptAddendum ?? ''
 
-  return `
-CAMPAIGN: ${campaign.name}
-GAME SYSTEM: ${campaign.systemTemplate?.name ?? 'Generic'}
-SETTING NOTES: ${campaign.settingNotes || 'Not specified.'}
+  // Build core context (no session notes yet)
+  const coreLines = [
+    `--- CAMPAIGN CONTEXT ---`,
+    `Campaign: ${campaign.name} | System: ${campaign.systemTemplate?.name ?? 'Generic'}`,
+    campaign.settingNotes ? `Setting: ${campaign.settingNotes}` : '',
+    pitchLines.length ? pitchLines.join('\n') : '',
+    ``,
+    `PARTY: ${partySnap}`,
+    ``,
+    `PLOT THREADS:`,
+    threads.length
+      ? threads.map(t => `- [${t.status?.toUpperCase()}] ${t.title}: ${t.description ?? ''}`).join('\n')
+      : 'None.',
+    ``,
+    `KEY NPCs:`,
+    topNpcs.length
+      ? topNpcs.map(n => {
+          const base = `- ${n.name} (${n.role ?? 'role unknown'}, ${n.status})`
+          const desc = n.description ? `: ${n.description.slice(0, 200)}` : ''
+          return base + desc
+        }).join('\n')
+      : 'None yet.',
+    ``,
+    `LOCATIONS:`,
+    topLocations.length
+      ? topLocations.map(l => `- ${l.name} (${l.type})${l.description ? ': ' + l.description.slice(0, 150) : ''}`).join('\n')
+      : 'None yet.',
+    ``,
+    `FACTIONS:`,
+    factions.length
+      ? factions.map(f => `- ${f.name} [${f.dispositionToParty}]: ${f.goals || f.description || ''}`.slice(0, 200)).join('\n')
+      : 'None.',
+    templateAddendum ? `\nSYSTEM RULES:\n${templateAddendum}` : '',
+    `--- END CONTEXT ---`,
+  ].filter(l => l !== undefined).join('\n')
 
-ACTIVE PARTY:
-${partySnap}
+  // Add session notes, trimming if over budget
+  if (!includeSessionNotes || recentSessions.length === 0) {
+    return coreLines.length > CONTEXT_CHAR_LIMIT ? coreLines.slice(0, CONTEXT_CHAR_LIMIT) : coreLines
+  }
 
-ACTIVE PLOT THREADS:
-${threads.map(t => `- [${t.id}] ${t.title}: ${t.description}`).join('\n') || 'None.'}
+  const currentSession = recentSessions.find(s => s.status === 'active')
+  const wrappedSessions = recentSessions.filter(s => s.status === 'complete').slice(0, 2)
+  const allForNotes = [...(currentSession ? [currentSession] : []), ...wrappedSessions]
 
-KEY NPCS (most relevant):
-${topNpcs.map(n => `- [${n.id}] ${n.name} (${n.role ?? 'unknown role'}, ${n.status}): ${n.description ?? ''}`).join('\n') || 'None yet.'}
+  let result = coreLines
+  for (const sess of allForNotes) {
+    if (!sess.dmRawNotes?.trim()) continue
+    const label = sess.status === 'active' ? 'CURRENT SESSION' : `SESSION #${sess.sessionNumber}`
+    const noteBlock = `\n\n${label}${sess.title ? ` — ${sess.title}` : ''}:\n${sess.dmRawNotes}`
+    if ((result + noteBlock).length <= CONTEXT_CHAR_LIMIT) {
+      result += noteBlock
+    } else {
+      // Truncate note to fit budget
+      const budget = CONTEXT_CHAR_LIMIT - result.length - 100
+      if (budget > 200) {
+        result += `\n\n${label} NOTES (truncated):\n${sess.dmRawNotes.slice(0, budget)}…`
+      }
+      break
+    }
+  }
 
-KNOWN LOCATIONS:
-${topLocations.map(l => `- [${l.id}] ${l.name} (${l.type}): ${l.description ?? ''}`).join('\n') || 'None yet.'}
+  return result
+}
 
-FACTIONS:
-${factions.map(f => `- [${f.id}] ${f.name}: ${f.goals}`).join('\n') || 'None.'}
+// ── Resolve the best Claude model for a campaign+user combination ─────────────
+async function resolveTextModel(opts: {
+  requestModel?: string
+  campaignId?: string
+  taskKey: string
+  userId: string
+}): Promise<string> {
+  const { requestModel, campaignId, taskKey, userId } = opts
+  if (requestModel) return requestModel
 
-${templateAddendum ? `SYSTEM RULES & TONE:\n${templateAddendum}` : ''}
-`.trim()
+  const [userPref, campaign] = await Promise.all([
+    prisma.userPreference.findUnique({ where: { userId } }),
+    campaignId ? prisma.campaign.findUnique({ where: { id: campaignId }, select: { aiModel: true } }) : Promise.resolve(null),
+  ])
+
+  const taskModelMap = (userPref?.textModelByTask ?? {}) as Record<string, string>
+  return campaign?.aiModel || taskModelMap[taskKey] || userPref?.defaultTextModel || 'claude-sonnet-4-5'
 }
 
 // ── NPC Generator ─────────────────────────────────────────────────────────────
@@ -327,6 +425,7 @@ async function handleTextGenerate(req: Request, res: Response): Promise<void> {
     npcId: z.string().optional(),
     stream: z.boolean().optional().default(false),
     model: z.string().optional(),
+    useCampaignContext: z.boolean().optional().default(true),
   })
 
   const parsed = schema.safeParse(req.body)
@@ -347,16 +446,16 @@ async function handleTextGenerate(req: Request, res: Response): Promise<void> {
     return
   }
 
-  const { kind, campaignId, prompt, sessionId, npcId, stream, model } = parsed.data
-  const userPref = await prisma.userPreference.findUnique({ where: { userId } })
-  const taskModelMap = (userPref?.textModelByTask ?? {}) as Record<string, string>
+  const { kind, campaignId, prompt, sessionId, npcId, stream, model, useCampaignContext } = parsed.data
   const taskKey = kind === 'dialogue' ? 'dialogue' : kind === 'session_wrap' ? 'sessionWrap' : 'entityGen'
-  const textModel = model ?? taskModelMap[taskKey] ?? userPref?.defaultTextModel ?? 'claude-opus-4-5'
+  const textModel = await resolveTextModel({ requestModel: model, campaignId, taskKey, userId })
 
   let context = ''
-  if (campaignId) {
+  if (campaignId && useCampaignContext !== false) {
     context = await buildCampaignContext(campaignId, prompt)
   }
+
+  const contextUsed = !!context
 
   let sessionContext = ''
   if (sessionId) {
@@ -456,8 +555,8 @@ REQUEST: ${prompt}`
           outputRef: JSON.parse(JSON.stringify({ result: streamResult })),
         },
       })
-      res.write(`data: ${JSON.stringify({ result: streamResult, jobId: job.id })}\n\n`)
-      res.write(`data: ${JSON.stringify({ done: true, jobId: job.id })}\n\n`)
+      res.write(`data: ${JSON.stringify({ result: streamResult, jobId: job.id, contextUsed })}\n\n`)
+      res.write(`data: ${JSON.stringify({ done: true, jobId: job.id, contextUsed })}\n\n`)
       res.end()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Generation failed'
@@ -491,7 +590,7 @@ REQUEST: ${prompt}`
           outputRef: JSON.parse(JSON.stringify({ result })),
         },
       })
-      res.json({ result, jobId: job.id })
+      res.json({ result, jobId: job.id, contextUsed })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Generation failed'
       await prisma.generationJob.update({ where: { id: job.id }, data: { status: 'failed', error: msg } })
@@ -506,6 +605,17 @@ generateRouter.post('/text', handleTextGenerate)
 generateRouter.post('/enemy', (req: Request, res: Response) => {
   req.body = { ...req.body, kind: 'enemy', stream: req.body.stream ?? true }
   return handleTextGenerate(req, res)
+})
+
+// ── Context preview (dev/debug) ───────────────────────────────────────────────
+generateRouter.get('/context-preview/:campaignId', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params
+  const query = String(req.query.q ?? '')
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId } })
+  if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
+  const context = await buildCampaignContext(campaignId, query)
+  res.json({ charCount: context.length, limit: CONTEXT_CHAR_LIMIT, context })
 })
 
 // ── World / Region map context (Claude summary from campaign locations) ────────

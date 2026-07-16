@@ -99,6 +99,8 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
   const [busy, setBusy]         = useState(false)
   const [streamText, setStreamText] = useState('')
   const [result, setResult]     = useState<string | null>(null)
+  const [contextUsed, setContextUsed] = useState(false)
+  const [useCampaignContext, setUseCampaignContext] = useState(true)
   const [imageJobId, setImageJobId] = useState<string | null>(null)
   const [error, setError]       = useState<string | null>(null)
   const [saveMsg, setSaveMsg]   = useState<{ text: string; ok: boolean } | null>(null)
@@ -128,6 +130,7 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
     setImageJobId(null)
     setSaveMsg(null)
     setError(null)
+    setContextUsed(false)
   }
 
   async function generate() {
@@ -138,6 +141,7 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
     setStreamText('')
     setSaveMsg(null)
     setImageJobId(null)
+    setContextUsed(false)
 
     try {
       if (kind === 'image') {
@@ -155,7 +159,13 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ kind: effectiveKind, prompt, campaignId, stream: true }),
+        body: JSON.stringify({
+          kind: effectiveKind,
+          prompt,
+          campaignId,
+          stream: true,
+          useCampaignContext: campaignId ? useCampaignContext : false,
+        }),
       })
 
       if (!response.ok) {
@@ -178,6 +188,7 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
           try { data = JSON.parse(line.slice(6)) } catch { continue }
           if (typeof data.text === 'string') { fullText += data.text; setStreamText(s => s + data.text) }
           if (data.result !== undefined) parsedResult = data.result
+          if (data.contextUsed) setContextUsed(true)
           if (data.error) throw new Error(String(data.error))
         }
       }
@@ -352,6 +363,30 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
                 </div>
               )}
 
+              {/* Context toggle — text kinds only, requires a campaign */}
+              {isTextKind && campaignId && (
+                <div className="flex items-center justify-between mb-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <div
+                      onClick={() => setUseCampaignContext(v => !v)}
+                      className="relative w-8 h-4 rounded-full transition-colors flex-shrink-0"
+                      style={{ background: useCampaignContext ? 'var(--color-accent)' : 'var(--color-border)' }}
+                    >
+                      <span
+                        className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform"
+                        style={{ left: useCampaignContext ? '17px' : '2px' }}
+                      />
+                    </div>
+                    <span className="text-xs text-ink-muted">
+                      Use campaign context
+                    </span>
+                  </label>
+                  <span className="text-[10px] text-ink-muted" title="When on, Claude knows your campaign's NPCs, factions, locations, plot threads, and recent sessions">
+                    ⓘ NPCs · factions · sessions
+                  </span>
+                </div>
+              )}
+
               {/* Input row */}
               <div className="flex gap-2">
                 <input
@@ -391,6 +426,21 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
               {/* Text result */}
               {result && (
                 <div className="mt-3 space-y-2">
+                  {contextUsed && (
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                        style={{
+                          background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)',
+                          color: 'var(--color-accent)',
+                          border: '1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)',
+                        }}
+                        title="This result was generated with your campaign's NPCs, factions, locations, plot threads, and session notes included"
+                      >
+                        ✦ campaign-aware
+                      </span>
+                    </div>
+                  )}
                   <div className="p-3 bg-surface-2 rounded-card max-h-64 overflow-y-auto">
                     <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">{result}</p>
                   </div>

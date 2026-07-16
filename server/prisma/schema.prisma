@@ -143,6 +143,9 @@ model Campaign {
   // ── Session Zero: Table Charter (Module 3) ────────────────────────────────
   tableCharter     Json    @default("{}")
 
+  // ── AI Settings ───────────────────────────────────────────────────────────
+  aiModel          String  @default("") // empty = use user's defaultTextModel
+
   owner          User           @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   systemTemplate SystemTemplate @relation(fields: [systemTemplateId], references: [id])
   parties        Party[]

@@ -64,6 +64,7 @@ campaignsRouter.patch('/:id', async (req, res) => {
     systemTemplateId: z.string().optional(),
     archived: z.boolean().optional(),
     themeId: z.string().optional(),
+    aiModel: z.string().optional(),
   })
   const parsed = schema.safeParse(req.body)
   if (!parsed.success) {
