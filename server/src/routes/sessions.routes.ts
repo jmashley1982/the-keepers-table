@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { z } from 'zod'
+import { assertStaticRoutesFirst } from '../lib/assertStaticRoutesFirst.js'
 
 export const sessionsRouter = Router()
 sessionsRouter.use(requireAuth)
@@ -27,7 +28,7 @@ async function verifyCampaign(campaignId: string, userId: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Every static path segment used directly under …/sessions/<keyword>. */
-const STATIC_SESSION_KEYWORDS = ['active'] as const
+const STATIC_SESSION_KEYWORDS = ['active', 'session-zero'] as const
 
 // ── Session collection routes ─────────────────────────────────────────────────
 
@@ -289,47 +290,18 @@ sessionsRouter.post('/:campaignId/sessions/:sessionId/wrap/confirm', async (req,
 
 // ── Route-order runtime assertion ─────────────────────────────────────────────
 //
-//  Runs once at module load time.  Iterates the router stack and confirms
-//  that every static keyword path (e.g. /active) is registered at a lower
-//  stack index than the first dynamic /:sessionId GET route.  Throws at
-//  startup (not silently at request time) if the invariant is violated.
+//  Runs once at module load time via the shared assertStaticRoutesFirst utility.
+//  Confirms that every static keyword path is registered before the dynamic
+//  /:sessionId wildcard.  Throws at startup (not silently at request time) if
+//  the invariant is violated.
 //
 //  To add a new static keyword route:
-//    1. Add the keyword string to STATIC_SESSION_KEYWORDS above.
-//    2. Register the route handler in the "Static keyword routes" section.
-//    3. This assertion will tell you if you accidentally put it in the wrong place.
+//    1. Add the full path string to the staticPaths array below.
+//    2. Register the route handler in the "Static keyword routes" section above.
+//    3. The assertion will immediately flag it if placed in the wrong order.
 // ─────────────────────────────────────────────────────────────────────────────
-;(function assertStaticRoutesBeforeDynamic() {
-  type Layer = { route?: { path: string; methods: Record<string, boolean> } }
-  const stack = (sessionsRouter as unknown as { stack: Layer[] }).stack
-
-  // Find the stack index of the first GET /:campaignId/sessions/:sessionId layer
-  const dynamicIndex = stack.findIndex(
-    (l) =>
-      l.route?.methods?.get &&
-      l.route.path === '/:campaignId/sessions/:sessionId',
-  )
-
-  if (dynamicIndex === -1) return // Dynamic route not yet registered (shouldn't happen)
-
-  for (const keyword of STATIC_SESSION_KEYWORDS) {
-    const staticPath = `/:campaignId/sessions/${keyword}`
-    const staticIndex = stack.findIndex(
-      (l) => l.route?.path === staticPath,
-    )
-    if (staticIndex === -1) {
-      throw new Error(
-        `[sessions.routes] Route-order guard: static route "${staticPath}" is listed in ` +
-        `STATIC_SESSION_KEYWORDS but was not registered on the router. ` +
-        `Add the route handler in the "Static keyword routes" section.`,
-      )
-    }
-    if (staticIndex > dynamicIndex) {
-      throw new Error(
-        `[sessions.routes] Route-order guard: static route "${staticPath}" (stack index ${staticIndex}) ` +
-        `is declared AFTER the dynamic "/:campaignId/sessions/:sessionId" route (stack index ${dynamicIndex}). ` +
-        `Move "${staticPath}" above the dynamic route so Express does not shadow it.`,
-      )
-    }
-  }
-})()
+assertStaticRoutesFirst(sessionsRouter, {
+  routerName: 'sessions.routes',
+  staticPaths: STATIC_SESSION_KEYWORDS.map((k) => `/:campaignId/sessions/${k}`),
+  dynamicPath: '/:campaignId/sessions/:sessionId',
+})

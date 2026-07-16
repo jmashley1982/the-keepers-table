@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { registerSseClient } from '../lib/worker.js'
 import { prisma } from '../lib/prisma.js'
+import { assertStaticRoutesFirst } from '../lib/assertStaticRoutesFirst.js'
 
 export const jobsRouter = Router()
 jobsRouter.use(requireAuth)
@@ -64,4 +65,19 @@ jobsRouter.get('/:jobId', async (req, res) => {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
   })
+})
+
+// ── Route-order runtime assertion ─────────────────────────────────────────────
+//
+//  GET /stream is a static keyword route that MUST appear before the dynamic
+//  GET /:jobId wildcard.  If they are ever reordered, Express would silently
+//  capture "stream" as a jobId instead of hitting the SSE handler.
+//
+//  Add any future static keyword routes (e.g. /stats, /retry) to staticPaths
+//  and register them in the section above BEFORE the /:jobId handler.
+// ─────────────────────────────────────────────────────────────────────────────
+assertStaticRoutesFirst(jobsRouter, {
+  routerName: 'jobs.routes',
+  staticPaths: ['/stream'],
+  dynamicPath: '/:jobId',
 })
