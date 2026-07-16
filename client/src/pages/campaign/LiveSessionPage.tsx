@@ -8,7 +8,7 @@ import MapViewer from '../../components/map/MapViewer'
 import PinLayer from '../../components/map/PinLayer'
 import MentionTextarea, { MentionText } from '../../components/session/MentionTextarea'
 import {
-  Save, Loader, Clock, X, CheckCircle, Play, StopCircle,
+  Save, Loader, Clock, X, CheckCircle, StopCircle,
   Search, Users, Swords, MapPin, ChevronRight, ChevronDown, Plus,
   BookOpen, Scroll, AlertTriangle, Map as MapIcon, Shield, AtSign,
   Heart, Sword, FileText, CornerDownLeft,
@@ -206,11 +206,6 @@ export default function LiveSessionPage() {
     }
   }
 
-  const startSession = useMutation({
-    mutationFn: () => api.post(`/api/campaigns/${campaignId}/sessions/${sessionId}/start`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['session', campaignId, sessionId] }),
-  })
-
   async function triggerWrap() {
     setWrapLoading(true)
     setWrapOpen(true)
@@ -245,6 +240,7 @@ export default function LiveSessionPage() {
   })
 
   const session = sessionData?.session
+  const isLive = session && session.status !== 'complete'
   const allItems: Entity[] = sectionData?.items ?? []
   const filteredItems = searchQuery.trim()
     ? allItems.filter(e => e.name?.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -268,9 +264,11 @@ export default function LiveSessionPage() {
       <div className="flex items-center justify-between px-5 py-2.5 border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="display-font text-base font-bold text-ink">
-            Session #{session.sessionNumber}{session.title ? ` — ${session.title}` : ''}
+            {session.isSessionZero || session.sessionNumber === 0
+              ? 'Session Zero — Campaign Planning'
+              : `Session #${session.sessionNumber}${session.title ? ` — ${session.title}` : ''}`}
           </h1>
-          {session.status === 'in_progress' && (
+          {isLive && (
             <span className="badge bg-accent/10 text-accent text-xs flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
               Live
@@ -279,19 +277,13 @@ export default function LiveSessionPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {session.status === 'in_progress' && elapsed > 0 && (
+          {isLive && elapsed > 0 && (
             <span className="text-xs text-ink-muted flex items-center gap-1">
               <Clock size={12} />
               {hours > 0 ? `${hours}h ` : ''}{mins}m
             </span>
           )}
-          {session.status === 'planned' && (
-            <button className="btn-primary text-sm" onClick={() => startSession.mutate()} disabled={startSession.isPending}>
-              {startSession.isPending ? <Loader size={14} className="animate-spin" /> : <Play size={14} />}
-              Start Session
-            </button>
-          )}
-          {session.status === 'in_progress' && (
+          {isLive && (
             <button
               className="btn-secondary text-sm border-accent/40 text-accent"
               onClick={triggerWrap}

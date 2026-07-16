@@ -58,7 +58,7 @@ sessionsRouter.post('/:campaignId/sessions', async (req, res) => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
 
   const last = await prisma.gameSession.findFirst({
-    where: { campaignId },
+    where: { campaignId, isSessionZero: false, sessionNumber: { gt: 0 } },
     orderBy: { sessionNumber: 'desc' },
   })
   const sessionNumber = (last?.sessionNumber ?? 0) + 1
@@ -68,7 +68,30 @@ sessionsRouter.post('/:campaignId/sessions', async (req, res) => {
       sessionNumber,
       title: parsed.data.title,
       partyId: parsed.data.partyId,
-      datePlayed: parsed.data.datePlayed ? new Date(parsed.data.datePlayed) : undefined,
+      status: 'in_progress',
+      datePlayed: parsed.data.datePlayed ? new Date(parsed.data.datePlayed) : new Date(),
+    },
+  })
+  res.json({ session })
+})
+
+sessionsRouter.post('/:campaignId/sessions/session-zero', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params
+  const campaign = await verifyCampaign(campaignId, userId)
+  if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
+  const existing = await prisma.gameSession.findFirst({
+    where: { campaignId, isSessionZero: true },
+  })
+  if (existing) { res.json({ session: existing }); return }
+  const session = await prisma.gameSession.create({
+    data: {
+      campaignId,
+      sessionNumber: 0,
+      isSessionZero: true,
+      title: 'Session Zero — Campaign Planning',
+      status: 'in_progress',
+      datePlayed: new Date(),
     },
   })
   res.json({ session })
@@ -82,7 +105,7 @@ sessionsRouter.get('/:campaignId/sessions/active', async (req, res) => {
   const campaign = await verifyCampaign(campaignId, userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
   const session = await prisma.gameSession.findFirst({
-    where: { campaignId, status: 'in_progress' },
+    where: { campaignId, status: { in: ['in_progress', 'planned'] }, isSessionZero: false },
     orderBy: { createdAt: 'desc' },
   })
   if (!session) { res.status(404).json({ error: 'No active session' }); return }

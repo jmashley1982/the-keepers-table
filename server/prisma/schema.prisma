@@ -169,7 +169,8 @@ model GameSession {
   sessionNumber         Int
   title                 String?
   datePlayed            DateTime?
-  status                String    @default("planned") // "planned" | "in_progress" | "complete"
+  status                String    @default("in_progress") // "in_progress" | "complete" (legacy: "planned" treated as in_progress)
+  isSessionZero         Boolean   @default(false)
   dmRawNotes            String    @default("")
   generatedSummary      String?
   keyEvents             Json      @default("[]")
