@@ -4,7 +4,7 @@ import { api } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
 import {
-  LayoutDashboard, BookOpen, Map,
+  LayoutDashboard, BookOpen, Map, Scroll,
   Settings, LogOut, ChevronDown, Zap, Users,
   Contrast, Flame, Skull, Rocket, Terminal, Swords, Shield,
   ChevronLeft, ChevronRight,
