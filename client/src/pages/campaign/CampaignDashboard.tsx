@@ -39,6 +39,17 @@ const HAUNT_ICONS = {
   sessions:      '/icons/haunt/sessions.png',
 } as const
 
+const ICARUS_ICONS = {
+  newSession:    '/icons/icarus/new_sesh.png',
+  generateNpc:   '/icons/icarus/gen_npc.png',
+  genEncounter:  '/icons/icarus/gen_enc.png',
+  genTreasure:   '/icons/icarus/gen_treas.png',
+  npcs:          '/icons/icarus/npcs.png',
+  items:         '/icons/icarus/items.png',
+  locations:     '/icons/icarus/locations.png',
+  sessions:      '/icons/icarus/sessions.png',
+} as const
+
 const NEON_ICONS = {
   newSession:    '/icons/neon/new_sesh.png',
   generateNpc:   '/icons/neon/gen_npc.png',
@@ -54,6 +65,7 @@ const THEME_ICONS: Partial<Record<string, typeof CANDLELIGHT_ICONS>> = {
   candlelight: CANDLELIGHT_ICONS,
   eldritch:    ELDRITCH_ICONS,
   haunt:       HAUNT_ICONS,
+  icarus:      ICARUS_ICONS,
   neon:        NEON_ICONS,
 }
 
