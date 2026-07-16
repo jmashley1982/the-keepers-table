@@ -126,6 +126,20 @@ model Campaign {
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
 
+  // ── Session Zero: Campaign Pitch (Module 1) ────────────────────────────────
+  pitchElevator          String  @default("")
+  pitchGenre             String  @default("")
+  pitchLength            String  @default("")
+  pitchWhatIsNot         String  @default("")
+  tonGrimHeroic          Int     @default(50)
+  tonGrittyCinematic     Int     @default(50)
+  tonEpisodicSerialized  Int     @default(50)
+  tonCombatRoleplay      Int     @default(50)
+
+  // ── Session Zero: Safety Tools (Module 2) ─────────────────────────────────
+  contentRating    String  @default("")
+  sessionToolsUsed String  @default("")
+
   owner          User           @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   systemTemplate SystemTemplate @relation(fields: [systemTemplateId], references: [id])
   parties        Party[]
@@ -142,6 +156,9 @@ model Campaign {
   assets           Asset[]
   playerCharacters PlayerCharacter[]
   enemies          Enemy[]
+  safetyTopics     SafetyTopic[]
+  safetyShareLink  SafetyShareLink?
+  safetySubmissions AnonymousSafetySubmission[]
 }
 
 // ─── Parties ────────────────────────────────────────────────────────────────
@@ -573,4 +590,40 @@ model PlayerCharacter {
   campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   portraitAsset Asset?   @relation("PcPortrait", fields: [portraitAssetId], references: [id])
   sheetAsset    Asset?   @relation("PcSheet", fields: [sheetAssetId], references: [id])
+}
+
+// ─── Session Zero Safety Tools ───────────────────────────────────────────────
+
+model SafetyTopic {
+  id         String  @id @default(cuid())
+  campaignId String
+  topic      String
+  isPreset   Boolean @default(true)
+  gmSetting  String? // "line" | "veil" | "ok" | null (undecided)
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, topic])
+}
+
+model SafetyShareLink {
+  id         String   @id @default(cuid())
+  campaignId String   @unique
+  token      String   @unique @default(cuid())
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  campaign    Campaign                    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  submissions AnonymousSafetySubmission[]
+}
+
+model AnonymousSafetySubmission {
+  id          String   @id @default(cuid())
+  campaignId  String
+  shareLinkId String
+  topics      Json
+  createdAt   DateTime @default(now())
+
+  campaign  Campaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  shareLink SafetyShareLink @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
 }

@@ -11,6 +11,7 @@ import { credentialsRouter } from './routes/credentials.routes.js'
 import { campaignsRouter } from './routes/campaigns.routes.js'
 import { entitiesRouter } from './routes/entities.routes.js'
 import { sessionsRouter } from './routes/sessions.routes.js'
+import { sessionZeroRouter } from './routes/session-zero.routes.js'
 import { generateRouter } from './routes/generate.routes.js'
 import { templatesRouter } from './routes/templates.routes.js'
 import { preferencesRouter } from './routes/preferences.routes.js'
@@ -71,6 +72,7 @@ app.use('/api/campaigns', campaignsRouter)
 app.use('/api/campaigns', campaignAssetsRouter)
 app.use('/api/entities', entitiesRouter)
 app.use('/api/campaigns', sessionsRouter)
+app.use('/api/campaigns', sessionZeroRouter)
 app.use('/api/generate', generateRouter)
 app.use('/api/system-templates', templatesRouter)
 app.use('/api/preferences', preferencesRouter)

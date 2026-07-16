@@ -10,6 +10,7 @@ import FriendsLoginPage from './pages/friends/FriendsLoginPage'
 import LoginPage from './pages/auth/LoginPage'
 import SignupPage from './pages/auth/SignupPage'
 import OnboardingPage from './pages/auth/OnboardingPage'
+import SafetySubmitPage from './pages/SafetySubmitPage'
 import CampaignsPage from './pages/campaigns/CampaignsPage'
 import CampaignDashboard from './pages/campaign/CampaignDashboard'
 import LibraryPage from './pages/campaign/LibraryPage'
@@ -70,6 +71,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/safety-submit/:token" element={<SafetySubmitPage />} />
 
       {/* Protected — pathless layout route so "/" is never contested */}
       <Route element={<RequireAuth><AppShell /></RequireAuth>}>

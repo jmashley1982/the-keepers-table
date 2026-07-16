@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api, apiError } from '../../lib/api'
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { ChevronDown, ChevronUp, Play, Loader, Sparkles, StopCircle, CheckCircle } from 'lucide-react'
+import { api } from '../../lib/api'
+import { useState } from 'react'
+import { ChevronDown, ChevronUp, Play, Loader, Sparkles } from 'lucide-react'
 import MentionText from '../../components/session/MentionText'
+import SessionZeroWorkspace from '../../components/session-zero/SessionZeroWorkspace'
 
 export default function SessionLogPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
@@ -48,7 +49,7 @@ export default function SessionLogPage() {
       ) : (
         <div className="space-y-3">
           {sessionZero ? (
-            <SessionZeroCard campaignId={campaignId!} session={sessionZero} />
+            <SessionZeroWorkspace campaignId={campaignId!} session={sessionZero} />
           ) : (
             <button
               className="w-full card border-dashed border-2 border-border hover:border-accent/40 transition-colors flex items-center justify-center gap-2 py-4 text-sm text-ink-muted hover:text-accent"
@@ -161,127 +162,6 @@ export default function SessionLogPage() {
   )
 }
 
-function SessionZeroCard({ campaignId, session }: { campaignId: string; session: Session }) {
-  const qc = useQueryClient()
-  const [expanded, setExpanded] = useState(session.status !== 'complete')
-  const [notes, setNotes] = useState(session.dmRawNotes ?? '')
-  const [saving, setSaving] = useState(false)
-  const [wrapping, setWrapping] = useState(false)
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    setNotes(session.dmRawNotes ?? '')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.id])
-
-  const saveNotes = useCallback((text: string) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => {
-      setSaving(true)
-      try {
-        await api.patch(`/api/campaigns/${campaignId}/sessions/${session.id}`, { dmRawNotes: text })
-      } finally {
-        setSaving(false)
-      }
-    }, 1500)
-  }, [campaignId, session.id])
-
-  async function wrapSessionZero() {
-    setWrapping(true)
-    try {
-      const { data } = await api.post(`/api/generate/session-wrap/${session.id}`)
-      const result = data.result
-      await api.post(`/api/campaigns/${campaignId}/sessions/${session.id}/wrap/confirm`, {
-        summary: result?.generated_summary ?? '',
-        keyEvents: result?.key_events ?? [],
-        hooksForNext: result?.hooks_for_next ?? [],
-        acceptedUpdates: [],
-        acceptedNewEntities: [],
-      })
-      qc.invalidateQueries({ queryKey: ['sessions', campaignId] })
-    } catch (e) {
-      alert(apiError(e))
-    } finally {
-      setWrapping(false)
-    }
-  }
-
-  return (
-    <div className="card border-accent/30 bg-accent/[0.03]">
-      <button
-        className="w-full flex items-center justify-between"
-        onClick={() => setExpanded(o => !o)}
-      >
-        <div className="flex items-center gap-3 text-left">
-          <span className="display-font font-bold text-accent text-lg">✦</span>
-          <div>
-            <p className="font-medium text-ink text-sm">Session Zero — Campaign Planning</p>
-            <p className="text-xs text-ink-muted">World-building, factions, and player agreements</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {session.status === 'complete' ? (
-            <span className="badge bg-green-500/10 text-green-500 text-xs flex items-center gap-1">
-              <CheckCircle size={10} /> Wrapped
-            </span>
-          ) : saving ? (
-            <span className="text-xs text-ink-muted flex items-center gap-1"><Loader size={10} className="animate-spin" /> Saving…</span>
-          ) : null}
-          {expanded ? <ChevronUp size={14} className="text-ink-muted" /> : <ChevronDown size={14} className="text-ink-muted" />}
-        </div>
-      </button>
-
-      {expanded && (
-        <div className="mt-4 pt-4 border-t border-border space-y-4 animate-fade-in">
-          {session.status !== 'complete' ? (
-            <>
-              <textarea
-                className="input w-full min-h-[220px] text-sm leading-relaxed resize-y font-mono"
-                placeholder="Plan your campaign here — world overview, major factions, table rules, player agreements, safety tools, story themes…"
-                value={notes}
-                onChange={e => { setNotes(e.target.value); saveNotes(e.target.value) }}
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-ink-muted">Notes auto-save as you type. Session Zero never needs to be wrapped.</p>
-                <button
-                  className="btn-secondary text-sm border-accent/40 text-accent"
-                  onClick={wrapSessionZero}
-                  disabled={wrapping || !notes.trim()}
-                >
-                  {wrapping ? <Loader size={14} className="animate-spin" /> : <StopCircle size={14} />}
-                  Wrap Session
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              {session.generatedSummary && (
-                <div>
-                  <p className="label">Campaign Setup Summary</p>
-                  <MentionText
-                    text={session.generatedSummary}
-                    campaignId={campaignId}
-                    className="text-sm text-ink leading-relaxed"
-                  />
-                </div>
-              )}
-              {session.dmRawNotes && (
-                <div>
-                  <p className="label">Planning Notes</p>
-                  <MentionText
-                    text={session.dmRawNotes}
-                    campaignId={campaignId}
-                    className="text-sm text-ink-muted"
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 interface Session {
   id: string; sessionNumber: number; title?: string; status: string;
