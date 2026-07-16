@@ -4,13 +4,13 @@ import { api } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
 import {
-  LayoutDashboard, BookOpen, Map, Scroll,
+  LayoutDashboard, BookOpen, Map,
   Settings, LogOut, ChevronDown, Zap, Users,
   Contrast, Flame, Skull, Rocket, Terminal, Swords, Shield,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useState } from 'react'
-import { themeLogo } from '../../lib/themeLogo'
+import { themeBrandIcon } from '../../lib/themeBrandIcon'
 import RulesReferencePanel from '../dnd5e/RulesReferencePanel'
 import FriendQuotaBar from './FriendQuotaBar'
 
@@ -19,7 +19,6 @@ const THEME_OPTIONS = [
   { id: 'eldritch',     label: 'Eldritch',       icon: Skull },
   { id: 'icarus',       label: 'Icarus',         icon: Rocket },
   { id: 'neon',         label: 'Neon',           icon: Terminal },
-  { id: 'parchment',    label: 'Parchment',      icon: Scroll },
   { id: 'high-contrast', label: 'High Contrast', icon: Contrast },
 ] as const
 
@@ -107,17 +106,25 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
       )}>
         {collapsed ? (
           <img
-            src={themeLogo(theme)}
+            src={themeBrandIcon(theme)}
             alt="KT"
-            className="w-7 h-7 object-contain logo-theme"
+            className="w-7 h-7 object-contain"
           />
         ) : (
           <>
-            <img
-              src={themeLogo(theme)}
-              alt="The Keeper's Table"
-              className="w-full h-auto logo-theme"
-            />
+            <div className="flex items-center gap-2.5">
+              <img
+                src={themeBrandIcon(theme)}
+                alt=""
+                className="w-8 h-8 object-contain shrink-0"
+              />
+              <span
+                className="display-font font-bold text-sm leading-tight"
+                style={{ color: 'var(--color-ink)' }}
+              >
+                The Keeper's Table
+              </span>
+            </div>
             {user && (
               <p className="text-xs text-ink-muted mt-1.5 truncate">{user.displayName}</p>
             )}

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Menu, Zap } from 'lucide-react'
 import { api } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
-import { themeLogo } from '../../lib/themeLogo'
+import { themeBrandIcon } from '../../lib/themeBrandIcon'
 
 interface Props {
   onMenuOpen: () => void
@@ -35,11 +35,19 @@ export default function MobileTopBar({ onMenuOpen }: Props) {
       </button>
 
       <div className="flex flex-col items-center min-w-0">
-        <img
-          src={themeLogo(theme)}
-          alt="The Keeper's Table"
-          className="h-6 w-auto logo-theme"
-        />
+        <div className="flex items-center gap-1.5">
+          <img
+            src={themeBrandIcon(theme)}
+            alt=""
+            className="h-6 w-6 object-contain"
+          />
+          <span
+            className="display-font font-bold text-xs leading-tight"
+            style={{ color: 'var(--color-ink)' }}
+          >
+            The Keeper's Table
+          </span>
+        </div>
         {campaign && (
           <p className="text-[10px] text-ink-muted truncate max-w-[160px]">{campaign.name}</p>
         )}

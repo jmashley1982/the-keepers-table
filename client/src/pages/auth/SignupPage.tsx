@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
-import { themeLogo } from '../../lib/themeLogo'
+import { themeBrandIcon } from '../../lib/themeBrandIcon'
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -29,10 +29,17 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <img
-            src={themeLogo(theme)}
-            alt="The Keeper's Table"
-            className="h-[154px] w-auto mx-auto mb-2 logo-theme"
+            src={themeBrandIcon(theme)}
+            alt=""
+            className="h-28 w-28 mx-auto mb-4 object-contain"
+            style={{ filter: 'drop-shadow(0 0 24px color-mix(in srgb, var(--color-accent) 30%, transparent))' }}
           />
+          <h1
+            className="display-font text-2xl font-bold mb-1"
+            style={{ color: 'var(--color-ink)' }}
+          >
+            The Keeper's Table
+          </h1>
           <p className="text-ink-muted text-sm">Your campaign memory starts here</p>
         </div>
 

@@ -5,12 +5,12 @@ import { api } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
 import {
-  LayoutDashboard, BookOpen, Map, Scroll,
+  LayoutDashboard, BookOpen, Map,
   Settings, LogOut, ChevronDown, Zap, Users,
   Contrast, Flame, Skull, Rocket, Terminal, X,
 } from 'lucide-react'
 import { useState } from 'react'
-import { themeLogo } from '../../lib/themeLogo'
+import { themeBrandIcon } from '../../lib/themeBrandIcon'
 import FriendQuotaBar from './FriendQuotaBar'
 
 const THEME_OPTIONS = [
@@ -18,7 +18,6 @@ const THEME_OPTIONS = [
   { id: 'eldritch',      label: 'Eldritch',       icon: Skull },
   { id: 'icarus',        label: 'Icarus',         icon: Rocket },
   { id: 'neon',          label: 'Neon',           icon: Terminal },
-  { id: 'parchment',     label: 'Parchment',      icon: Scroll },
   { id: 'high-contrast', label: 'High Contrast',  icon: Contrast },
 ] as const
 
@@ -106,11 +105,19 @@ export default function MobileDrawer({ open, onClose }: Props) {
         {/* Header */}
         <div className="px-4 py-4 border-b border-border flex items-center justify-between shrink-0">
           <div className="min-w-0 flex-1">
-            <img
-              src={themeLogo(theme)}
-              alt="The Keeper's Table"
-              className="w-32 h-auto logo-theme"
-            />
+            <div className="flex items-center gap-2.5">
+              <img
+                src={themeBrandIcon(theme)}
+                alt=""
+                className="w-8 h-8 object-contain shrink-0"
+              />
+              <span
+                className="display-font font-bold text-sm leading-tight"
+                style={{ color: 'var(--color-ink)' }}
+              >
+                The Keeper's Table
+              </span>
+            </div>
             {user && (
               <p className="text-xs text-ink-muted mt-1 truncate">{user.displayName}</p>
             )}

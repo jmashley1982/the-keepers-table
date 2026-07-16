@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../lib/api'
 import { useUIStore } from '../store/useUIStore'
-import { themeLogo } from '../lib/themeLogo'
+import { themeBrandIcon } from '../lib/themeBrandIcon'
 import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn, LayoutDashboard } from 'lucide-react'
 
 const FEATURES = [
@@ -71,11 +71,19 @@ export default function SplashPage() {
 
       {/* Nav bar */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4 max-w-5xl mx-auto w-full">
-        <img
-          src={themeLogo(theme)}
-          alt="The Keeper's Table"
-          className="h-8 w-auto logo-theme opacity-80"
-        />
+        <div className="flex items-center gap-2 opacity-80">
+          <img
+            src={themeBrandIcon(theme)}
+            alt=""
+            className="h-8 w-8 object-contain"
+          />
+          <span
+            className="display-font font-bold text-sm"
+            style={{ color: 'var(--color-ink)' }}
+          >
+            The Keeper's Table
+          </span>
+        </div>
         {loggedIn ? (
           <button
             className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
@@ -98,9 +106,9 @@ export default function SplashPage() {
       {/* Hero */}
       <main className="relative z-10 flex flex-col items-center text-center px-6 pt-16 pb-24 flex-1">
         <img
-          src={themeLogo(theme)}
-          alt="The Keeper's Table"
-          className="h-32 w-auto mx-auto mb-6 logo-theme"
+          src={themeBrandIcon(theme)}
+          alt=""
+          className="h-32 w-32 mx-auto mb-6 object-contain"
           style={{
             filter: 'drop-shadow(0 0 40px color-mix(in srgb, var(--color-accent) 35%, transparent))',
           }}
