@@ -9,7 +9,6 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-ENCRYPTION_KEY = "0a01949a2e2466333ca133f5ef524b6f161cb53c70e0a46bc42f7c1cd488926c"
 
 [workflows]
 runButton = "Project"

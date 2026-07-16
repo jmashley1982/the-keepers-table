@@ -36,6 +36,15 @@ app.set('trust proxy', 1)
 
 const PgSession = connectPgSimple(session)
 
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DOMAINS
+const sessionSecret = process.env.SESSION_SECRET
+if (!sessionSecret) {
+  if (isProduction) {
+    throw new Error('[session] SESSION_SECRET environment variable must be set in production. Refusing to start.')
+  }
+  console.warn('[session] WARNING: SESSION_SECRET is not set. Using an insecure dev-only fallback. Set SESSION_SECRET before deploying.')
+}
+
 const sessionMiddleware = session({
   store: new PgSession({
     conString: process.env.DATABASE_URL,
@@ -43,7 +52,7 @@ const sessionMiddleware = session({
     createTableIfMissing: true,
     errorLog: (err) => console.error('[session-store]', err),
   }),
-  secret: process.env.SESSION_SECRET ?? process.env.ENCRYPTION_KEY ?? 'dev-secret-change-me',
+  secret: sessionSecret ?? 'dev-secret-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: {
