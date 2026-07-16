@@ -25,6 +25,13 @@ export default function LineagePage() {
     }
   }, [dgTheme])
 
+  function handleLoad() {
+    const iframe = iframeRef.current
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'kt-theme', value: dgTheme ?? '' }, '*')
+    }
+  }
+
   return (
     <div className="relative flex flex-col" style={{ height: '100%' }}>
       {from && (
@@ -48,6 +55,7 @@ export default function LineagePage() {
         ref={iframeRef}
         src={initialSrc.current}
         title="Lineage — Family Tree Builder"
+        onLoad={handleLoad}
         style={{
           flex: 1,
           width: '100%',
