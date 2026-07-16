@@ -413,6 +413,37 @@ async function handleTextGenerate(req: Request, res: Response): Promise<void> {
   const taskKey = kind === 'dialogue' ? 'dialogue' : kind === 'session_wrap' ? 'sessionWrap' : 'entityGen'
   const textModel = await resolveTextModel({ requestModel: model, campaignId, taskKey, userId })
 
+  // Ownership checks — verify every caller-supplied ID belongs to this user
+  if (campaignId) {
+    const ownedCampaign = await prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId } })
+    if (!ownedCampaign) {
+      res.status(403).json({ error: 'Access denied.' })
+      return
+    }
+  }
+
+  if (sessionId) {
+    const ownedSession = await prisma.gameSession.findFirst({
+      where: { id: sessionId, campaign: { ownerUserId: userId } },
+      select: { id: true },
+    })
+    if (!ownedSession) {
+      res.status(403).json({ error: 'Access denied.' })
+      return
+    }
+  }
+
+  if (npcId) {
+    const ownedNpc = await prisma.nPC.findFirst({
+      where: { id: npcId, campaign: { ownerUserId: userId } },
+      select: { id: true },
+    })
+    if (!ownedNpc) {
+      res.status(403).json({ error: 'Access denied.' })
+      return
+    }
+  }
+
   let context = ''
   if (campaignId && useCampaignContext !== false) {
     context = await buildCampaignContext(campaignId, prompt)
@@ -442,8 +473,8 @@ async function handleTextGenerate(req: Request, res: Response): Promise<void> {
   // For enemy generation, pick a system-specific schema
   let outputSchema = KIND_SCHEMAS[kind]
   if (kind === 'enemy' && campaignId) {
-    const campaignForSystem = await prisma.campaign.findUnique({
-      where: { id: campaignId },
+    const campaignForSystem = await prisma.campaign.findFirst({
+      where: { id: campaignId, ownerUserId: userId },
       select: { systemTemplateId: true },
     })
     if (campaignForSystem?.systemTemplateId === 'builtin-d-d-5e') {
