@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { z } from 'zod'
+import { assertNoStaticAfterDynamic } from '../lib/assertStaticRoutesFirst.js'
 
 export const entitiesRouter = Router()
 entitiesRouter.use(requireAuth)
@@ -93,6 +94,8 @@ function entityRoutes(
     await model.update({ where: { id: entityId }, data: { deletedAt: new Date() } })
     res.json({ ok: true })
   })
+
+  assertNoStaticAfterDynamic(router, `entityRoutes(${entityName})`)
 
   return router
 }
