@@ -3,7 +3,7 @@ import { requireAuth } from '../middleware/auth.middleware.js'
 import { prisma } from '../lib/prisma.js'
 import { z } from 'zod'
 import { getBoss } from '../lib/worker.js'
-import { getImageCostEstimate, getMinimumConfirmThreshold, getPricingMeta, getArtDirectorCostPerCall, getEvolinkCreditsPerUsd } from '../lib/pricing.js'
+import { getImageCostEstimate, getMinimumConfirmThreshold, getPricingMeta, getArtDirectorCostPerCall } from '../lib/pricing.js'
 import { getAnthropicClient } from '../lib/anthropic.js'
 
 export const generateRouter = Router()
@@ -1119,19 +1119,6 @@ generateRouter.get('/usage', async (req, res) => {
     return t.output ?? t.units ?? 0
   }
 
-  // Guard against legacy costActual values stored as raw EvoLink credits (pre-conversion fix).
-  // If a job's costActual exceeds its costEstimate by more than 20×, treat the stored value as
-  // credits and convert on the fly so the dashboard doesn't show inflated history.
-  const creditsPerUsd = getEvolinkCreditsPerUsd()
-  function sanitisedActual(j: { costActual: number | null; costEstimate: number | null }): number {
-    const actual = j.costActual ?? 0
-    const estimate = j.costEstimate ?? 0
-    if (actual > 0 && estimate > 0 && actual > estimate * 20) {
-      return actual / creditsPerUsd
-    }
-    return actual
-  }
-
   // Daily buckets — one row per date+provider combination
   const bucketMap = new Map<string, { count: number; estimatedCost: number; actualCost: number; totalUnits: number }>()
   for (const j of jobs) {
@@ -1141,7 +1128,7 @@ generateRouter.get('/usage', async (req, res) => {
     const existing = bucketMap.get(key) ?? { count: 0, estimatedCost: 0, actualCost: 0, totalUnits: 0 }
     existing.count += 1
     existing.estimatedCost += j.costEstimate ?? 0
-    existing.actualCost += sanitisedActual(j)
+    existing.actualCost += j.costActual ?? 0
     existing.totalUnits += jobUnits(j)
     bucketMap.set(key, existing)
   }
@@ -1159,7 +1146,7 @@ generateRouter.get('/usage', async (req, res) => {
     const existing = providerMap.get(prov) ?? { count: 0, estimatedCost: 0, actualCost: 0, totalUnits: 0 }
     existing.count += 1
     existing.estimatedCost += j.costEstimate ?? 0
-    existing.actualCost += sanitisedActual(j)
+    existing.actualCost += j.costActual ?? 0
     existing.totalUnits += jobUnits(j)
     providerMap.set(prov, existing)
   }
@@ -1189,7 +1176,7 @@ generateRouter.get('/usage', async (req, res) => {
   }))
 
   const totalEstimatedCost = jobs.reduce((s, j) => s + (j.costEstimate ?? 0), 0)
-  const totalActualCost = jobs.reduce((s, j) => s + sanitisedActual(j), 0)
+  const totalActualCost = jobs.reduce((s, j) => s + (j.costActual ?? 0), 0)
 
   res.json({ jobs, dailyBuckets, providerTotals, campaignTotals, totalEstimatedCost, totalActualCost })
 })
