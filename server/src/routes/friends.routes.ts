@@ -1,11 +1,18 @@
 import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { z } from 'zod'
+import { createRateLimiter } from '../lib/rate-limit.js'
 import '../lib/auth.js'
 
 export const friendsRouter = Router()
 
-friendsRouter.post('/login', async (req, res) => {
+const friendsLoginLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many login attempts. Please wait 15 minutes before trying again.',
+})
+
+friendsRouter.post('/login', friendsLoginLimiter, async (req, res) => {
   const schema = z.object({
     username: z.string().min(1).max(40).regex(/^[a-zA-Z0-9_-]+$/, 'Username: letters, numbers, - and _ only'),
     password: z.string(),
@@ -28,6 +35,21 @@ friendsRouter.post('/login', async (req, res) => {
   }
 
   const email = `friend_${username}@keeper.internal`
+
+  // Enforce a hard cap on distinct friend accounts to prevent an attacker who
+  // has learned the shared password from minting unlimited fresh accounts that
+  // each start with a full AI quota.
+  const MAX_FRIEND_ACCOUNTS = 25
+  const existingAccount = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+  if (!existingAccount) {
+    const friendCount = await prisma.user.count({
+      where: { email: { endsWith: '@keeper.internal' } },
+    })
+    if (friendCount >= MAX_FRIEND_ACCOUNTS) {
+      res.status(403).json({ error: 'Friends portal is currently full. Please contact the owner.' })
+      return
+    }
+  }
 
   const user = await prisma.user.upsert({
     where: { email },

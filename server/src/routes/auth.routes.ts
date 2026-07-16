@@ -3,9 +3,22 @@ import { prisma } from '../lib/prisma.js'
 import { z } from 'zod'
 import { scrypt, randomBytes, timingSafeEqual } from 'crypto'
 import { promisify } from 'util'
+import { createRateLimiter } from '../lib/rate-limit.js'
 import '../lib/auth.js'
 
 const scryptAsync = promisify(scrypt)
+
+const loginLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many login attempts. Please wait 15 minutes before trying again.',
+})
+
+const signupLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: 'Too many sign-up attempts from this address. Please try again later.',
+})
 
 async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString('hex')
@@ -22,7 +35,7 @@ async function verifyPassword(stored: string, supplied: string): Promise<boolean
 
 export const authRouter = Router()
 
-authRouter.post('/signup', async (req, res) => {
+authRouter.post('/signup', signupLimiter, async (req, res) => {
   const schema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
@@ -71,7 +84,7 @@ authRouter.post('/signup', async (req, res) => {
   res.json({ user: { id: user.id, email: user.email, displayName: user.displayName } })
 })
 
-authRouter.post('/login', async (req, res) => {
+authRouter.post('/login', loginLimiter, async (req, res) => {
   const schema = z.object({
     email: z.string().email(),
     password: z.string(),
