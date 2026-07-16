@@ -11,7 +11,7 @@ import {
   Save, Loader, Clock, X, CheckCircle, Play, StopCircle,
   Search, Users, Swords, MapPin, ChevronRight, ChevronDown, Plus,
   BookOpen, Scroll, AlertTriangle, Map as MapIcon, Shield, AtSign,
-  Heart, Sword, FileText,
+  Heart, Sword, FileText, CornerDownLeft,
 } from 'lucide-react'
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -74,7 +74,12 @@ export default function LiveSessionPage() {
 
   // ── Mobile panel switcher (Notes | Entities | Peek) ──
   const [activePanel, setActivePanel] = useState<Panel>('notes')
-  const [notesStripOpen, setNotesStripOpen] = useState(false)
+
+  // ── Quick Note strip ──
+  const [quickNote, setQuickNote] = useState('')
+  const [quickNoteStatus, setQuickNoteStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const quickNoteRef = useRef<HTMLInputElement>(null)
+
   const touchStartX = useRef<number>(0)
   const touchStartY = useRef<number>(0)
 
@@ -176,6 +181,29 @@ export default function LiveSessionPage() {
   function handleNotesChange(text: string) {
     setNotes(text)
     saveNotes(text)
+  }
+
+  async function appendQuickNote() {
+    const text = quickNote.trim()
+    if (!text || !campaignId || !sessionId || quickNoteStatus === 'saving') return
+    setQuickNoteStatus('saving')
+    try {
+      const { data } = await api.post(
+        `/api/campaigns/${campaignId}/sessions/${sessionId}/notes/append`,
+        { text },
+      )
+      if (data.session?.dmRawNotes != null) {
+        setNotes(data.session.dmRawNotes)
+        if (saveTimer.current) clearTimeout(saveTimer.current)
+      }
+      setQuickNote('')
+      setQuickNoteStatus('saved')
+      setTimeout(() => setQuickNoteStatus('idle'), 2000)
+      quickNoteRef.current?.focus()
+    } catch {
+      setQuickNoteStatus('error')
+      setTimeout(() => setQuickNoteStatus('idle'), 2000)
+    }
   }
 
   const startSession = useMutation({
@@ -466,46 +494,46 @@ export default function LiveSessionPage() {
             }
           </div>
 
-          {/* ── Quick Notes strip — mobile only, bottom of Entities panel ── */}
-          <div className="md:hidden border-t border-border bg-surface shrink-0">
-            <button
-              className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-medium text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors touch-manipulation min-h-[44px]"
-              onClick={() => setNotesStripOpen(o => !o)}
-            >
-              <span className="flex items-center gap-1.5">
-                <FileText size={12} className="text-accent/70" />
-                <span className="text-ink-muted">Quick Notes</span>
-                {notes.trim() && (
-                  <span className="text-[10px] text-ink-muted/60 font-normal">
-                    · {notes.trim().split('\n').filter(l => l.trim()).length} {notes.trim().split('\n').filter(l => l.trim()).length === 1 ? 'line' : 'lines'}
-                  </span>
+          {/* ── Quick Notes strip — bottom of Entities panel, shown when session is live ── */}
+          {session.status === 'in_progress' && (
+            <div className="border-t border-border bg-surface shrink-0">
+              <div className="flex items-center gap-1.5 px-2 py-1.5">
+                <FileText size={11} className="text-accent/60 shrink-0" />
+                <input
+                  ref={quickNoteRef}
+                  className="flex-1 bg-transparent text-xs text-ink placeholder:text-ink-muted/50 outline-none min-w-0 py-1"
+                  placeholder="Jot a note… (Enter to save)"
+                  value={quickNote}
+                  onChange={e => setQuickNote(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      void appendQuickNote()
+                    }
+                  }}
+                  disabled={quickNoteStatus === 'saving'}
+                />
+                {quickNoteStatus === 'saving' && (
+                  <Loader size={11} className="animate-spin text-ink-muted shrink-0" />
                 )}
-              </span>
-              <ChevronDown
-                size={13}
-                className={cn('text-ink-muted/60 transition-transform duration-200', notesStripOpen ? 'rotate-180' : '')}
-              />
-            </button>
-            {notesStripOpen && (
-              <div className="px-3 pb-3 space-y-2">
-                {notes.trim() ? (
-                  <div className="bg-bg rounded-md border border-border/60 max-h-28 overflow-y-auto">
-                    <p className="px-2.5 py-2 text-[11px] font-mono text-ink leading-relaxed whitespace-pre-wrap break-words">
-                      {notes.trim().split('\n').filter(l => l.trim()).slice(-6).join('\n')}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-ink-muted italic">No notes written yet.</p>
+                {quickNoteStatus === 'saved' && (
+                  <CheckCircle size={11} className="text-green-400 shrink-0" />
                 )}
-                <button
-                  className="text-[11px] text-accent font-medium underline underline-offset-2 touch-manipulation"
-                  onClick={() => setActivePanel('notes')}
-                >
-                  Open full notes →
-                </button>
+                {quickNoteStatus === 'error' && (
+                  <AlertTriangle size={11} className="text-danger shrink-0" />
+                )}
+                {quickNoteStatus === 'idle' && quickNote.trim() && (
+                  <button
+                    className="shrink-0 text-ink-muted/50 hover:text-accent transition-colors touch-manipulation p-0.5"
+                    onClick={() => void appendQuickNote()}
+                    title="Save note (Enter)"
+                  >
+                    <CornerDownLeft size={11} />
+                  </button>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* ── CENTER: Notes (+ entity peek overlay) / Map viewer ── */}
