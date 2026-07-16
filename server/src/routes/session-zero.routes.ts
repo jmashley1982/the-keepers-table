@@ -28,20 +28,20 @@ const pitchSchema = z.object({
 
 sessionZeroRouter.patch('/:id/session-zero/pitch', requireAuth, async (req, res) => {
   const userId = res.locals.user.id
-  const campaign = await ownedCampaign(req.params.id, userId)
+  const campaign = await ownedCampaign((req.params.id as string), userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
 
   const parsed = pitchSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
 
-  const updated = await prisma.campaign.update({ where: { id: req.params.id }, data: parsed.data })
+  const updated = await prisma.campaign.update({ where: { id: (req.params.id as string) }, data: parsed.data })
   res.json({ campaign: updated })
 })
 
 // AI pitch assist — streaming SSE
 sessionZeroRouter.post('/:id/session-zero/pitch/assist', requireAuth, async (req, res) => {
   const userId = res.locals.user.id
-  const campaign = await ownedCampaign(req.params.id, userId)
+  const campaign = await ownedCampaign((req.params.id as string), userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
 
   const { draft } = req.body as { draft?: string }
@@ -127,28 +127,28 @@ const PRESET_TOPICS = [
 
 sessionZeroRouter.get('/:id/session-zero/safety', requireAuth, async (req, res) => {
   const userId = res.locals.user.id
-  const campaign = await ownedCampaign(req.params.id, userId)
+  const campaign = await ownedCampaign((req.params.id as string), userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
 
   // Ensure preset topics exist for this campaign (idempotent seed)
-  const existing = await prisma.safetyTopic.findMany({ where: { campaignId: req.params.id } })
+  const existing = await prisma.safetyTopic.findMany({ where: { campaignId: (req.params.id as string) } })
   const existingTopics = new Set(existing.map(t => t.topic))
   const toCreate = PRESET_TOPICS.filter(t => !existingTopics.has(t))
   if (toCreate.length > 0) {
     await prisma.safetyTopic.createMany({
-      data: toCreate.map(topic => ({ campaignId: req.params.id, topic, isPreset: true })),
+      data: toCreate.map(topic => ({ campaignId: (req.params.id as string), topic, isPreset: true })),
       skipDuplicates: true,
     })
   }
 
   const topics = await prisma.safetyTopic.findMany({
-    where: { campaignId: req.params.id },
+    where: { campaignId: (req.params.id as string) },
     orderBy: [{ isPreset: 'desc' }, { topic: 'asc' }],
   })
 
-  const shareLink = await prisma.safetyShareLink.findUnique({ where: { campaignId: req.params.id } })
+  const shareLink = await prisma.safetyShareLink.findUnique({ where: { campaignId: (req.params.id as string) } })
   const submissionCount = shareLink
-    ? await prisma.anonymousSafetySubmission.count({ where: { campaignId: req.params.id } })
+    ? await prisma.anonymousSafetySubmission.count({ where: { campaignId: (req.params.id as string) } })
     : 0
 
   res.json({
@@ -163,7 +163,7 @@ sessionZeroRouter.get('/:id/session-zero/safety', requireAuth, async (req, res) 
 // Bulk upsert topics + update safety meta fields
 sessionZeroRouter.put('/:id/session-zero/safety', requireAuth, async (req, res) => {
   const userId = res.locals.user.id
-  const campaign = await ownedCampaign(req.params.id, userId)
+  const campaign = await ownedCampaign((req.params.id as string), userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
 
   const schema = z.object({
@@ -181,8 +181,8 @@ sessionZeroRouter.put('/:id/session-zero/safety', requireAuth, async (req, res) 
   if (parsed.data.topics) {
     for (const t of parsed.data.topics) {
       await prisma.safetyTopic.upsert({
-        where: { campaignId_topic: { campaignId: req.params.id, topic: t.topic } },
-        create: { campaignId: req.params.id, topic: t.topic, isPreset: t.isPreset ?? false, gmSetting: t.gmSetting ?? null },
+        where: { campaignId_topic: { campaignId: (req.params.id as string), topic: t.topic } },
+        create: { campaignId: (req.params.id as string), topic: t.topic, isPreset: t.isPreset ?? false, gmSetting: t.gmSetting ?? null },
         update: { gmSetting: t.gmSetting ?? null },
       })
     }
@@ -190,7 +190,7 @@ sessionZeroRouter.put('/:id/session-zero/safety', requireAuth, async (req, res) 
 
   if (parsed.data.contentRating !== undefined || parsed.data.sessionToolsUsed !== undefined) {
     await prisma.campaign.update({
-      where: { id: req.params.id },
+      where: { id: (req.params.id as string) },
       data: {
         ...(parsed.data.contentRating !== undefined && { contentRating: parsed.data.contentRating }),
         ...(parsed.data.sessionToolsUsed !== undefined && { sessionToolsUsed: parsed.data.sessionToolsUsed }),
@@ -204,14 +204,14 @@ sessionZeroRouter.put('/:id/session-zero/safety', requireAuth, async (req, res) 
 // Delete a custom topic
 sessionZeroRouter.delete('/:id/session-zero/safety/topic', requireAuth, async (req, res) => {
   const userId = res.locals.user.id
-  const campaign = await ownedCampaign(req.params.id, userId)
+  const campaign = await ownedCampaign((req.params.id as string), userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
 
   const { topic } = req.body as { topic: string }
   if (!topic) { res.status(400).json({ error: 'topic required' }); return }
 
   await prisma.safetyTopic.deleteMany({
-    where: { campaignId: req.params.id, topic, isPreset: false },
+    where: { campaignId: (req.params.id as string), topic, isPreset: false },
   })
   res.json({ ok: true })
 })
@@ -219,12 +219,12 @@ sessionZeroRouter.delete('/:id/session-zero/safety/topic', requireAuth, async (r
 // Create or get share link
 sessionZeroRouter.post('/:id/session-zero/safety/share', requireAuth, async (req, res) => {
   const userId = res.locals.user.id
-  const campaign = await ownedCampaign(req.params.id, userId)
+  const campaign = await ownedCampaign((req.params.id as string), userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
 
   const link = await prisma.safetyShareLink.upsert({
-    where: { campaignId: req.params.id },
-    create: { campaignId: req.params.id },
+    where: { campaignId: (req.params.id as string) },
+    create: { campaignId: (req.params.id as string) },
     update: { active: true },
   })
   res.json({ token: link.token, active: link.active })
@@ -233,11 +233,11 @@ sessionZeroRouter.post('/:id/session-zero/safety/share', requireAuth, async (req
 // Deactivate share link
 sessionZeroRouter.delete('/:id/session-zero/safety/share', requireAuth, async (req, res) => {
   const userId = res.locals.user.id
-  const campaign = await ownedCampaign(req.params.id, userId)
+  const campaign = await ownedCampaign((req.params.id as string), userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
 
   await prisma.safetyShareLink.updateMany({
-    where: { campaignId: req.params.id },
+    where: { campaignId: (req.params.id as string) },
     data: { active: false },
   })
   res.json({ ok: true })
@@ -246,11 +246,11 @@ sessionZeroRouter.delete('/:id/session-zero/safety/share', requireAuth, async (r
 // Get merged submission summary (strictest setting per topic)
 sessionZeroRouter.get('/:id/session-zero/safety/submissions', requireAuth, async (req, res) => {
   const userId = res.locals.user.id
-  const campaign = await ownedCampaign(req.params.id, userId)
+  const campaign = await ownedCampaign((req.params.id as string), userId)
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
 
   const submissions = await prisma.anonymousSafetySubmission.findMany({
-    where: { campaignId: req.params.id },
+    where: { campaignId: (req.params.id as string) },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -308,7 +308,7 @@ sessionZeroRouter.post('/safety/submit/:token', async (req, res) => {
 // GET charter (campaign already returned by existing campaign GET — this is a convenience alias)
 sessionZeroRouter.patch('/:campaignId/session-zero/charter', requireAuth, async (req, res) => {
   const user = (req as any).user
-  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  const campaign = await ownedCampaign((req.params.campaignId as string), user.id)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
 
   const schema = z.object({
@@ -333,7 +333,7 @@ const WB_CATEGORIES = ['faction', 'region', 'npc', 'pantheon', 'conflict', 'secr
 // GET all entries for a campaign
 sessionZeroRouter.get('/:campaignId/session-zero/world-building', requireAuth, async (req, res) => {
   const user = (req as any).user
-  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  const campaign = await ownedCampaign((req.params.campaignId as string), user.id)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
 
   const entries = await prisma.worldBuildingEntry.findMany({
@@ -346,7 +346,7 @@ sessionZeroRouter.get('/:campaignId/session-zero/world-building', requireAuth, a
 // POST create entry
 sessionZeroRouter.post('/:campaignId/session-zero/world-building', requireAuth, async (req, res) => {
   const user = (req as any).user
-  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  const campaign = await ownedCampaign((req.params.campaignId as string), user.id)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
 
   const schema = z.object({
@@ -365,7 +365,7 @@ sessionZeroRouter.post('/:campaignId/session-zero/world-building', requireAuth, 
 // PATCH update entry fields
 sessionZeroRouter.patch('/:campaignId/session-zero/world-building/:entryId', requireAuth, async (req, res) => {
   const user = (req as any).user
-  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  const campaign = await ownedCampaign((req.params.campaignId as string), user.id)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
 
   const schema = z.object({
@@ -377,7 +377,7 @@ sessionZeroRouter.patch('/:campaignId/session-zero/world-building/:entryId', req
   if (!parsed.success) { res.status(400).json({ error: 'Invalid payload' }); return }
 
   const entry = await prisma.worldBuildingEntry.updateMany({
-    where: { id: req.params.entryId, campaignId: campaign.id },
+    where: { id: (req.params.entryId as string), campaignId: campaign.id },
     data: parsed.data,
   })
   res.json({ ok: true, count: entry.count })
@@ -386,11 +386,11 @@ sessionZeroRouter.patch('/:campaignId/session-zero/world-building/:entryId', req
 // DELETE entry
 sessionZeroRouter.delete('/:campaignId/session-zero/world-building/:entryId', requireAuth, async (req, res) => {
   const user = (req as any).user
-  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  const campaign = await ownedCampaign((req.params.campaignId as string), user.id)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
 
   await prisma.worldBuildingEntry.deleteMany({
-    where: { id: req.params.entryId, campaignId: campaign.id },
+    where: { id: (req.params.entryId as string), campaignId: campaign.id },
   })
   res.json({ ok: true })
 })
@@ -398,11 +398,11 @@ sessionZeroRouter.delete('/:campaignId/session-zero/world-building/:entryId', re
 // POST expand with AI (SSE)
 sessionZeroRouter.post('/:campaignId/session-zero/world-building/:entryId/expand', requireAuth, async (req, res) => {
   const user = (req as any).user
-  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  const campaign = await ownedCampaign((req.params.campaignId as string), user.id)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
 
   const entry = await prisma.worldBuildingEntry.findFirst({
-    where: { id: req.params.entryId, campaignId: campaign.id },
+    where: { id: (req.params.entryId as string), campaignId: campaign.id },
   })
   if (!entry) { res.status(404).json({ error: 'Entry not found' }); return }
 
@@ -462,11 +462,11 @@ Write a full expanded description for this entry.`
 // POST promote to Library
 sessionZeroRouter.post('/:campaignId/session-zero/world-building/:entryId/promote', requireAuth, async (req, res) => {
   const user = (req as any).user
-  const campaign = await ownedCampaign(req.params.campaignId, user.id)
+  const campaign = await ownedCampaign((req.params.campaignId as string), user.id)
   if (!campaign) { res.status(404).json({ error: 'Campaign not found' }); return }
 
   const entry = await prisma.worldBuildingEntry.findFirst({
-    where: { id: req.params.entryId, campaignId: campaign.id },
+    where: { id: (req.params.entryId as string), campaignId: campaign.id },
   })
   if (!entry) { res.status(404).json({ error: 'Entry not found' }); return }
   if (entry.entityId) { res.status(400).json({ error: 'Already promoted to Library' }); return }

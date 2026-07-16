@@ -83,12 +83,12 @@ async function buildCampaignContext(campaignId: string, query: string, opts: Bui
     includeSessionNotes
       ? prisma.gameSession.findMany({
           where: { campaignId, status: { in: ['complete', 'active'] } },
-          select: { id: true, sessionNumber: true, title: true, dmRawNotes: true, status: true, date: true },
+          select: { id: true, sessionNumber: true, title: true, dmRawNotes: true, status: true, datePlayed: true },
           orderBy: { sessionNumber: 'desc' },
           take: 4,
         })
       : Promise.resolve([]),
-    prisma.playerCharacter.findMany({ where: { campaignId, deletedAt: null }, select: { name: true, characterClass: true, level: true, pronouns: true } }),
+    prisma.playerCharacter.findMany({ where: { campaignId, deletedAt: null }, select: { name: true, class: true, level: true } }),
   ])
 
   // Score by query relevance — exact name mentions score highest
@@ -113,7 +113,7 @@ async function buildCampaignContext(campaignId: string, query: string, opts: Bui
   const party = campaign.parties[0]
   type Character = { name?: string; class?: string; level?: number; player?: string }
   const pcs: Character[] = playerCharacters.length > 0
-    ? playerCharacters.map(pc => ({ name: pc.name, class: pc.characterClass, level: pc.level }))
+    ? playerCharacters.map(pc => ({ name: pc.name, class: pc.class, level: pc.level }))
     : party ? (party.characters as Character[]) : []
   const partySnap = pcs.length > 0
     ? pcs.map(c => `${c.name ?? '?'} (${c.class ?? '?'}, Lv ${c.level ?? '?'}${c.player ? `, player: ${c.player}` : ''})`).join('; ')
@@ -452,6 +452,7 @@ async function handleTextGenerate(req: Request, res: Response): Promise<void> {
       outputSchema = ENEMY_SCHEMA_DW
     }
   }
+  const userPref = await prisma.userPreference.findUnique({ where: { userId } })
   const contentRating = userPref?.contentRating ?? 'standard'
 
   const systemPrompt = `You are an AI assistant for a tabletop RPG Game Master. You help generate campaign content that integrates seamlessly with existing campaign state.
