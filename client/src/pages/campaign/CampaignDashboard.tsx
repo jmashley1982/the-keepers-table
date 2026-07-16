@@ -7,14 +7,14 @@ import { useUIStore } from '../../store/useUIStore'
 import MentionText from '../../components/session/MentionText'
 
 const CANDLELIGHT_ICONS = {
-  newSession:    '/icons/candlelight/new_sesh.webp',
-  generateNpc:   '/icons/candlelight/gen_npc.webp',
-  genEncounter:  '/icons/candlelight/gen_enc.webp',
-  genTreasure:   '/icons/candlelight/gen_treas.webp',
-  npcs:          '/icons/candlelight/NPCs.webp',
-  items:         '/icons/candlelight/items.webp',
-  locations:     '/icons/candlelight/locations.webp',
-  sessions:      '/icons/candlelight/sessions.webp',
+  newSession:    '/icons/candlelight/new_sesh.png',
+  generateNpc:   '/icons/candlelight/gen_npc.png',
+  genEncounter:  '/icons/candlelight/gen_enc.png',
+  genTreasure:   '/icons/candlelight/gen_treas.png',
+  npcs:          '/icons/candlelight/npcs.png',
+  items:         '/icons/candlelight/items.png',
+  locations:     '/icons/candlelight/locations.png',
+  sessions:      '/icons/candlelight/sessions.png',
 } as const
 
 const ELDRITCH_ICONS = {
