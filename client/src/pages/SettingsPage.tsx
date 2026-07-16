@@ -239,6 +239,7 @@ export default function SettingsPage() {
   const pricingMaxCost: number = pricingData?.maxModelCost ?? 0.12
   const pricingDefault: number = pricingData?.defaultCostPerImage ?? 0.05
   const minimumThreshold: number = pricingData?.minimumConfirmThreshold ?? 0.05
+  const evolinkCreditsPerUsd: number = pricingData?.evolinkCreditsPerUsd ?? 67
 
   const { data: credsData } = useQuery({
     queryKey: ['credentials'],
@@ -518,6 +519,12 @@ export default function SettingsPage() {
             <p className="font-bold text-ink display-font text-xl">{totalTokens.toLocaleString()}</p>
           </div>
         </div>
+
+        {/* EvoLink conversion rate note */}
+        <p className="text-[11px] text-ink-muted">
+          EvoLink credit rate: <span className="font-medium text-ink">{evolinkCreditsPerUsd} credits / $1.00</span>
+          {' '}(≈ ${(1 / evolinkCreditsPerUsd).toFixed(4)} per credit)
+        </p>
 
         {/* Per-provider breakdown */}
         {providerTotals.length > 0 && (
