@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
 import { ktThemeToDungeonGadgets } from '../../lib/toolTheme'
 
@@ -8,6 +10,9 @@ export default function DungeonTrackerPage() {
   const dgTheme = ktThemeToDungeonGadgets(theme)
   const initialSrc = useRef(`/tools/tracker.html${dgTheme ? `?theme=${dgTheme}` : ''}`)
   const mounted = useRef(false)
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const from = searchParams.get('from')
 
   useEffect(() => {
     if (!mounted.current) {
@@ -22,6 +27,23 @@ export default function DungeonTrackerPage() {
 
   return (
     <div className="relative flex flex-col" style={{ height: '100%' }}>
+      {from && (
+        <div
+          className="shrink-0 flex items-center px-3 py-1.5"
+          style={{
+            background: 'var(--color-surface)',
+            borderBottom: '1px solid var(--color-border)',
+          }}
+        >
+          <button
+            onClick={() => navigate(from)}
+            className="flex items-center gap-1.5 text-xs text-ink-muted hover:text-ink transition-colors"
+          >
+            <ArrowLeft size={13} />
+            Back to Campaign
+          </button>
+        </div>
+      )}
       <iframe
         ref={iframeRef}
         src={initialSrc.current}

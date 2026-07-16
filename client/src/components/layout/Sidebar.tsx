@@ -187,6 +187,8 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
             {navLink(`/campaign/${campaignId}/maps`, <Map size={15} />, 'Maps')}
             {navLink(`/campaign/${campaignId}/log`, <Scroll size={15} />, 'Session Log')}
             {navLink(`/campaign/${campaignId}/settings`, <Settings size={15} />, 'Campaign Settings')}
+            {navLink(`/tools/lineage?from=/campaign/${campaignId}`, <GitBranch size={15} />, 'Lineage')}
+            {navLink(`/tools/tracker?from=/campaign/${campaignId}`, <Timer size={15} />, 'Dungeon Tracker')}
 
             {isDnd5e && (
               <button
