@@ -5,7 +5,7 @@ const THEME_MAP: Record<UIState['theme'], string> = {
   eldritch:       'castlevania',
   neon:           'castlevania',
   icarus:         'dungeon',
-  'high-contrast': 'escape',
+  'haunt': 'escape',
 }
 
 export function ktThemeToDungeonGadgets(kt: UIState['theme']): string {

@@ -9,7 +9,7 @@ const ICONS: Record<string, string> = {
   eldritch,
   icarus,
   neon,
-  'high-contrast': contrast,
+  haunt: contrast,
 }
 
 export function themeBrandIcon(theme: string): string {

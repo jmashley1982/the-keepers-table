@@ -19,7 +19,7 @@ const THEME_OPTIONS = [
   { id: 'eldritch',     label: 'Eldritch',       icon: Skull },
   { id: 'icarus',       label: 'Icarus',         icon: Rocket },
   { id: 'neon',         label: 'Neon',           icon: Terminal },
-  { id: 'high-contrast', label: 'High Contrast', icon: Contrast },
+  { id: 'haunt', label: 'Haunt', icon: Contrast },
 ] as const
 
 export default function Sidebar({ campaignId }: { campaignId?: string }) {

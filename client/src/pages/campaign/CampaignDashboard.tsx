@@ -28,9 +28,21 @@ const ELDRITCH_ICONS = {
   sessions:      '/icons/eldritch/sessions.webp',
 } as const
 
+const HAUNT_ICONS = {
+  newSession:    '/icons/haunt/new_sesh.png',
+  generateNpc:   '/icons/haunt/gen_npc.png',
+  genEncounter:  '/icons/haunt/gen_enc.png',
+  genTreasure:   '/icons/haunt/gen_treas.png',
+  npcs:          '/icons/haunt/npcs.png',
+  items:         '/icons/haunt/items.png',
+  locations:     '/icons/haunt/locations.png',
+  sessions:      '/icons/haunt/sessions.png',
+} as const
+
 const THEME_ICONS: Partial<Record<string, typeof CANDLELIGHT_ICONS>> = {
   candlelight: CANDLELIGHT_ICONS,
   eldritch:    ELDRITCH_ICONS,
+  haunt:       HAUNT_ICONS,
 }
 
 export default function CampaignDashboard() {

@@ -20,8 +20,8 @@
 }
 
 
-/* ── High Contrast ── */
-[data-theme="high-contrast"] {
+/* ── Haunt ── */
+[data-theme="haunt"] {
   --color-bg:        #000000;
   --color-surface:   #121212;
   --color-surface-2: #1e1e1e;
@@ -186,14 +186,14 @@ body {
   filter: none;
 }
 
-/* ── High Contrast ── */
-[data-theme="high-contrast"] .display-font {
+/* ── Haunt ── */
+[data-theme="haunt"] .display-font {
   color: var(--color-ink);
 }
-[data-theme="high-contrast"] .btn-primary {
+[data-theme="haunt"] .btn-primary {
   color: #000;
 }
-[data-theme="high-contrast"] .logo-theme {
+[data-theme="haunt"] .logo-theme {
   filter: none;
 }
 
