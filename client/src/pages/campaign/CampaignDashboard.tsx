@@ -41,6 +41,7 @@ export default function CampaignDashboard() {
   const ci = THEME_ICONS[theme] ?? null
   const [prepLoading, setPrepLoading] = useState(false)
   const [prepSuggestions, setPrepSuggestions] = useState<PrepSuggestion[]>([])
+  const [prepError, setPrepError] = useState<string | null>(null)
 
   const { data: campData } = useQuery({
     queryKey: ['campaign', campaignId],
@@ -73,11 +74,12 @@ export default function CampaignDashboard() {
   async function loadPrepSuggestions() {
     if (prepLoading || prepSuggestions.length > 0) return
     setPrepLoading(true)
+    setPrepError(null)
     try {
       const { data } = await api.post(`/api/generate/prep-suggestions/${campaignId}`)
       setPrepSuggestions(data.suggestions ?? [])
     } catch (e) {
-      console.error(apiError(e))
+      setPrepError(apiError(e))
     } finally {
       setPrepLoading(false)
     }
@@ -177,6 +179,10 @@ export default function CampaignDashboard() {
           )}
         </div>
 
+        {prepError && (
+          <p className="text-sm text-danger mb-2">{prepError}</p>
+        )}
+
         {prepSuggestions.length > 0 ? (
           <div className="space-y-2">
             {prepSuggestions.map((s, i) => (
@@ -197,13 +203,13 @@ export default function CampaignDashboard() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : !prepError ? (
           <p className="text-sm text-ink-muted">
             {sessions.filter(s => s.status === 'complete').length === 0
               ? 'Run your first session to get AI-powered prep suggestions.'
               : 'Click "Get suggestions" to have Claude draft next-session ideas from your hooks and plot threads.'}
           </p>
-        )}
+        ) : null}
       </div>
 
       {/* Recent sessions */}

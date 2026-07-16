@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Sparkles, Loader, ChevronRight } from 'lucide-react'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import axios from 'axios'
 
 interface Props {
   value: string
@@ -14,12 +15,14 @@ export default function PromptExpandButton({ value, onSelect, context = 'general
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [open, setOpen] = useState(false)
+  const [keyError, setKeyError] = useState<string | null>(null)
 
   async function expand() {
     if (!value.trim() || loading) return
     setLoading(true)
     setSuggestions([])
     setOpen(false)
+    setKeyError(null)
     try {
       const res = await api.post('/api/generate/expand-prompt', { prompt: value.trim(), context })
       const list: string[] = res.data.suggestions ?? []
@@ -27,8 +30,10 @@ export default function PromptExpandButton({ value, onSelect, context = 'general
         setSuggestions(list)
         setOpen(true)
       }
-    } catch {
-      // silently ignore — button just does nothing on failure
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 402) {
+        setKeyError(err.response.data?.error ?? 'No API key configured. Add an Anthropic or Evolink key in Settings.')
+      }
     } finally {
       setLoading(false)
     }
@@ -61,6 +66,13 @@ export default function PromptExpandButton({ value, onSelect, context = 'general
           : <Sparkles size={11} />}
         {loading ? 'Expanding…' : 'Expand'}
       </button>
+
+      {keyError && (
+        <div className="absolute right-0 top-full mt-1 z-40 w-72 bg-surface border border-danger/40 rounded-card shadow-lg px-3 py-2">
+          <p className="text-[11px] text-danger leading-snug">{keyError}</p>
+          <button className="text-[10px] text-ink-muted hover:text-ink mt-1" onClick={() => setKeyError(null)}>Dismiss</button>
+        </div>
+      )}
 
       {open && suggestions.length > 0 && (
         <>

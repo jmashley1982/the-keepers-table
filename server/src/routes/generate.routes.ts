@@ -709,7 +709,7 @@ generateRouter.post('/session-wrap/:sessionId', async (req, res) => {
   if (!campaign) { res.status(403).json({ error: 'Forbidden' }); return }
 
   const client = await getAnthropicClient(userId)
-  if (!client) { res.status(402).json({ error: 'No Anthropic API key' }); return }
+  if (!client) { res.status(402).json({ error: 'No API key configured. Add an Anthropic or Evolink key in Settings.' }); return }
 
   const sessionWrapQuota = await checkFriendTextQuota(userId)
   if (!sessionWrapQuota.allowed) { res.status(429).json({ error: sessionWrapQuota.error }); return }
@@ -781,7 +781,7 @@ generateRouter.post('/prep-suggestions/:campaignId', async (req, res) => {
   if (!campaign) { res.status(404).json({ error: 'Not found' }); return }
 
   const client = await getAnthropicClient(userId)
-  if (!client) { res.status(402).json({ error: 'No Anthropic API key' }); return }
+  if (!client) { res.status(402).json({ error: 'No API key configured. Add an Anthropic or Evolink key in Settings.' }); return }
 
   const prepQuota = await checkFriendTextQuota(userId)
   if (!prepQuota.allowed) { res.status(429).json({ error: prepQuota.error }); return }
