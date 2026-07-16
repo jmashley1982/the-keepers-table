@@ -3,6 +3,7 @@ import type { Job } from 'pg-boss'
 import { prisma } from './prisma.js'
 import { StorageService } from './storage.js'
 import { decrypt } from './crypto.js'
+import { creditsToUsd } from './pricing.js'
 import sharp from 'sharp'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -423,7 +424,8 @@ Return ONLY valid JSON — no prose, no markdown:
       const outputUrl = submitData.results?.[0]
       if (!outputUrl) throw new Error('EvoLink sync succeeded but returned no output URL')
 
-      const syncCostActual = submitData.usage?.credits_reserved ?? null
+      const syncCredits = submitData.usage?.credits_reserved ?? null
+      const syncCostActual = syncCredits !== null ? creditsToUsd(syncCredits) : null
 
       if (syncCostActual !== null) {
         await prisma.generationJob.update({ where: { id: jobId }, data: { costActual: syncCostActual } })
@@ -537,9 +539,10 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
         return
       }
 
-      const costActual = responseData.usage?.credits_used
+      const rawCredits = responseData.usage?.credits_used
         ?? responseData.usage?.credits_reserved
         ?? null
+      const costActual = rawCredits !== null ? creditsToUsd(rawCredits) : null
 
       if (costActual !== null) {
         await prisma.generationJob.update({ where: { id: jobId }, data: { costActual } })

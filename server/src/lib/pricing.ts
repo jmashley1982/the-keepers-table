@@ -5,6 +5,8 @@ interface PricingConfig {
   models: Record<string, number>
   defaultCostPerImage: number
   minimumConfirmThreshold: number
+  evolinkCreditsPerUsd: number
+  artDirectorCostPerCall: number
 }
 
 const PRICING_PATH = resolve(process.cwd(), 'config/pricing.json')
@@ -19,7 +21,7 @@ function loadPricing(): PricingConfig {
     cache = { config, mtime }
     return config
   } catch {
-    return { models: {}, defaultCostPerImage: 0.05, minimumConfirmThreshold: 0.05 }
+    return { models: {}, defaultCostPerImage: 0.05, minimumConfirmThreshold: 0.05, evolinkCreditsPerUsd: 67, artDirectorCostPerCall: 0.0003 }
   }
 }
 
@@ -30,6 +32,19 @@ export function getImageCostEstimate(model: string): number {
 
 export function getMinimumConfirmThreshold(): number {
   return loadPricing().minimumConfirmThreshold ?? 0.05
+}
+
+export function getArtDirectorCostPerCall(): number {
+  return loadPricing().artDirectorCostPerCall ?? 0.0003
+}
+
+export function creditsToUsd(credits: number): number {
+  const rate = loadPricing().evolinkCreditsPerUsd ?? 67
+  return credits / rate
+}
+
+export function getEvolinkCreditsPerUsd(): number {
+  return loadPricing().evolinkCreditsPerUsd ?? 67
 }
 
 export function getPricingMeta(): {

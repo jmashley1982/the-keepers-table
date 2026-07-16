@@ -15,5 +15,7 @@
   },
   "_comment": "Estimated cost per image in USD (EvoLink). gpt-image-2-ultra uses medium quality, gpt-image-2 uses low, krea-2-turbo uses 1K. Edit this file to update pricing without a redeploy.",
   "defaultCostPerImage": 0.04,
-  "minimumConfirmThreshold": 0.05
+  "minimumConfirmThreshold": 0.05,
+  "evolinkCreditsPerUsd": 67,
+  "artDirectorCostPerCall": 0.0003
 }
