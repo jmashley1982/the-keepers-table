@@ -58,7 +58,7 @@ const NEON_ICONS = {
   npcs:          '/icons/neon/npcs.png',
   items:         '/icons/neon/items.png',
   locations:     '/icons/neon/locations.png',
-  sessions:      '',
+  sessions:      '/icons/neon/sessions.png',
 } as const
 
 const THEME_ICONS: Partial<Record<string, typeof CANDLELIGHT_ICONS>> = {
