@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../lib/api'
 import { useUIStore } from '../store/useUIStore'
 import { themeBrandIcon } from '../lib/themeBrandIcon'
-import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn, LayoutDashboard } from 'lucide-react'
+import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn, LayoutDashboard, UserPlus } from 'lucide-react'
 
 const FEATURES = [
   {
@@ -162,7 +162,7 @@ export default function SplashPage() {
               </button>
 
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/signup')}
                 className="flex items-center gap-2 px-6 py-3 rounded-card font-semibold text-sm transition-all min-w-[160px] justify-center"
                 style={{
                   background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)',
@@ -172,7 +172,18 @@ export default function SplashPage() {
                 onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 18%, transparent)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 10%, transparent)')}
               >
-                <LogIn size={15} />
+                <UserPlus size={15} />
+                Sign up
+              </button>
+
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-card font-medium text-sm transition-all justify-center"
+                style={{ color: 'var(--color-ink-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-ink)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-ink-muted)')}
+              >
+                <LogIn size={14} />
                 Sign in
               </button>
             </>

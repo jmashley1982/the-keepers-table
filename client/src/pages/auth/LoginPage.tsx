@@ -139,6 +139,11 @@ export default function LoginPage() {
             {login.isPending ? 'Signing in…' : 'Sign in'}
           </button>
 
+          <p className="text-center text-sm text-ink-muted">
+            Don't have an account?{' '}
+            <a href="/signup" className="text-accent hover:underline">Create one</a>
+          </p>
+
         </div>
       </div>
     </div>

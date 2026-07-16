@@ -8,6 +8,7 @@ import { useEffect } from 'react'
 import SplashPage from './pages/SplashPage'
 import FriendsLoginPage from './pages/friends/FriendsLoginPage'
 import LoginPage from './pages/auth/LoginPage'
+import SignupPage from './pages/auth/SignupPage'
 import OnboardingPage from './pages/auth/OnboardingPage'
 import CampaignsPage from './pages/campaigns/CampaignsPage'
 import CampaignDashboard from './pages/campaign/CampaignDashboard'
@@ -67,7 +68,7 @@ export default function App() {
 
       {/* Public auth */}
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<Navigate to="/login" replace />} />
+      <Route path="/signup" element={<SignupPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
 
       {/* Protected — pathless layout route so "/" is never contested */}

@@ -46,6 +46,15 @@ authRouter.post('/signup', async (req, res) => {
     return
   }
 
+  const FULL_USER_CAP = 3
+  const fullUserCount = await prisma.user.count({
+    where: { email: { not: { endsWith: '@keeper.internal' } } },
+  })
+  if (fullUserCount >= FULL_USER_CAP) {
+    res.status(403).json({ error: "We're currently at capacity — no new accounts available right now." })
+    return
+  }
+
   const passwordHash = await hashPassword(password)
   const user = await prisma.user.create({
     data: { email, passwordHash, displayName },
