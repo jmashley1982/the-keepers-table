@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BookOpen, Map, Scroll,
   Settings, LogOut, ChevronDown, Zap, Users,
   Contrast, Flame, Skull, Rocket, Terminal, Swords, Shield,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, GitBranch, Timer,
 } from 'lucide-react'
 import { useState } from 'react'
 import { themeBrandIcon } from '../../lib/themeBrandIcon'
@@ -203,6 +203,15 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
             )}
           </>
         )}
+
+        <div className={cn('pb-1', collapsed ? 'pt-2' : 'pt-4 px-1')}>
+          {!collapsed && (
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted opacity-60">Tools</p>
+          )}
+          {collapsed && <div className="h-px bg-border opacity-40" />}
+        </div>
+        {navLink('/tools/lineage', <GitBranch size={15} />, 'Lineage')}
+        {navLink('/tools/tracker', <Timer size={15} />, 'Dungeon Tracker')}
 
         <div className={cn('pb-1', collapsed ? 'pt-2' : 'pt-4 px-1')}>
           {!collapsed && (

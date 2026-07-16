@@ -1,0 +1,2165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+(function(){
+  var m = location.search.match(/[?&]theme=([^&]*)/);
+  if (m && m[1]) {
+    document.documentElement.setAttribute('data-theme', decodeURIComponent(m[1]));
+  }
+})();
+</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lineage — Family Tree Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;700&family=EB+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; overflow: hidden; }
+    body { background: var(--th-void); color: var(--th-bone); font-family: 'EB Garamond', serif; font-size: 15px; }
+
+    :root {
+      --th-void:        #06060a;
+      --th-abyss:       #0e0d11;
+      --th-stone:       #1a1820;
+      --th-bone:        #f5e8c4;
+      --th-bone-dim:    #c8a860;
+      --th-bone-faint:  #7a6840;
+      --th-accent1:     #6ee7a0;
+      --th-accent2:     #d4a840;
+      --th-accent-hi:   #f0c84a;
+      --th-border:      #22202a;
+      --th-border2:     #38323e;
+      --th-card:        #0e0d11;
+      --th-card2:       #06060a;
+      --th-panel:       #0e0d11;
+      --th-link-active: #e06888;
+      --th-link-hover:  #f08898;
+      --th-link-bg:     #1a0a18;
+      --th-focus-ring:  rgba(110,231,160,0.28);
+    }
+    [data-theme="castlevania"] {
+      --th-void: #060408; --th-abyss: #0e0820; --th-stone: #1c1640;
+      --th-bone: #ede8ff; --th-bone-dim: #b8a8e8; --th-bone-faint: #a090cc;
+      --th-accent1: #c070f8; --th-accent2: #70b8f8; --th-accent-hi: #e0a0ff;
+      --th-border: #3a2e60; --th-border2: #7060b0;
+      --th-card: #201a50; --th-card2: #100c28; --th-panel: #140e30;
+      --th-link-active: #c070f8; --th-link-hover: #e0a0ff; --th-link-bg: #1a0838;
+      --th-focus-ring: rgba(192,112,248,0.28);
+    }
+    [data-theme="vampire"] {
+      --th-void: #080204; --th-abyss: #120410; --th-stone: #200c14;
+      --th-bone: #fff4ec; --th-bone-dim: #e0a888; --th-bone-faint: #c07878;
+      --th-accent1: #ff3860; --th-accent2: #e88870; --th-accent-hi: #ff7090;
+      --th-border: #3a1820; --th-border2: #5a2830;
+      --th-card: #280e18; --th-card2: #140608; --th-panel: #180810;
+      --th-link-active: #ff3860; --th-link-hover: #ff7090; --th-link-bg: #280010;
+      --th-focus-ring: rgba(255,56,96,0.28);
+    }
+    [data-theme="dungeon"] {
+      --th-void: #060c08; --th-abyss: #0c1410; --th-stone: #141e18;
+      --th-bone: #d8f0c8; --th-bone-dim: #98c090; --th-bone-faint: #80a878;
+      --th-accent1: #48b870; --th-accent2: #d4a040; --th-accent-hi: #70d890;
+      --th-border: #1e3828; --th-border2: #2e5038;
+      --th-card: #101c14; --th-card2: #0a1210; --th-panel: #0e1812;
+      --th-link-active: #48b870; --th-link-hover: #70d890; --th-link-bg: #081808;
+      --th-focus-ring: rgba(72,184,112,0.28);
+    }
+    [data-theme="escape"] {
+      --th-void: #080808; --th-abyss: #101010; --th-stone: #1a1a1a;
+      --th-bone: #eeeeee; --th-bone-dim: #c0c0c0; --th-bone-faint: #909090;
+      --th-accent1: #7090b0; --th-accent2: #c8d8e8; --th-accent-hi: #ffffff;
+      --th-border: #2a2a2a; --th-border2: #484848;
+      --th-card: #161616; --th-card2: #0e0e0e; --th-panel: #111111;
+      --th-link-active: #c8c8c8; --th-link-hover: #eeeeee; --th-link-bg: #1a1a1a;
+      --th-focus-ring: rgba(112,144,176,0.35);
+    }
+
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: var(--th-abyss); }
+    ::-webkit-scrollbar-thumb { background: var(--th-border2); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--th-bone-faint); }
+
+    .btn {
+      background: var(--th-stone); border: 1px solid var(--th-accent1); color: var(--th-accent-hi);
+      padding: 7px 18px; border-radius: 5px; cursor: pointer;
+      font-family: 'EB Garamond', serif; font-size: 14px; font-weight: 600;
+      letter-spacing: 0.04em; line-height: 1; transition: all 0.15s;
+      white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn:hover { background: var(--th-accent1); color: var(--th-void); }
+    .btn:active { transform: translateY(1px); }
+    .btn.sm  { padding: 5px 13px; font-size: 13px; }
+    .btn.xs  { padding: 3px 9px;  font-size: 12px; }
+    .btn.danger { border-color: #c04040; color: #f07070; background: var(--th-abyss); }
+    .btn.danger:hover { background: #a03030; color: #fff; border-color: #a03030; }
+    .btn.ghost { border-color: var(--th-border2); color: var(--th-bone-dim); background: transparent; }
+    .btn.ghost:hover { background: var(--th-stone); color: var(--th-bone); border-color: var(--th-accent1); }
+    .btn.muted { border-color: var(--th-border); color: var(--th-bone-faint); background: transparent; font-weight: 400; }
+    .btn.muted:hover { background: var(--th-stone); color: var(--th-bone-dim); border-color: var(--th-border2); }
+    .btn.linking { border-color: var(--th-link-active); color: var(--th-link-hover); background: var(--th-link-bg); }
+    .btn.linking:hover { background: var(--th-link-active); color: #fff; }
+    .btn.icon { padding: 5px 9px; font-size: 16px; }
+
+    .tab-btn {
+      background: none; border: none; border-bottom: 2px solid transparent;
+      cursor: pointer; padding: 0 16px; height: 100%;
+      font-family: 'EB Garamond', serif; font-size: 15px; color: var(--th-bone-dim);
+      letter-spacing: 0.04em; transition: color 0.15s; white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .tab-btn.active { color: var(--th-accent-hi); border-bottom-color: var(--th-accent1); }
+    .tab-btn:hover:not(.active) { color: var(--th-bone); }
+
+    input, textarea, select {
+      background: var(--th-card2); border: 1px solid var(--th-border2); color: var(--th-bone);
+      padding: 9px 13px; border-radius: 5px;
+      font-family: 'EB Garamond', serif; font-size: 15px;
+      width: 100%; outline: none; line-height: 1.4; display: block;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input::placeholder, textarea::placeholder { color: var(--th-bone-faint); opacity: 0.8; }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--th-accent1); background: var(--th-abyss);
+      box-shadow: 0 0 0 3px var(--th-focus-ring);
+    }
+    select option { background: var(--th-card); color: var(--th-bone); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    .field-label {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--th-bone-dim); margin-bottom: 5px; margin-top: 14px; display: block; font-weight: 700;
+    }
+    .section-title {
+      font-family: 'Cinzel', serif; font-size: 11px;
+      letter-spacing: 0.14em; color: var(--th-accent1); text-transform: uppercase;
+      margin: 14px 0 8px; display: block;
+    }
+    .panel-heading { font-family: 'Cinzel', serif; font-size: 17px; color: var(--th-accent2); letter-spacing: 0.06em; }
+
+    .tag {
+      display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px;
+      font-size: 12px; border: 1px solid; line-height: 1.5; white-space: nowrap;
+      font-weight: 600; letter-spacing: 0.02em;
+    }
+
+    .char-card {
+      background: var(--th-card); border: 1px solid var(--th-border); border-radius: 8px;
+      padding: 12px 14px; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .char-card:hover { border-color: var(--th-accent1); background: var(--th-abyss); }
+    .char-card .card-name { font-family: 'Cinzel', serif; font-size: 13px; color: var(--th-bone); line-height: 1.3; word-break: break-word; }
+    .char-card .card-titles { font-size: 13px; font-style: italic; color: var(--th-bone-dim); }
+    .char-card .card-meta   { font-size: 13px; color: var(--th-bone-dim); }
+    .char-card .card-actions{ display: flex; gap: 6px; justify-content: flex-end; margin-top: 2px; opacity: 0; transition: opacity 0.15s; }
+    .char-card:hover .card-actions { opacity: 1; }
+
+    .rel-row { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 6px; border-bottom: 1px solid var(--th-border); transition: background 0.15s; }
+    .rel-row:hover { background: var(--th-card); }
+
+    .sidebar-char-header { background: linear-gradient(135deg, var(--th-stone) 0%, var(--th-abyss) 100%); border-bottom: 1px solid var(--th-border2); padding: 15px 16px; }
+    .sidebar-body { padding: 14px 16px; overflow-y: auto; flex: 1; font-size: 15px; }
+
+    .divider { border: none; border-top: 1px solid var(--th-border); margin: 12px 0; }
+
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: var(--th-stone); border: 1px solid var(--th-accent1); color: var(--th-accent-hi);
+      padding: 10px 24px; border-radius: 22px; font-size: 14px; font-weight: 600;
+      animation: toastIn 2.8s forwards; pointer-events: none; z-index: 999;
+      white-space: nowrap; box-shadow: 0 4px 24px rgba(0,0,0,0.6); letter-spacing: 0.04em;
+    }
+    @keyframes toastIn {
+      0%   { opacity:0; transform:translateX(-50%) translateY(10px); }
+      12%  { opacity:1; transform:translateX(-50%) translateY(0); }
+      75%  { opacity:1; }
+      100% { opacity:0; transform:translateX(-50%) translateY(-4px); }
+    }
+
+    .confirm-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.78); display:flex; align-items:center; justify-content:center; z-index:300; }
+    .confirm-box { background:var(--th-card); border:1px solid var(--th-border2); border-radius:10px; padding:28px 28px 22px; width:400px; max-width:92vw; box-shadow:0 20px 60px rgba(0,0,0,0.7); }
+    .confirm-title { font-family:'Cinzel',serif; font-size:15px; color:var(--th-accent-hi); margin-bottom:12px; }
+    .confirm-body  { font-size:15px; color:var(--th-bone); line-height:1.65; margin-bottom:24px; }
+    .confirm-actions { display:flex; gap:8px; justify-content:flex-end; }
+
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.82); display:flex; align-items:center; justify-content:center; z-index:200; }
+    .modal-box { background:var(--th-card); border:1px solid var(--th-border2); border-radius:12px; width:540px; max-width:96vw; max-height:92vh; overflow-y:auto; box-shadow:0 24px 80px rgba(0,0,0,0.8); }
+    .modal-header { padding:20px 24px 16px; border-bottom:1px solid var(--th-border); font-family:'Cinzel',serif; font-size:16px; color:var(--th-accent2); display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg, var(--th-stone) 0%, var(--th-card) 100%); }
+    .modal-body   { padding:6px 24px 24px; }
+    .modal-footer { padding:16px 24px; border-top:1px solid var(--th-border); display:flex; gap:8px; justify-content:flex-end; background:var(--th-card2); }
+    .form-section { background:var(--th-card2); border:1px solid var(--th-border); border-radius:8px; padding:14px 16px; margin-top:16px; }
+    .form-section-title { font-family:'Cinzel',serif; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--th-accent1); margin-bottom:6px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+    .form-full  { grid-column:1/-1; }
+
+    .ctx-menu { position:fixed; z-index:500; background:var(--th-card); border:1px solid var(--th-border2); border-radius:8px; padding:4px 0; min-width:190px; box-shadow:0 8px 32px rgba(0,0,0,0.75); font-family:'EB Garamond',serif; animation:ctxIn 0.1s ease-out; }
+    @keyframes ctxIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+    .ctx-label { font-family:'Cinzel',serif; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--th-bone-dim); padding:8px 14px 5px; display:block; }
+    .ctx-item  { display:flex; align-items:center; gap:9px; padding:8px 14px; font-size:14px; color:var(--th-bone); cursor:pointer; transition:background 0.1s; white-space:nowrap; background:none; border:none; width:100%; text-align:left; font-family:'EB Garamond',serif; font-weight:600; }
+    .ctx-item:hover { background:var(--th-stone); }
+    .ctx-item.danger { color:#f07070; }
+    .ctx-item.danger:hover { background:var(--th-abyss); color:#ff9090; }
+    .ctx-sep  { border:none; border-top:1px solid var(--th-border); margin:4px 0; }
+    .ctx-types{ display:flex; flex-wrap:wrap; gap:5px; padding:6px 10px 8px; }
+    .ctx-type-btn { border:1px solid; border-radius:4px; padding:4px 9px; font-size:12px; font-family:'EB Garamond',serif; font-weight:600; cursor:pointer; transition:all 0.12s; white-space:nowrap; background:transparent; }
+
+    /* Hereditary toggle pill */
+    .h-toggle { display:inline-flex; align-items:center; gap:9px; cursor:pointer; padding:8px 12px; border-radius:6px; border:1px solid var(--th-border); background:var(--th-card); transition:border-color 0.15s,background 0.15s; user-select:none; width:100%; }
+    .h-toggle:hover { border-color:var(--th-border2); }
+    .h-toggle.on  { border-color:var(--th-accent1); background:var(--th-stone); }
+    .h-pip { width:34px; height:18px; border-radius:9px; background:var(--th-border2); position:relative; transition:background 0.2s; flex-shrink:0; }
+    .h-pip::after { content:''; position:absolute; top:3px; left:3px; width:12px; height:12px; border-radius:50%; background:var(--th-bone-faint); transition:transform 0.2s,background 0.2s; }
+    .h-toggle.on .h-pip { background:var(--th-accent1); }
+    .h-toggle.on .h-pip::after { transform:translateX(16px); background:var(--th-void); }
+
+    /* Welcome popup */
+    .welcome-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; z-index:400; animation:fadeIn 0.3s ease; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .welcome-box { background:var(--th-card); border:1px solid var(--th-accent1); border-radius:14px; width:460px; max-width:94vw; box-shadow:0 28px 80px rgba(0,0,0,0.85),0 0 40px rgba(201,162,39,0.12); overflow:hidden; }
+    .welcome-header { background:linear-gradient(135deg,var(--th-stone) 0%,var(--th-abyss) 100%); padding:28px 28px 20px; border-bottom:1px solid var(--th-border2); text-align:center; }
+    .welcome-title { font-family:'Cinzel',serif; font-size:22px; color:var(--th-accent2); letter-spacing:0.08em; margin-bottom:6px; }
+    .welcome-subtitle { font-size:14px; color:var(--th-bone-dim); letter-spacing:0.04em; }
+    .welcome-body { padding:24px 28px; line-height:1.75; font-size:15px; color:var(--th-bone); }
+    .welcome-body p { margin-bottom:14px; }
+    .welcome-body p:last-child { margin-bottom:0; }
+    .welcome-kofi { display:flex; align-items:center; gap:12px; background:var(--th-card2); border:1px solid var(--th-border2); border-radius:8px; padding:14px 16px; margin:16px 0 4px; text-decoration:none; transition:border-color 0.15s,background 0.15s; cursor:pointer; }
+    .welcome-kofi:hover { border-color:var(--th-accent1); background:var(--th-stone); }
+    .welcome-kofi-icon { font-size:26px; flex-shrink:0; }
+    .welcome-kofi-text { flex:1; }
+    .welcome-kofi-label { font-family:'Cinzel',serif; font-size:13px; color:var(--th-accent2); letter-spacing:0.06em; margin-bottom:2px; }
+    .welcome-kofi-sub { font-size:13px; color:var(--th-bone-dim); }
+    .welcome-footer { padding:16px 28px 20px; border-top:1px solid var(--th-border); display:flex; justify-content:center; }
+
+    /* Zoom badge */
+    .zoom-controls { position:absolute; bottom:14px; right:16px; display:flex; align-items:center; gap:3px; background:var(--th-abyss); border:1px solid var(--th-border); border-radius:6px; padding:2px 4px; }
+    .zoom-controls button { background:none; border:none; color:var(--th-bone-faint); cursor:pointer; font-size:14px; padding:2px 6px; border-radius:4px; font-family:'EB Garamond',serif; line-height:1; transition:color 0.15s,background 0.15s; }
+    .zoom-controls button:hover { color:var(--th-accent2); background:var(--th-accent2)18; }
+    .zoom-badge { background:none; border:none; color:var(--th-bone-faint); padding:3px 7px; font-size:12px; font-family:'EB Garamond',serif; user-select:none; letter-spacing:0.04em; cursor:pointer; transition:color 0.15s; min-width:40px; text-align:center; }
+    .zoom-badge:hover { color:var(--th-accent2); }
+
+    /* Dynasty btn */
+    .dyn-btn { background:var(--th-card2); border:1px solid var(--th-border2); color:var(--th-accent2); padding:5px 11px; border-radius:6px; cursor:pointer; font-family:'EB Garamond',serif; font-size:14px; display:inline-flex; align-items:center; gap:5px; transition:all 0.15s; white-space:nowrap; max-width:180px; flex-shrink:0; }
+    .dyn-btn:hover { border-color:var(--th-accent1); background:var(--th-stone); }
+    .dyn-btn span.name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px; font-weight:600; }
+    .dyn-btn span.arrow { font-size:10px; opacity:0.6; flex-shrink:0; }
+
+    /* Topbar separator */
+    .tb-sep { width:1px; height:26px; background:var(--th-border); flex-shrink:0; margin:0 3px; }
+
+    /* Keyboard hint */
+    .kbd { display:inline-block; background:var(--th-stone); border:1px solid var(--th-border2); border-radius:3px; padding:1px 5px; font-size:11px; font-family:monospace; color:var(--th-bone-dim); }
+
+    /* Undo toast */
+    @keyframes toastInStay {
+      0%   { opacity:0; transform:translateX(-50%) translateY(10px); }
+      8%   { opacity:1; transform:translateX(-50%) translateY(0); }
+      100% { opacity:1; }
+    }
+    .toast.toast-action { animation:toastInStay 0.3s forwards; pointer-events:all; gap:4px; }
+    .toast-undo-btn { background:none; border:1px solid currentColor; padding:2px 10px; border-radius:10px; cursor:pointer; font-size:13px; font-family:'EB Garamond',serif; font-weight:600; margin-left:8px; transition:background 0.15s,color 0.15s; }
+    .toast-undo-btn:hover { background:var(--th-accent1); color:var(--th-void); border-color:var(--th-accent1); }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+"use strict";
+const { useState, useRef, useEffect } = React;
+const h = React.createElement;
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const RELATIONSHIP_TYPES = ["Parent","Child","Spouse","Sibling","Adopted","Guardian","Rival","Ally","Enemy","Mentor","Apprentice","Other"];
+const SPECIES_PRESETS    = ["Human","Elf","Dwarf","Halfling","Orc","Tiefling","Dragonborn","Gnome","Half-Elf","Undead"];
+const STATUS_OPTIONS     = ["Alive","Deceased","Unknown","Missing","Undead","Immortal"];
+
+const THEME_PALETTES = {
+  default:    ["#c9a227","#e05c7a","#5ca8d6","#9b6dca","#a3c27b","#cc4444","#f0c060","#d07030","#60a890","#c070a0","#7890c8","#888878"],
+  castlevania:["#c070f8","#70b8f8","#f870c0","#a848e8","#60d8f8","#e840a8","#9058d8","#50c8e8","#d870e8","#7838c8","#40b8d8","#c850d0"],
+  vampire:    ["#ff3860","#f8c848","#e87898","#d84030","#f8a828","#c83860","#e85878","#d89030","#c85070","#e8a840","#f86878","#b82840"],
+  dungeon:    ["#48b870","#90c878","#70d890","#38a858","#c8e870","#50c060","#a8d858","#60c878","#80e858","#40b868","#b8d840","#68d888"],
+  escape:     ["#e8e8e8","#b8b8b8","#888888","#d0d0d0","#f0f0f0","#a0a0a0","#c8c8c8","#787878","#e0e0e0","#909090","#d8d8d8","#686868"],
+};
+
+const RELATION_COLORS = {
+  Parent:"var(--th-accent2)", Child:"var(--th-accent2)", Spouse:"#e87090", Sibling:"#60b8e0",
+  Adopted:"#80c870", Guardian:"#80c870", Rival:"#e05050", Ally:"#60b8e0",
+  Enemy:"#e05050", Mentor:"#a878e0", Apprentice:"#a878e0", Other:"#a09880"
+};
+
+const DISORDER_STATUS        = ["Affected","Carrier","Unaffected","Unknown"];
+const DISORDER_STATUS_COLORS = { Affected:"#e05050", Carrier:"#e0a030", Unaffected:"#60b870", Unknown:"#909090" };
+
+// ─── Disorder propagation ─────────────────────────────────────────────────────
+// Pure module-level function — no stale closures.
+// Walks parent→child in topological order so grandchildren are handled correctly.
+// Only propagates disorders where hereditary===true.
+// Never overwrites entries with source!=="inherited".
+function propagateDisorders(charList, relList) {
+  // Build directed parent→child map from Parent rels (r.from=parent, r.to=child)
+  const childrenOf = {}, parentOf = {};
+  relList.forEach(r => {
+    if (r.type !== "Parent") return;
+    const p = r.from, c = r.to;
+    (childrenOf[p] = childrenOf[p]||[]).includes(c) || childrenOf[p].push(c);
+    (parentOf[c]   = parentOf[c]  ||[]).includes(p) || parentOf[c].push(p);
+  });
+
+  // Topological BFS — parents always processed before their children
+  const allIds   = charList.map(c => c.id);
+  const inDeg    = Object.fromEntries(allIds.map(id => [id, (parentOf[id]||[]).length]));
+  const queue    = allIds.filter(id => inDeg[id] === 0);
+  const order    = [];
+  const seen     = new Set();
+  while (queue.length) {
+    const id = queue.shift();
+    if (seen.has(id)) continue;
+    seen.add(id); order.push(id);
+    (childrenOf[id]||[]).forEach(cid => { if (--inDeg[cid] <= 0 && !seen.has(cid)) queue.push(cid); });
+  }
+  allIds.forEach(id => { if (!seen.has(id)) order.push(id); }); // cycles safety
+
+  // Deep-copy so React state is never mutated directly
+  const cm = Object.fromEntries(charList.map(c => [c.id, {...c, disorders:(c.disorders||[]).map(d=>({...d}))}]));
+
+  order.forEach(childId => {
+    const pids = parentOf[childId] || [];
+    if (!pids.length) return;
+
+    // Collect all HEREDITARY disorders from parents (already propagated in this pass)
+    const fromParents = {}; // name → [statuses from parents]
+    pids.forEach(pid => {
+      ((cm[pid] && cm[pid].disorders) || []).forEach(d => {
+        if (!d.hereditary) return;
+        (fromParents[d.name] = fromParents[d.name]||[]).push(d.status);
+      });
+    });
+
+    const childDis = cm[childId].disorders;
+
+    // Upsert inherited entries
+    Object.entries(fromParents).forEach(([name, statuses]) => {
+      const existing = childDis.find(d => d.name === name);
+      if (existing && existing.source !== "inherited") return; // manual entry — hands off
+
+      // If any parent is Affected or Carrier, child is at-risk → Carrier
+      const atRisk = statuses.some(s => s === "Affected" || s === "Carrier");
+      const inheritedStatus = atRisk ? "Carrier" : "Unaffected";
+
+      if (existing) {
+        existing.status     = inheritedStatus;
+        existing.hereditary = true;
+      } else {
+        childDis.push({ name, hereditary:true, status:inheritedStatus, source:"inherited" });
+      }
+    });
+
+    // Remove stale inherited entries (disorder no longer hereditary in any parent)
+    cm[childId].disorders = childDis.filter(d => d.source !== "inherited" || fromParents[d.name]);
+  });
+
+  return Object.values(cm);
+}
+
+// ─── Layout constants & helpers ───────────────────────────────────────────────
+const NODE_W = 164, NODE_H = 100, NODE_RX = 9, HEADER_H = 36;
+const STORAGE_KEY   = "lineage_v2";
+const DYNASTIES_KEY = "lineage_dynasties_v1";
+const ACTIVE_DYN_KEY= "lineage_active_dynasty";
+let _id = Date.now();
+const uid         = () => "c_"+(++_id);
+const trunc       = (s,n) => s && s.length>n ? s.slice(0,n-1)+"\u2026" : (s||"");
+// Split a name into 1 or 2 lines for SVG rendering; splits at word boundary nearest the midpoint
+function splitName(name) {
+  if(!name) return [""];
+  if(name.length<=13) return [name];
+  const mid=Math.floor(name.length/2);
+  let splitAt=-1, bestDist=Infinity;
+  for(let i=0;i<name.length;i++){
+    if(name[i]===" "){ const d=Math.abs(i-mid); if(d<bestDist){bestDist=d;splitAt=i;} }
+  }
+  if(splitAt!==-1) return [trunc(name.slice(0,splitAt),15), trunc(name.slice(splitAt+1),15)];
+  return [trunc(name.slice(0,13),13), trunc(name.slice(13),13)];
+}
+const statusColor = s => ({Alive:"#7ec870",Deceased:"#909090",Unknown:"#e0c050",Missing:"#e09040",Undead:"#c080d0",Immortal:"#60c8e8"}[s]||"#909090");
+const dot = "\u00b7";
+
+function loadState() { try { var r=localStorage.getItem(STORAGE_KEY); if(r) return JSON.parse(r); } catch(e){} return null; }
+function saveState(s){ try { localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); } catch(e){} }
+
+const DEMO = {
+  treeName:"The Varne Dynasty",
+  chars:[
+    {id:"c1",name:"Aldric the Grey", species:"Human",   age:"72", gender:"Male",   status:"Deceased",role:"King",    notes:"Founder of the realm. Ruled for 40 years with a steady hand.",       x:490,y:90,  color:"#c9a227",titles:"High King",    faction:"House Varne",  disorders:[]},
+    {id:"c2",name:"Seraphine Varne", species:"Human",   age:"68", gender:"Female", status:"Deceased",role:"Queen",   notes:"Skilled diplomat who forged three alliances. Died of fever in winter.",x:710,y:90,  color:"#e05c7a",titles:"Queen Consort",faction:"House Varne",  disorders:[]},
+    {id:"c3",name:"Dorian Varne",    species:"Human",   age:"44", gender:"Male",   status:"Alive",   role:"Prince",  notes:"Exiled heir, whereabouts unknown.",                                   x:290,y:290, color:"#5ca8d6",titles:"Crown Prince", faction:"House Varne",  disorders:[]},
+    {id:"c4",name:"Lyra Varne",      species:"Half-Elf",age:"38", gender:"Female", status:"Alive",   role:"Archmage",notes:"Rumored to be Aldric's illegitimate daughter.",                       x:610,y:290, color:"#9b6dca",titles:"Archmage",     faction:"Mages Circle", disorders:[]},
+    {id:"c5",name:"Cael Thornwood",  species:"Human",   age:"40", gender:"Male",   status:"Alive",   role:"General", notes:"Dorian's childhood friend, now his bitter rival.",                    x:140,y:490, color:"#cc4444",titles:"General",      faction:"The Crown",    disorders:[]},
+    {id:"c6",name:"Mira",            species:"Elf",     age:"120",gender:"Female", status:"Unknown", role:"Rogue",   notes:"Dorian's estranged wife. Last seen in the eastern wilds.",            x:420,y:490, color:"#a3c27b",titles:"",            faction:"None",         disorders:[]},
+  ],
+  rels:[
+    {id:"r1",from:"c1",to:"c2",type:"Spouse"},{id:"r2",from:"c1",to:"c3",type:"Parent"},
+    {id:"r3",from:"c2",to:"c3",type:"Parent"},{id:"r4",from:"c1",to:"c4",type:"Parent"},
+    {id:"r5",from:"c3",to:"c5",type:"Rival"}, {id:"r6",from:"c3",to:"c6",type:"Spouse"},
+  ]
+};
+
+// ── Dynasty storage ────────────────────────────────────────────────────────────
+function loadDynasties() {
+  try { var r=localStorage.getItem(DYNASTIES_KEY); if(r) return JSON.parse(r); } catch(e){}
+  return null;
+}
+function saveDynasties(d){ try { localStorage.setItem(DYNASTIES_KEY,JSON.stringify(d)); } catch(e){} }
+function getActiveDynastyId(){ try { return localStorage.getItem(ACTIVE_DYN_KEY)||null; } catch(e){ return null; } }
+function setActiveDynastyId(id){ try { localStorage.setItem(ACTIVE_DYN_KEY,id); } catch(e){} }
+
+function initDynasties() {
+  var existing = loadDynasties();
+  if(existing && Object.keys(existing).length) return existing;
+  var old = null;
+  try { var r=localStorage.getItem(STORAGE_KEY); if(r) old=JSON.parse(r); } catch(e){}
+  var firstId = "dyn_"+Date.now();
+  var dyns = {};
+  dyns[firstId] = {
+    id: firstId,
+    name: (old && old.treeName) || DEMO.treeName,
+    treeName: (old && old.treeName) || DEMO.treeName,
+    chars: (old && old.chars) || DEMO.chars,
+    rels:  (old && old.rels)  || DEMO.rels
+  };
+  saveDynasties(dyns);
+  setActiveDynastyId(firstId);
+  return dyns;
+}
+
+// ─── Confirm Dialog ───────────────────────────────────────────────────────────
+function ConfirmDialog({title,message,confirmLabel,onConfirm,onCancel}) {
+  return h("div",{className:"confirm-overlay",onClick:e=>{if(e.target===e.currentTarget)onCancel();}},
+    h("div",{className:"confirm-box"},
+      h("div",{className:"confirm-title"},title),
+      h("div",{className:"confirm-body"},message),
+      h("div",{className:"confirm-actions"},
+        h("button",{className:"btn ghost",onClick:onCancel},"Cancel"),
+        h("button",{className:"btn danger",onClick:()=>{onCancel();onConfirm();}},confirmLabel||"Confirm"))));
+}
+
+// ─── Gender Icon ──────────────────────────────────────────────────────────────
+function GenderIcon({gender,x,y,col}) {
+  if(!gender) return null;
+  const g=gender.toLowerCase().replace(/[\/\|\(\)]/g," ");
+  const isMale   = /\bhe\b|\bhim\b|\bhis\b/.test(g)||/\bmale\b|\bman\b|\bmen\b|\bboy\b/.test(g)||/^m$/.test(g.trim());
+  const isFemale = /\bshe\b|\bher\b|\bhers\b/.test(g)||/\bfemale\b|\bwoman\b|\bgirl\b/.test(g)||/^f$/.test(g.trim());
+  const isNb     = /\bthey\b|\bthem\b/.test(g)||/\bnon.?bin/.test(g)||/\benby\b/.test(g);
+  if(!isMale&&!isFemale&&!isNb) return null;
+  const r=4,sw=1.4,st={pointerEvents:"none",userSelect:"none"};
+  if(isMale) return h("g",{style:st},
+    h("circle",{cx:x,cy:y+1,r,fill:"none",stroke:col,strokeWidth:sw}),
+    h("line",{x1:x+r*.7,y1:y+1-r*.7,x2:x+r*1.7,y2:y+1-r*1.7,stroke:col,strokeWidth:sw}),
+    h("polyline",{points:(x+r*1.1)+","+(y+1-r*1.7)+" "+(x+r*1.7)+","+(y+1-r*1.7)+" "+(x+r*1.7)+","+(y+1-r*1.1),fill:"none",stroke:col,strokeWidth:sw,strokeLinejoin:"round"}));
+  if(isFemale) return h("g",{style:st},
+    h("circle",{cx:x,cy:y-1,r,fill:"none",stroke:col,strokeWidth:sw}),
+    h("line",{x1:x,y1:y-1+r,x2:x,y2:y-1+r+4,stroke:col,strokeWidth:sw}),
+    h("line",{x1:x-2.5,y1:y-1+r+2.5,x2:x+2.5,y2:y-1+r+2.5,stroke:col,strokeWidth:sw}));
+  return h("g",{style:st},
+    h("circle",{cx:x,cy:y,r:r-.5,fill:"none",stroke:col,strokeWidth:sw}),
+    h("line",{x1:x,y1:y-r+.5,x2:x,y2:y-r-3,stroke:col,strokeWidth:sw}),
+    h("line",{x1:x-2,y1:y-r-1.5,x2:x+2,y2:y-r-1.5,stroke:col,strokeWidth:sw}),
+    h("line",{x1:x,y1:y+r-.5,x2:x,y2:y+r+3,stroke:col,strokeWidth:sw}),
+    h("line",{x1:x-2,y1:y+r+1.5,x2:x+2,y2:y+r+1.5,stroke:col,strokeWidth:sw}));
+}
+
+// ─── SVG CharNode ─────────────────────────────────────────────────────────────
+function CharNode({c,selected,linking,dimmed,onMouseDown,onDoubleClick,onContextMenu,onMouseEnter,onMouseLeave}) {
+  const isSel=selected===c.id, isLnk=linking===c.id, cx=NODE_W/2;
+  const rows=[];
+  if(c.role) rows.push({text:trunc(c.role,22),color:"var(--th-accent2)",size:11,italic:true});
+  const sa=[c.species,c.age?"Age "+c.age:""].filter(Boolean).join(" "+dot+" ");
+  if(sa) rows.push({text:trunc(sa,22),color:"var(--th-bone-dim)",size:11});
+  const sp=(NODE_H-HEADER_H)/(rows.length+1);
+  const ch=[];
+  if(isSel||isLnk) ch.push(h("rect",{key:"ring",x:-4,y:-4,width:NODE_W+8,height:NODE_H+8,rx:NODE_RX+3,fill:"none",stroke:isLnk?"var(--th-link-hover)":"var(--th-accent2)",strokeWidth:3,filter:"url(#glow)"}));
+  ch.push(h("rect",{key:"bg",width:NODE_W,height:NODE_H,rx:NODE_RX,fill:"var(--th-card)",stroke:c.color,strokeWidth:isSel?2:1.5,filter:"url(#shadow)"}));
+  ch.push(h("rect",{key:"hd",width:NODE_W,height:HEADER_H,fill:c.color+"42",clipPath:"url(#node-clip)"}));
+  ch.push(h("line",{key:"hl",x1:0,y1:HEADER_H,x2:NODE_W,y2:HEADER_H,stroke:c.color+"70",strokeWidth:1}));
+  ch.push(h("circle",{key:"cdot",cx:9,cy:HEADER_H/2,r:4,fill:c.color}));
+  const sc=statusColor(c.status);
+  ch.push(h("circle",{key:"sr",cx:NODE_W-9,cy:HEADER_H/2,r:4,fill:"none",stroke:sc,strokeWidth:1.5}));
+  ch.push(h("circle",{key:"sd",cx:NODE_W-9,cy:HEADER_H/2,r:2.5,fill:sc}));
+  const nameLines=splitName(c.name), twoLine=nameLines.length===2;
+  const nmProps={textAnchor:"middle",dominantBaseline:"central",fontSize:twoLine?11:12,fontWeight:"700",fill:"var(--th-bone)",fontFamily:"'Cinzel',serif",style:{userSelect:"none",pointerEvents:"none"}};
+  if(twoLine){
+    ch.push(h("text",{key:"nm1",x:cx,y:HEADER_H/2-7,...nmProps},nameLines[0]));
+    ch.push(h("text",{key:"nm2",x:cx,y:HEADER_H/2+7,...nmProps},nameLines[1]));
+  } else {
+    ch.push(h("text",{key:"nm",x:cx,y:HEADER_H/2,...nmProps},nameLines[0]));
+  }
+  rows.forEach((row,i)=>ch.push(h("text",{key:"r"+i,x:cx,y:HEADER_H+sp*(i+1),textAnchor:"middle",dominantBaseline:"central",fontSize:row.size,fill:row.color,fontStyle:row.italic?"italic":"normal",fontFamily:"'EB Garamond',serif",style:{userSelect:"none",pointerEvents:"none"}},row.text)));
+  return h("g",{style:{cursor:linking?"crosshair":"grab",opacity:dimmed?0.22:1,transition:"opacity 0.15s"},transform:"translate("+c.x+","+c.y+")",
+    onMouseDown:e=>onMouseDown(e,c.id),
+    onDoubleClick:e=>{e.stopPropagation();onDoubleClick(c);},
+    onContextMenu:e=>{e.preventDefault();e.stopPropagation();if(onContextMenu)onContextMenu(e,c);},
+    onMouseEnter:()=>{if(onMouseEnter)onMouseEnter(c.id);},
+    onMouseLeave:()=>{if(onMouseLeave)onMouseLeave();}
+  },...ch);
+}
+
+// ─── Context Menu ─────────────────────────────────────────────────────────────
+function ContextMenu({menu,onClose,onChangeRelType,onDeleteRel,onDeleteChar,onEditChar,onCopyChar}) {
+  useEffect(()=>{ const fn=()=>onClose(); document.addEventListener("mousedown",fn); return()=>document.removeEventListener("mousedown",fn); },[]);
+  if(menu.kind==="rel") return h("div",{className:"ctx-menu",style:{left:menu.x,top:menu.y},onMouseDown:e=>e.stopPropagation()},
+    h("span",{className:"ctx-label"},"Change Link Type"),
+    h("div",{className:"ctx-types"},...RELATIONSHIP_TYPES.map(t=>{
+      const col=RELATION_COLORS[t]||"#a0a0a0",active=menu.rel.type===t;
+      return h("button",{key:t,className:"ctx-type-btn",style:{borderColor:active?col:"var(--th-border2)",color:active?col:"var(--th-bone-dim)",background:active?col+"22":"transparent"},
+        onClick:()=>{onChangeRelType(menu.rel.id,t);onClose();}},t);
+    })),
+    h("hr",{className:"ctx-sep"}),
+    h("button",{className:"ctx-item danger",onClick:()=>{onDeleteRel(menu.rel.id);onClose();}},"✕ Remove Link"));
+  return h("div",{className:"ctx-menu",style:{left:menu.x,top:menu.y},onMouseDown:e=>e.stopPropagation()},
+    h("span",{className:"ctx-label"},menu.char.name),
+    h("button",{className:"ctx-item",onClick:()=>{onEditChar(menu.char);onClose();}},"✎ Edit Character"),
+    h("button",{className:"ctx-item",onClick:()=>{onCopyChar(menu.char.id);onClose();}},"⧉ Duplicate Character"),
+    h("hr",{className:"ctx-sep"}),
+    h("button",{className:"ctx-item danger",onClick:()=>{onDeleteChar(menu.char.id);onClose();}},"🗑 Delete Character"));
+}
+
+// ─── Traits Modal ─────────────────────────────────────────────────────────────
+function TraitsModal({charName, disorders, onSave, onClose}) {
+  const [dis,setDis]         = useState([...disorders]);
+  const [nd,setNd]           = useState({name:"",hereditary:false,status:"Affected"});
+  const [editIdx,setEditIdx] = useState(null);
+  return h("div",{className:"modal-overlay",style:{zIndex:300}},
+    h("div",{className:"modal-box"},
+      h("div",{className:"modal-header"},
+        h("span",null,"⚕ Genetic Traits — "+(charName||"Character")),
+        h("button",{className:"btn ghost xs",onClick:onClose},"✕")),
+      h("div",{className:"modal-body"},
+        h("div",{className:"form-section"},
+          dis.length>0 && h("div",{style:{marginBottom:12}},
+            dis.map((d,i)=>{
+              const dc=DISORDER_STATUS_COLORS[d.status]||"#909090", isEd=editIdx===i;
+              return h("div",{key:i,style:{background:"var(--th-card2)",border:"1px solid var(--th-border)",borderLeft:"3px solid "+dc,borderRadius:6,padding:"10px 12px",marginBottom:8}},
+                isEd
+                  ? h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+                      h("input",{value:d.name,placeholder:"Trait name",disabled:d.source==="inherited",
+                        onChange:e=>setDis(arr=>arr.map((x,j)=>j===i?{...x,name:e.target.value}:x)),
+                        style:{marginTop:0,opacity:d.source==="inherited"?0.55:1}}),
+                      h("div",null,
+                        h("label",{className:"field-label",style:{marginTop:0}},"Status"),
+                        h("select",{value:d.status,onChange:e=>setDis(arr=>arr.map((x,j)=>j===i?{...x,status:e.target.value,source:d.source==="inherited"?"manual-override":d.source}:x))},
+                          ...DISORDER_STATUS.map(s=>h("option",{key:s,value:s},s)))),
+                      d.source!=="inherited" && h("div",{className:"h-toggle"+(d.hereditary?" on":""),
+                        onClick:()=>setDis(arr=>arr.map((x,j)=>j===i?{...x,hereditary:!x.hereditary}:x))},
+                        h("div",{className:"h-pip"}),
+                        h("span",{style:{fontSize:14,color:d.hereditary?"var(--th-accent-hi)":"var(--th-bone-dim)"}},
+                          d.hereditary?"Hereditary — passes to all children":"Non-hereditary")),
+                      (d.source==="inherited"||d.source==="manual-override") && h("div",{style:{fontSize:12,color:d.source==="manual-override"?"var(--th-accent2)":"var(--th-accent1)",fontStyle:"italic"}},
+                        d.source==="manual-override"?"✓ Status overridden — saving will keep your value":"↯ Inherited from parent — change the Status above to override"),
+                      h("div",{style:{display:"flex",justifyContent:"flex-end",marginTop:4}},
+                        h("button",{className:"btn xs ghost",onClick:()=>setEditIdx(null)},"Done")))
+                  : h("div",{style:{display:"flex",alignItems:"center",gap:8}},
+                      h("div",{style:{flex:1,minWidth:0}},
+                        h("div",{style:{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}},
+                          h("span",{style:{fontSize:14,color:"var(--th-bone)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},d.name||"Unnamed"),
+                          d.source==="inherited" && h("span",{title:"Auto-inherited from a parent. Click Edit to override the status.",style:{fontSize:10,color:"var(--th-accent1)",border:"1px solid var(--th-accent1)",borderRadius:3,padding:"1px 5px",letterSpacing:"0.06em",flexShrink:0,cursor:"help"}},"↯ INHERITED"),
+                          d.hereditary&&d.source!=="inherited" && h("span",{style:{fontSize:10,color:"var(--th-accent2)",border:"1px solid var(--th-accent2)",borderRadius:3,padding:"1px 5px",letterSpacing:"0.06em",flexShrink:0}},"↓ HEREDITARY")),
+                        h("div",{style:{fontSize:12,color:dc,fontWeight:600,marginTop:2}},d.status)),
+                      h("button",{className:"btn xs ghost",onClick:()=>setEditIdx(i),style:{flexShrink:0}},"Edit"),
+                      h("button",{className:"btn xs danger",onClick:()=>{setDis(arr=>arr.filter((_,j)=>j!==i));if(editIdx===i)setEditIdx(null);},style:{flexShrink:0}},"✕")));
+            })),
+          h("div",{style:{background:"var(--th-card2)",border:"1px solid var(--th-border)",borderRadius:6,padding:"10px 12px"}},
+            h("div",{style:{fontSize:12,color:"var(--th-bone-dim)",marginBottom:8,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase"}},
+              dis.length===0?"No traits recorded — add one below":"Add another trait"),
+            h("input",{value:nd.name,placeholder:"Trait name (e.g. Crimson Fever, Frostblood)",
+              onChange:e=>setNd(p=>({...p,name:e.target.value})),style:{marginBottom:8}}),
+            h("div",{style:{marginBottom:8}},
+              h("label",{className:"field-label",style:{marginTop:0}},"Status"),
+              h("select",{value:nd.status,onChange:e=>setNd(p=>({...p,status:e.target.value}))},
+                ...DISORDER_STATUS.map(s=>h("option",{key:s,value:s},s)))),
+            h("div",{className:"h-toggle"+(nd.hereditary?" on":""),onClick:()=>setNd(p=>({...p,hereditary:!p.hereditary})),style:{marginBottom:10}},
+              h("div",{className:"h-pip"}),
+              h("span",{style:{fontSize:14,color:nd.hereditary?"var(--th-accent-hi)":"var(--th-bone-dim)"}},
+                nd.hereditary?"Hereditary — will pass to all children":"Non-hereditary")),
+            h("button",{className:"btn sm",disabled:!nd.name.trim(),style:{opacity:nd.name.trim()?1:0.45},
+              onClick:()=>{
+                if(!nd.name.trim()) return;
+                setDis(arr=>[...arr,{...nd,name:nd.name.trim()}]);
+                setNd({name:"",hereditary:false,status:"Affected"});
+              }},"+ Add Trait")))),
+      h("div",{className:"modal-footer"},
+        h("div",{style:{flex:1}}),
+        h("button",{className:"btn ghost",onClick:onClose},"Cancel"),
+        h("button",{className:"btn",onClick:()=>onSave(dis)},"✓ Save Traits"))));}
+
+// ─── Edit Modal ───────────────────────────────────────────────────────────────
+function EditModal({char,allChars,existingRels,palette,onSave,onDelete,onClose,onAddRel,onDeleteRel}) {
+  const [ec,setEc]   = useState({...char,disorders:(char.disorders||[])});
+  const [nrt,setNrt] = useState("Spouse");
+  const [nrtg,setNrtg] = useState("");
+  const [nrtgName,setNrtgName] = useState("");
+  const [nrtgOpen,setNrtgOpen] = useState(false);
+  const [showAllTypes,setShowAllTypes]     = useState(false);
+  const [showTraitsModal,setShowTraitsModal] = useState(false);
+  const [showRole,setShowRole]             = useState(()=>!!(char.role||char.titles||char.faction));
+  const set = (k,v) => setEc(p=>({...p,[k]:v}));
+  const setDis = fn => setEc(p=>({...p,disorders:fn(p.disorders||[])}));
+
+  const myRels    = existingRels.filter(r=>r.from===char.id||r.to===char.id);
+  const otherChars = allChars.filter(c=>c.id!==char.id);
+  const filteredChars = nrtgName.trim()
+    ? otherChars.filter(c=>c.name.toLowerCase().indexOf(nrtgName.toLowerCase())!==-1)
+    : otherChars;
+
+  const selectChar = (c) => {
+    setNrtg(c.id); setNrtgName(c.name); setNrtgOpen(false);
+  };
+
+  const FAMILY_QUICK=[{label:"Parent",type:"Parent"},{label:"Child",type:"Child"},{label:"Spouse",type:"Spouse"},{label:"Sibling",type:"Sibling"},{label:"Mentor",type:"Mentor"},{label:"Rival",type:"Rival"}];
+
+  return h("div",{className:"modal-overlay"},
+    h("div",{className:"modal-box"},
+      h("div",{className:"modal-header"},
+        h("span",null,ec.name||"New Character"),
+        h("button",{className:"btn ghost xs",onClick:onClose},"✕")),
+
+      h("div",{className:"modal-body"},
+
+        // Identity
+        h("div",{className:"form-section"},
+          h("div",{className:"form-section-title"},"✦ Identity"),
+          h("label",{className:"field-label"},"Name"),
+          h("input",{value:ec.name,onChange:e=>set("name",e.target.value),placeholder:"Character name"}),
+          h("div",{className:"form-grid"},
+            h("div",null,h("label",{className:"field-label"},"Species / Race"),
+              h("input",{value:ec.species,onChange:e=>set("species",e.target.value),list:"sl",placeholder:"Human, Elf…"}),
+              h("datalist",{id:"sl"},...SPECIES_PRESETS.map(s=>h("option",{key:s,value:s})))),
+            h("div",null,h("label",{className:"field-label"},"Age"),
+              h("input",{value:ec.age,onChange:e=>set("age",e.target.value),placeholder:"e.g. 34 or Ancient"})),
+            h("div",null,h("label",{className:"field-label"},"Gender / Pronouns"),
+              h("input",{value:ec.gender,onChange:e=>set("gender",e.target.value),placeholder:"e.g. She / Her"})),
+            h("div",null,h("label",{className:"field-label"},"Status"),
+              h("select",{value:ec.status,onChange:e=>set("status",e.target.value)},...STATUS_OPTIONS.map(s=>h("option",{key:s,value:s},s)))))),
+
+        // Role
+        h("div",{className:"form-section"},
+          h("div",{className:"form-section-title",style:{cursor:"pointer",userSelect:"none",display:"flex",justifyContent:"space-between",alignItems:"center"},
+            onClick:()=>setShowRole(s=>!s)},
+            "⚔ Role & Allegiance",
+            h("span",{style:{fontSize:12,color:"var(--th-bone-dim)",fontWeight:400,marginLeft:8}},showRole?"▾ hide":"▸ show")),
+          showRole&&h("div",{className:"form-grid"},
+            h("div",null,h("label",{className:"field-label"},"Role / Class"),h("input",{value:ec.role,onChange:e=>set("role",e.target.value),placeholder:"e.g. King, Wizard"})),
+            h("div",null,h("label",{className:"field-label"},"Titles"),h("input",{value:ec.titles,onChange:e=>set("titles",e.target.value),placeholder:"e.g. Lord of the North"})),
+            h("div",{className:"form-full"},h("label",{className:"field-label"},"Faction / House"),h("input",{value:ec.faction,onChange:e=>set("faction",e.target.value),placeholder:"e.g. House Stark"})))),
+
+        // Relationships
+        otherChars.length>0 && h("div",{className:"form-section"},
+          h("div",{className:"form-section-title"},"⇔ Relationships"),
+          myRels.length>0 && h("div",{style:{marginBottom:10}},
+            myRels.map(r=>{
+              const other=allChars.find(c=>c.id===(r.from===char.id?r.to:r.from));
+              if(!other) return null;
+              const isFrom=r.from===char.id;
+              const relLabel=r.type==="Parent"?(isFrom?"Parent Of":"Child Of"):r.type;
+              const col=RELATION_COLORS[r.type]||"#a0a0a0";
+              return h("div",{key:r.id,style:{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--th-border)"}},
+                h("span",{className:"tag",style:{borderColor:col,color:col,background:col+"18",fontSize:11,flexShrink:0}},relLabel),
+                h("div",{style:{width:8,height:8,borderRadius:"50%",background:other.color,flexShrink:0}}),
+                h("span",{style:{flex:1,fontSize:14,color:"var(--th-bone)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},other.name),
+                h("button",{onClick:()=>onDeleteRel(r.id),style:{background:"none",border:"none",color:"var(--th-link-active)",cursor:"pointer",fontSize:14,padding:"0 4px",flexShrink:0}},"✕"));
+            }).filter(Boolean)),
+          h("div",{style:{marginTop:8}},
+            h("label",{className:"field-label",style:{marginTop:4}},"Add Relationship"),
+            h("div",{style:{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}},
+              ...FAMILY_QUICK.map(({label,type})=>{
+                const active=nrt===type,col=RELATION_COLORS[type]||"#a0a0a0";
+                return h("button",{key:type,onClick:()=>setNrt(type),style:{background:active?col+"22":"transparent",border:"1px solid "+(active?col:"var(--th-border)"),color:active?col:"var(--th-bone-dim)",padding:"3px 9px",borderRadius:4,cursor:"pointer",fontFamily:"'EB Garamond',serif",fontSize:13,fontWeight:600,whiteSpace:"nowrap"}},label);
+              })),
+            h("div",{style:{display:"flex",gap:6,marginTop:8}},
+              h("div",{style:{flex:1,position:"relative"}},
+                h("input",{
+                  type:"text",
+                  placeholder:"Search characters…",
+                  value:nrtgName,
+                  onFocus:()=>setNrtgOpen(true),
+                  onBlur:()=>setTimeout(function(){setNrtgOpen(false);},150),
+                  onChange:e=>{setNrtgName(e.target.value);setNrtg("");setNrtgOpen(true);},
+                  style:{width:"100%",boxSizing:"border-box"}
+                }),
+                nrtgOpen&&filteredChars.length>0&&h("div",{style:{
+                  position:"absolute",top:"100%",left:0,right:0,zIndex:50,
+                  background:"var(--th-card)",border:"1px solid var(--th-border2)",
+                  borderRadius:6,marginTop:2,maxHeight:200,overflowY:"auto",
+                  boxShadow:"0 8px 24px rgba(0,0,0,0.6)"
+                }},
+                  filteredChars.map(function(c){
+                    return h("div",{
+                      key:c.id,
+                      onMouseDown:function(e){e.preventDefault();selectChar(c);},
+                      style:{
+                        display:"flex",alignItems:"center",gap:8,
+                        padding:"7px 12px",cursor:"pointer",
+                        borderBottom:"1px solid var(--th-border)",
+                        background:nrtg===c.id?"var(--th-stone)":"transparent"
+                      }
+                    },
+                      h("div",{style:{width:8,height:8,borderRadius:"50%",background:c.color,flexShrink:0}}),
+                      h("span",{style:{fontSize:14,color:"var(--th-bone)",flex:1}},c.name),
+                      c.role&&h("span",{style:{fontSize:11,color:"var(--th-bone-dim)"}},c.role)
+                    );
+                  })
+                )
+              ),
+              h("button",{className:"btn sm",onClick:()=>{if(nrtg){onAddRel(char.id,nrtg,nrt);setNrtg("");setNrtgName("");}},disabled:!nrtg,style:{opacity:nrtg?1:0.45,flexShrink:0}},"+ Add")),
+            nrt==="Child"&&h("div",{style:{fontSize:12,color:"var(--th-accent2)",fontStyle:"italic",marginTop:6}},
+              "This character will be added as the child of the selected character."),
+            h("div",{style:{marginTop:8}},
+              h("button",{onClick:()=>setShowAllTypes(s=>!s),style:{background:"none",border:"none",color:"var(--th-bone-dim)",cursor:"pointer",fontSize:12,padding:"2px 0",fontFamily:"'EB Garamond',serif",letterSpacing:"0.04em"}},
+                (showAllTypes?"▾ ":"▸ ")+"More relationship types"),
+              showAllTypes&&h("div",{style:{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}},
+                ...RELATIONSHIP_TYPES.map(type=>{
+                  const active=nrt===type,col=RELATION_COLORS[type]||"#a0a0a0";
+                  return h("button",{key:type,onClick:()=>setNrt(type),style:{background:active?col+"22":"transparent",border:"1px solid "+(active?col:"var(--th-border)"),color:active?col:"var(--th-bone-dim)",padding:"3px 9px",borderRadius:4,cursor:"pointer",fontFamily:"'EB Garamond',serif",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}},type);
+                }))))),
+
+        // Color
+        h("div",{className:"form-section"},
+          h("div",{className:"form-section-title"},"● Node Color"),
+          h("div",{style:{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:10}},
+            ...(palette||[]).map(col=>h("div",{key:col,onClick:()=>set("color",col),title:col,style:{width:26,height:26,borderRadius:"50%",background:col,cursor:"pointer",flexShrink:0,transition:"transform 0.1s,box-shadow 0.1s",transform:ec.color===col?"scale(1.25)":"scale(1)",boxShadow:ec.color===col?"0 0 0 2px var(--th-card), 0 0 0 4px "+col:"none"}})),
+            h("label",{style:{display:"flex",alignItems:"center",gap:6,cursor:"pointer",marginLeft:4}},
+              h("span",{style:{fontSize:12,color:"var(--th-bone-dim)",letterSpacing:"0.06em"}},"CUSTOM"),
+              h("input",{type:"color",value:ec.color.startsWith("#")?ec.color:"#c9a227",onChange:e=>set("color",e.target.value),style:{width:26,height:26,padding:2,border:"1px solid var(--th-border2)",borderRadius:4,background:"transparent",cursor:"pointer"}})))),
+
+        // Notes
+        h("div",{className:"form-section"},
+          h("div",{className:"form-section-title"},"✐ Notes & Background"),
+          h("textarea",{value:ec.notes,onChange:e=>set("notes",e.target.value),rows:4,placeholder:"Backstory, personality, secrets, motivations…",style:{marginTop:8}})),
+
+        // ── Genetic Traits ──────────────────────────────────────────────
+        h("div",{className:"form-section"},
+          h("div",{className:"form-section-title"},"⚕ Genetic Traits"),
+          h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8,gap:12}},
+            h("span",{style:{fontSize:14,color:"var(--th-bone-dim)",flex:1}},
+              (ec.disorders||[]).length===0 ? "No traits recorded."
+                : (ec.disorders||[]).length+" trait"+((ec.disorders||[]).length!==1?"s":"")+" recorded."),
+            h("button",{className:"btn sm",onClick:()=>setShowTraitsModal(true)},
+              "⚕ Edit Traits"+((ec.disorders||[]).length?" ("+(ec.disorders||[]).length+")":""))))
+      ),
+
+      h("div",{className:"modal-footer"},
+        h("button",{className:"btn danger",onClick:()=>onDelete(ec.id)},"🗑 Delete"),
+        h("div",{style:{flex:1}}),
+        h("button",{className:"btn ghost",onClick:onClose},"Cancel"),
+        h("button",{className:"btn",onClick:()=>onSave(ec),disabled:!(ec.name&&ec.name.trim()),style:{opacity:(ec.name&&ec.name.trim())?1:0.45}},"✓ Save Character")),
+    showTraitsModal&&h(TraitsModal,{charName:ec.name||"Character",disorders:ec.disorders||[],onSave:(newDis)=>{setDis(()=>newDis);setShowTraitsModal(false);},onClose:()=>setShowTraitsModal(false)})));}
+
+
+// ─── Welcome Popup ────────────────────────────────────────────────────────────
+const WELCOME_KEY = "lineage_last_welcome";
+function shouldShowWelcome(){
+  try {
+    var last=localStorage.getItem(WELCOME_KEY);
+    var today=new Date().toDateString();
+    if(last===today) return false;
+    localStorage.setItem(WELCOME_KEY,today);
+    return true;
+  } catch(e){ return false; }
+}
+
+function WelcomePopup({onClose}){
+  return h("div",{className:"welcome-overlay",onClick:function(e){if(e.target===e.currentTarget)onClose();}},
+    h("div",{className:"welcome-box"},
+      h("div",{className:"welcome-header"},
+        h("div",{className:"welcome-title"},"✦ Lineage"),
+        h("div",{className:"welcome-subtitle"},"Family Tree Builder")),
+      h("div",{className:"welcome-body"},
+        h("p",null,"Welcome back! Lineage is a ",h("strong",null,"free, solo-developed")," passion project — a labour of love for storytellers, worldbuilders, and anyone who wants to map the complex webs of family and history."),
+        h("p",null,"If you find it useful and want to support its continued development, even a small contribution makes a huge difference."),
+        h("a",{className:"welcome-kofi",href:"#",target:"_blank",rel:"noopener"},
+          h("span",{className:"welcome-kofi-icon"},"☕"),
+          h("div",{className:"welcome-kofi-text"},
+            h("div",{className:"welcome-kofi-label"},"Support on Ko-fi"),
+            h("div",{className:"welcome-kofi-sub"},"Coming soon — link will be added shortly"))),
+        h("p",{style:{fontSize:13,color:"var(--th-bone-dim)",marginTop:16,marginBottom:0}},"This message shows once per day. Thank you for using Lineage ✦")),
+      h("div",{className:"welcome-footer"},
+        h("button",{className:"btn",onClick:onClose,style:{minWidth:140}},"Start Building ✦"))));
+}
+
+// ─── Sidebar Character Panel ──────────────────────────────────────────────────
+function SidebarCharPanel({char, allChars, genDepths, selectedRels, onSave, onDelete, onDeleteRel, onSelectChar, onEdit}) {
+  const [notes,setNotes] = useState(char.notes||"");
+  useEffect(()=>{ setNotes(char.notes||""); },[char.id]);
+  const getChar = id => allChars.find(c=>c.id===id);
+  const handleNotesBlur = () => { if(notes!==(char.notes||"")) onSave({...char,notes}); };
+  return h(React.Fragment,null,
+    h("div",{className:"sidebar-char-header"},
+      h("div",{style:{display:"flex",gap:10,alignItems:"flex-start"}},
+        h("div",{style:{width:5,minHeight:44,borderRadius:3,background:char.color,flexShrink:0,alignSelf:"stretch"}}),
+        h("div",{style:{flex:1,minWidth:0}},
+          h("div",{style:{fontFamily:"'Cinzel',serif",fontSize:14,color:"var(--th-bone)",lineHeight:1.4,wordBreak:"break-word"}},char.name),
+          char.titles&&h("div",{style:{fontSize:12,color:char.color,fontStyle:"italic",marginTop:3}},char.titles))),
+      h("div",{style:{display:"flex",flexWrap:"wrap",gap:4,marginTop:10,alignItems:"center"}},
+        h("select",{value:char.status,onChange:e=>onSave({...char,status:e.target.value}),
+          style:{fontSize:12,padding:"2px 6px",borderRadius:4,border:"1px solid "+statusColor(char.status),
+            color:statusColor(char.status),background:statusColor(char.status)+"18",
+            cursor:"pointer",fontFamily:"'EB Garamond',serif",fontWeight:600}},
+          ...STATUS_OPTIONS.map(s=>h("option",{key:s,value:s},s))),
+        char.species&&h("span",{className:"tag",style:{borderColor:"var(--th-border2)",color:"var(--th-bone-dim)"}},char.species),
+        char.age&&h("span",{className:"tag",style:{borderColor:"var(--th-border2)",color:"var(--th-bone-dim)"}},"Age "+char.age),
+        char.role&&h("span",{className:"tag",style:{borderColor:"var(--th-border2)",color:"var(--th-bone-dim)"}},char.role),
+        char.faction&&h("span",{className:"tag",style:{borderColor:"var(--th-border2)",color:"var(--th-bone-dim)"}},char.faction),
+        h("span",{className:"tag",style:{borderColor:"var(--th-accent1)",color:"var(--th-accent1)",background:"var(--th-accent1)"+"18"}},"Generation "+(genDepths[char.id]||0)))),
+    h("div",{className:"sidebar-body"},
+      h("span",{className:"section-title"},"✐ Notes"),
+      h("textarea",{value:notes,rows:4,placeholder:"Backstory, notes, secrets…",
+        onChange:e=>setNotes(e.target.value),onBlur:handleNotesBlur,
+        style:{fontSize:13,marginTop:6,lineHeight:1.55,resize:"vertical"}}),
+      h("hr",{className:"divider"}),
+      h("span",{className:"section-title"},"⇔ Relationships ("+selectedRels.length+")"),
+      selectedRels.length===0
+        ? h("div",{style:{fontSize:14,color:"var(--th-bone-dim)",fontStyle:"italic",padding:"4px 0"}},"None yet — use ⇔ Link to connect.")
+        : selectedRels.map(r=>{
+            const other=getChar(r.from===char.id?r.to:r.from); if(!other) return null;
+            const isFrom=r.from===char.id;
+            const relLabel=r.type==="Parent"?(isFrom?"Parent Of":"Child Of"):r.type;
+            const col=RELATION_COLORS[r.type]||"#a0a0a0";
+            return h("div",{key:r.id,style:{display:"flex",alignItems:"center",gap:7,padding:"6px 0",borderBottom:"1px solid var(--th-border)"}},
+              h("span",{className:"tag",style:{borderColor:col,color:col,fontSize:11,flexShrink:0,background:col+"18"}},relLabel),
+              h("span",{style:{fontSize:14,flex:1,cursor:"pointer",color:"var(--th-bone)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:"underline",textDecorationColor:"var(--th-border2)"},onClick:()=>onSelectChar(other.id)},other.name),
+              h("button",{className:"btn xs danger",onClick:()=>onDeleteRel(r.id),style:{padding:"2px 6px",flexShrink:0}},"✕"));
+          }).filter(Boolean),
+      h("hr",{className:"divider"}),
+      h("div",{style:{display:"flex",gap:8}},
+        h("button",{className:"btn",style:{flex:1},onClick:()=>onEdit(char)},"✎ Edit"),
+        h("button",{className:"btn danger",onClick:()=>onDelete(char.id)},"🗑"))));}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+const THEMES=[
+  {id:"default",    label:"Necromancer",desc:"Dark gold on black parchment",    swatches:["#18140e","#c9a227","#3a2e18","#f0e4cc"]},
+  {id:"castlevania",label:"Castlevania", desc:"Arcane purple & spectral blue",  swatches:["#060408","#c070f8","#7060b0","#ede8ff"]},
+  {id:"vampire",    label:"Vampire",     desc:"Blood crimson and ember warmth", swatches:["#080204","#ff3860","#5a2830","#fff4ec"]},
+  {id:"dungeon",    label:"Dungeon",     desc:"Mossy green & torchlight amber", swatches:["#060c08","#48b870","#d4a040","#d8f0c8"]},
+  {id:"escape",     label:"The Escape",  desc:"Hard-boiled steel noir",         swatches:["#080808","#7090b0","#484848","#eeeeee"]},
+];
+
+function App() {
+  const [dynasties,setDynastiesState] = useState(()=>initDynasties());
+  const [activeDynId,setActiveDynId]  = useState(()=>{
+    var id=getActiveDynastyId();
+    var d=loadDynasties();
+    if(d&&id&&d[id]) return id;
+    return d ? Object.keys(d)[0] : null;
+  });
+  const [showDynPanel,setShowDynPanel] = useState(false);
+  const [dynRenameId,setDynRenameId]   = useState(null);
+  const [dynRenameVal,setDynRenameVal] = useState("");
+
+  // Helpers to persist dynasty changes
+  const saveDyn = (dyns) => { setDynastiesState(dyns); saveDynasties(dyns); };
+  const updateActiveDyn = (treeName,chars,rels) => {
+    if(!activeDynId) return;
+    var next=Object.assign({},dynasties);
+    next[activeDynId]=Object.assign({},next[activeDynId],{treeName,chars,rels,name:treeName});
+    saveDyn(next);
+  };
+
+  const activeDyn = dynasties[activeDynId] || Object.values(dynasties)[0] || {treeName:"",chars:[],rels:[]};
+
+  const [treeName,setTreeName] = useState(activeDyn.treeName || DEMO.treeName);
+  const [chars,setChars]       = useState(()=>(activeDyn.chars || DEMO.chars).map(c=>({...c,disorders:c.disorders||[]})));
+  const [rels,setRels]         = useState(activeDyn.rels || DEMO.rels);
+  const [selected,setSelected] = useState(null);
+  const [editingChar,setEditingChar] = useState(null);
+  const [dragging,setDragging] = useState(null);
+  const [dragOffset,setDragOffset] = useState({x:0,y:0});
+  const [linking,setLinking]   = useState(null);
+  const [linkType,setLinkType] = useState("Parent");
+  const [pan,setPan]           = useState({x:40,y:40});
+  const [isPanning,setIsPanning] = useState(false);
+  const [panStart,setPanStart] = useState({x:0,y:0});
+  const [zoom,setZoom]         = useState(1);
+  const [showSidebar,setShowSidebar] = useState(true);
+  const [activePanel,setActivePanel] = useState("tree");
+  const [editName,setEditName] = useState(false);
+  const [toast,setToast]       = useState(null);
+  const [confirm,setConfirm]   = useState(null);
+  const [contextMenu,setContextMenu] = useState(null);
+  const [theme,setTheme]       = useState(()=>localStorage.getItem("lineage_theme")||"default");
+  const [preLayoutChars,setPreLayoutChars] = useState(null);
+  const [preDeleteState,setPreDeleteState] = useState(null);
+  const [charSearch,setCharSearch]         = useState("");
+  const [showFileMenu,setShowFileMenu]     = useState(false);
+  const [showThemePicker,setShowThemePicker] = useState(false);
+  const [showWelcome,setShowWelcome]       = useState(()=>shouldShowWelcome());
+  const [relTypeFilter,setRelTypeFilter]   = useState("All");
+  const [hoveredChar,setHoveredChar]       = useState(null);
+  const [globalSearch,setGlobalSearch]     = useState("");
+  const [showGlobalSearch,setShowGlobalSearch] = useState(false);
+
+  const svgRef=useRef(null), panRef=useRef(false), toastRef=useRef(null), fileRef=useRef(null), panClickRef=useRef(null), globalSearchRef=useRef(null);
+
+  // Persist active dynasty whenever tree data changes
+  useEffect(()=>{
+    if(!activeDynId) return;
+    var next=Object.assign({},dynasties);
+    next[activeDynId]=Object.assign({},next[activeDynId],{treeName,chars,rels,name:treeName});
+    saveDynasties(next);
+    setDynastiesState(next);
+  },[treeName,chars,rels]);
+
+  useEffect(()=>{ localStorage.setItem("lineage_theme",theme); },[theme]);
+
+  // Switch to a different dynasty
+  const switchDynasty = (id) => {
+    if(id===activeDynId) return;
+    var dyn=dynasties[id];
+    if(!dyn) return;
+    setActiveDynId(id);
+    setActiveDynastyId(id);
+    setTreeName(dyn.treeName||dyn.name||"");
+    setChars((dyn.chars||[]).map(function(c){return Object.assign({},c,{disorders:c.disorders||[]});}));
+    setRels(dyn.rels||[]);
+    setSelected(null);
+    setLinking(null);
+    setPreLayoutChars(null);
+    setPan({x:40,y:40});
+    setZoom(1);
+    setShowDynPanel(false);
+    showToast("Switched to "+dyn.name);
+  };
+
+  const createDynasty = () => {
+    var id="dyn_"+Date.now();
+    var next=Object.assign({},dynasties);
+    next[id]={id,name:"New Dynasty",treeName:"New Dynasty",chars:[],rels:[]};
+    saveDyn(next);
+    switchDynasty(id);
+  };
+
+  const deleteDynasty = (id) => {
+    var keys=Object.keys(dynasties);
+    if(keys.length<=1){ showToast("Cannot delete the only dynasty"); return; }
+    var next=Object.assign({},dynasties);
+    delete next[id];
+    saveDyn(next);
+    if(id===activeDynId){
+      var remaining=Object.keys(next)[0];
+      switchDynasty(remaining);
+    }
+    showToast("Dynasty deleted");
+  };
+
+  const renameDynasty = (id,name) => {
+    var next=Object.assign({},dynasties);
+    next[id]=Object.assign({},next[id],{name:name,treeName:name});
+    saveDyn(next);
+    if(id===activeDynId) setTreeName(name);
+    setDynRenameId(null);
+  };
+
+  const exportDynasty = (id) => {
+    var dyn=dynasties[id];
+    if(!dyn) return;
+    var data={treeName:dyn.treeName||dyn.name,chars:dyn.chars||[],rels:dyn.rels||[]};
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+    a.download=(dyn.name||"dynasty").replace(/\s+/g,"_")+".lineage.json";
+    a.click();
+    showToast("↓ Exported "+dyn.name);
+  };
+
+  const changeTheme = newTheme => {
+    if(newTheme===theme) return;
+    const all=Object.values(THEME_PALETTES), np=THEME_PALETTES[newTheme]||THEME_PALETTES.default;
+    setChars(prev=>prev.map(c=>{
+      let idx=-1;
+      for(const pal of all){ const i=pal.indexOf(c.color); if(i!==-1){idx=i;break;} }
+      return idx===-1?c:{...c,color:np[idx]};
+    }));
+    setTheme(newTheme);
+  };
+
+  const centerOnChar = id => {
+    const c=chars.find(ch=>ch.id===id);
+    if(!c||!svgRef.current) return;
+    const {width,height}=svgRef.current.getBoundingClientRect();
+    setPan({x:width/2-(c.x+NODE_W/2)*zoom, y:height/2-(c.y+NODE_H/2)*zoom});
+  };
+
+  const showToast = (msg, undoFn) => {
+    setToast(null);
+    requestAnimationFrame(()=>{
+      const t=undoFn?{msg,undoFn}:msg;
+      setToast(t); clearTimeout(toastRef.current);
+      toastRef.current=setTimeout(()=>setToast(null),undoFn?6000:2800);
+    });
+  };
+
+  const askConfirm = (title,msg,fn,confirmLabel) => setConfirm({title,message:msg,onConfirm:fn,confirmLabel:confirmLabel||"Confirm"});
+  const getChar    = id => chars.find(c=>c.id===id);
+
+  const addChar = () => {
+    const c={id:uid(),name:"New Character",species:"Human",age:"",gender:"",status:"Alive",role:"",notes:"",
+      x:200+(chars.length%5)*180,y:120+Math.floor(chars.length/5)*160,
+      color:(THEME_PALETTES[theme] && THEME_PALETTES[theme][0]) || "#c9a227",titles:"",faction:"",disorders:[]};
+    setChars(p=>[...p,c]); setEditingChar({...c}); setSelected(c.id);
+  };
+
+  const saveChar = updated => {
+    if(!updated.name||!updated.name.trim()){ showToast("Name cannot be empty"); return; }
+    setChars(prev=>propagateDisorders(prev.map(c=>c.id===updated.id?{...updated,name:updated.name.trim()}:c), rels));
+    setEditingChar(null); showToast("✓ Character saved");
+  };
+  const quickSave = updated => {
+    if(!updated.name||!updated.name.trim()) return;
+    setChars(prev=>propagateDisorders(prev.map(c=>c.id===updated.id?updated:c), rels));
+  };
+  const fitToScreen = () => {
+    if(!chars.length||!svgRef.current) return;
+    const {width,height}=svgRef.current.getBoundingClientRect();
+    const pad=60;
+    const minX=Math.min(...chars.map(c=>c.x)), minY=Math.min(...chars.map(c=>c.y));
+    const maxX=Math.max(...chars.map(c=>c.x+NODE_W)), maxY=Math.max(...chars.map(c=>c.y+NODE_H));
+    const treeW=maxX-minX, treeH=maxY-minY;
+    const nz=Math.min(3,Math.max(0.2,Math.min((width-pad*2)/treeW,(height-pad*2)/treeH)));
+    setZoom(nz);
+    setPan({x:(width-treeW*nz)/2-minX*nz, y:(height-treeH*nz)/2-minY*nz});
+  };
+
+  const deleteChar = id => askConfirm("Delete Character",
+    "This will also remove all relationships involving this character.",
+    ()=>{
+      const snapshot={chars,rels};
+      setPreDeleteState(snapshot);
+      const nr=rels.filter(r=>r.from!==id&&r.to!==id);
+      setChars(prev=>propagateDisorders(prev.filter(c=>c.id!==id),nr));
+      setRels(nr);
+      if(selected===id) setSelected(null);
+      setEditingChar(null); setConfirm(null);
+      showToast("Character deleted",()=>{
+        setChars(snapshot.chars); setRels(snapshot.rels); setPreDeleteState(null); showToast("↩ Deletion undone");
+      });
+    }, "Delete");
+
+  const undoDelete = () => {
+    if(!preDeleteState) return;
+    setChars(preDeleteState.chars); setRels(preDeleteState.rels);
+    setPreDeleteState(null); showToast("↩ Deletion undone");
+  };
+
+  const undoLabel = preDeleteState ? "↩ Undo Delete" : preLayoutChars ? "↩ Undo Arrange" : null;
+  const undoLast  = () => { if(preDeleteState) undoDelete(); else if(preLayoutChars) undoLayout(); };
+
+  const copyChar = id => {
+    const orig=getChar(id); if(!orig) return;
+    const c={...orig,id:uid(),name:orig.name+" (Copy)",x:orig.x+NODE_W+20,y:orig.y,
+      disorders:(orig.disorders||[]).filter(d=>d.source!=="inherited")};
+    setChars(p=>[...p,c]); setSelected(c.id); showToast("✦ Character duplicated");
+  };
+
+  const exportSVG = () => {
+    const svg=svgRef.current; if(!svg) return;
+    const st=getComputedStyle(document.documentElement);
+    const vars=['--th-void','--th-card','--th-card2','--th-stone','--th-abyss',
+      '--th-border','--th-border2','--th-bone','--th-bone-dim','--th-bone-faint',
+      '--th-accent1','--th-accent2','--th-accent-hi'].map(v=>v+':'+st.getPropertyValue(v)).join(';');
+    const clone=svg.cloneNode(true);
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    const style=document.createElementNS('http://www.w3.org/2000/svg','style');
+    style.textContent=':root{'+vars+'}';
+    clone.insertBefore(style,clone.firstChild);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([clone.outerHTML],{type:'image/svg+xml'}));
+    a.download=treeName.replace(/\s+/g,'_')+'.svg'; a.click(); showToast("↓ Saved as SVG");
+  };
+
+  const addRel = (fromId,toId,type) => {
+    // Normalize: "Child" means fromId is the child, toId is the parent — flip to store as Parent
+    var actualFrom=fromId, actualTo=toId, actualType=type;
+    if(type==="Child"){ actualFrom=toId; actualTo=fromId; actualType="Parent"; }
+
+    if(actualFrom===actualTo){ showToast("A character cannot be linked to themselves"); return; }
+    if(rels.find(r=>(r.from===actualFrom&&r.to===actualTo)||(r.from===actualTo&&r.to===actualFrom))){ showToast("These characters are already linked"); return; }
+    if(actualType==="Parent"){
+      // Guard against circular lineages (e.g. A→B→A)
+      var cycleQ=[actualTo],cycleSeen=new Set();
+      while(cycleQ.length){ var cur=cycleQ.shift(); if(cycleSeen.has(cur)) continue; cycleSeen.add(cur); rels.forEach(function(r){ if(r.type==="Parent"&&r.from===cur) cycleQ.push(r.to); }); }
+      if(cycleSeen.has(actualFrom)){ showToast("Cannot add: this would create a circular lineage"); return; }
+    }
+    const nr=[...rels,{id:"r_"+Date.now(),from:actualFrom,to:actualTo,type:actualType}];
+    setRels(nr);
+    setChars(prev=>{
+      let next=prev;
+      if(actualType==="Spouse"||actualType==="Partner"){
+        const a=prev.find(c=>c.id===actualFrom),b=prev.find(c=>c.id===actualTo);
+        if(a&&b&&(Math.abs(a.y-b.y)>=NODE_H*.6||Math.abs(a.x-b.x)<=NODE_W+20)){
+          const midY=(a.y+b.y)/2,[left,right]=a.x<=b.x?[a,b]:[b,a];
+          next=prev.map(c=>c.id===left.id?{...c,y:midY}:c.id===right.id?{...c,x:left.x+NODE_W+40,y:midY}:c);
+        } else {
+          showToast("Tip: use ✦ Arrange to align spouses side by side");
+        }
+      }
+      return actualType==="Parent"?propagateDisorders(next,nr):next;
+    });
+    showToast(type+" link added");
+  };
+
+  const deleteRel = id => {
+    const nr=rels.filter(r=>r.id!==id), found=rels.find(r=>r.id===id), wasParent=found && found.type==="Parent";
+    setRels(nr);
+    if(wasParent) setChars(prev=>propagateDisorders(prev,nr));
+    showToast("Link removed");
+  };
+
+  const changeRelType = (id,newType) => {
+    const old=rels.find(r=>r.id===id);
+    // If changing to Child, flip the direction and store as Parent
+    var nr;
+    if(newType==="Child"){
+      nr=rels.map(r=>r.id===id?{...r,from:r.to,to:r.from,type:"Parent"}:r);
+    } else {
+      nr=rels.map(r=>r.id===id?{...r,type:newType}:r);
+    }
+    setRels(nr);
+    if(old&&(old.type==="Parent"||newType==="Parent"||newType==="Child")) setChars(prev=>propagateDisorders(prev,nr));
+    showToast("Link changed to "+newType);
+  };
+
+  const exportJSON = () => {
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify({treeName,chars,rels},null,2)],{type:"application/json"}));
+    a.download=treeName.replace(/\s+/g,"_")+".lineage.json"; a.click(); showToast("↓ Exported");
+  };
+
+  const importJSON = e => {
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        var d; try{ d=JSON.parse(ev.target.result); }catch(e){ showToast("Import failed: not a valid JSON file"); return; }
+        if(d.chars&&d.rels){
+          // Import as a brand new dynasty
+          var id="dyn_"+Date.now();
+          var name=d.treeName||"Imported Dynasty";
+          var next=Object.assign({},dynasties);
+          next[id]={id,name,treeName:name,chars:d.chars,rels:d.rels};
+          saveDyn(next);
+          // Switch to it
+          setActiveDynId(id);
+          setActiveDynastyId(id);
+          setTreeName(name);
+          setChars(d.chars.map(function(c){return Object.assign({},c,{disorders:c.disorders||[]});}));
+          setRels(d.rels);
+          setSelected(null);
+          setPreLayoutChars(null);
+          setPan({x:40,y:40});
+          setZoom(1);
+          showToast("↑ Imported as new dynasty");
+        } else { showToast("Import failed: missing 'chars' or 'rels' — is this a .lineage file?"); }
+      }catch(err){showToast("Import failed");}
+    };
+    r.readAsText(file); e.target.value="";
+  };
+
+  const clearAll = () => askConfirm("Clear All","Remove all characters and relationships?",()=>{
+    setChars([]); setRels([]); setSelected(null); setConfirm(null); showToast("Cleared");
+  }, "Clear All");
+
+  const resetToDemo = () => askConfirm("Reset to Demo","This will replace all characters and relationships with the built-in demo data. This cannot be undone.",()=>{
+    setTreeName(DEMO.treeName); setChars(DEMO.chars.map(c=>({...c,disorders:c.disorders||[]}))); setRels(DEMO.rels); setSelected(null); setPreLayoutChars(null); setConfirm(null); showToast("↺ Reset to demo");
+  }, "Reset");
+
+  const autoLayout = () => {
+    if(!chars.length) return;
+
+    var GAP   = 40;
+    var YS    = NODE_H + 90;
+    var SG    = NODE_W + 36;
+    var SGAP  = 14;
+
+    // ── Build maps ────────────────────────────────────────────────────────────
+    var parentOf={}, childrenOf={}, spouseOf={};
+    rels.forEach(function(r){
+      if(r.type==="Parent"){
+        (parentOf[r.to]     = parentOf[r.to]    ||[]).push(r.from);
+        (childrenOf[r.from] = childrenOf[r.from] ||[]).push(r.to);
+      }
+      if(r.type==="Spouse"||r.type==="Partner"){
+        (spouseOf[r.from] = spouseOf[r.from]||[]).push(r.to);
+        (spouseOf[r.to]   = spouseOf[r.to]  ||[]).push(r.from);
+      }
+    });
+    Object.keys(childrenOf).forEach(function(id){
+      childrenOf[id]=childrenOf[id].filter(function(v,i,a){return a.indexOf(v)===i;});
+    });
+
+    // ── Build unit list ───────────────────────────────────────────────────────
+    // A "unit" is what occupies one slot in a row:
+    //   couple  : two spouse-linked chars side by side
+    //   cluster : siblings with same parents, no spouse of their own
+    //   solo    : unconnected char
+
+    var units = [];       // [{type, members:[], depth, childUnitIds:[]}]
+    var unitOf = {};      // charId → unitIndex (primary unit for layout)
+    var inUnit = {};      // charId → [unitIndices]
+
+    // One unit per spouse edge
+    var edgeSeen={};
+    rels.forEach(function(r){
+      if(r.type!=="Spouse"&&r.type!=="Partner") return;
+      var key=r.from<r.to?r.from+"|"+r.to:r.to+"|"+r.from;
+      if(edgeSeen[key]) return; edgeSeen[key]=true;
+      var ui=units.length;
+      units.push({type:"couple",members:[r.from,r.to],depth:-1,childUnitIds:[]});
+      [r.from,r.to].forEach(function(id){
+        (inUnit[id]=inUnit[id]||[]).push(ui);
+        if(unitOf[id]===undefined) unitOf[id]=ui;
+      });
+    });
+
+    // Cluster unsponsed children by parent-set
+    var clusterKey={};
+    chars.forEach(function(c){
+      if(inUnit[c.id]&&inUnit[c.id].length) return;
+      var parents=(parentOf[c.id]||[]).slice().sort();
+      if(!parents.length){
+        // solo
+        var ui=units.length;
+        units.push({type:"solo",members:[c.id],depth:-1,childUnitIds:[]});
+        (inUnit[c.id]=inUnit[c.id]||[]).push(ui);
+        unitOf[c.id]=ui;
+        return;
+      }
+      var pk=parents.join("|");
+      if(clusterKey[pk]!==undefined){
+        var ui=clusterKey[pk];
+        units[ui].members.push(c.id);
+        (inUnit[c.id]=inUnit[c.id]||[]).push(ui);
+        unitOf[c.id]=ui;
+      } else {
+        var ui=units.length;
+        clusterKey[pk]=ui;
+        units.push({type:"cluster",members:[c.id],depth:-1,childUnitIds:[]});
+        (inUnit[c.id]=inUnit[c.id]||[]).push(ui);
+        unitOf[c.id]=ui;
+      }
+    });
+
+    // ── Assign depths ─────────────────────────────────────────────────────────
+    units.forEach(function(u,i){
+      var hasParent=u.members.some(function(m){return (parentOf[m]||[]).length>0;});
+      if(!hasParent) u.depth=0;
+    });
+    var chg=true,it=0;
+    while(chg&&it++<400){
+      chg=false;
+      units.forEach(function(u,i){
+        if(u.depth<0) return;
+        u.members.forEach(function(mid){
+          (childrenOf[mid]||[]).forEach(function(kid){
+            (inUnit[kid]||[]).forEach(function(ci){
+              if(ci===i) return;
+              if(units[ci].depth<u.depth+1){units[ci].depth=u.depth+1;chg=true;}
+            });
+          });
+        });
+      });
+    }
+    units.forEach(function(u){if(u.depth<0)u.depth=0;});
+
+    // ── Group by depth ────────────────────────────────────────────────────────
+    var byDepth={};
+    units.forEach(function(u,i){(byDepth[u.depth]=byDepth[u.depth]||[]).push(i);});
+    var depths=Object.keys(byDepth).map(Number).sort(function(a,b){return a-b;});
+
+    // ── Unit width ────────────────────────────────────────────────────────────
+    function unitW(ui){
+      var u=units[ui];
+      if(u.type==="couple") return SG+NODE_W;
+      if(u.type==="cluster") return u.members.length*NODE_W+(u.members.length-1)*SGAP;
+      return NODE_W;
+    }
+
+    // ── Subtree width: the width a unit needs including all its descendants ────
+    // We compute this bottom-up so parents are always wide enough.
+    var subtreeW={};
+    depths.slice().reverse().forEach(function(d){
+      byDepth[d].forEach(function(ui){
+        var u=units[ui];
+        // Collect child units (units whose members have this unit's members as parents)
+        var childSet={};
+        u.members.forEach(function(mid){
+          (childrenOf[mid]||[]).forEach(function(kid){
+            (inUnit[kid]||[]).forEach(function(ci){
+              if(units[ci].depth===u.depth+1) childSet[ci]=true;
+            });
+          });
+        });
+        u.childUnitIds=Object.keys(childSet).map(Number);
+
+        var childrenTotalW=0;
+        u.childUnitIds.forEach(function(ci,i){
+          childrenTotalW+=subtreeW[ci];
+          if(i<u.childUnitIds.length-1) childrenTotalW+=GAP;
+        });
+        subtreeW[ui]=Math.max(unitW(ui), childrenTotalW);
+      });
+    });
+
+    // ── Top-down placement ────────────────────────────────────────────────────
+    var pos={};   // charId → {x,y}
+    var unitCX={};// unitIndex → centreX
+
+    function placeUnit(ui, cx, y){
+      unitCX[ui]=cx;
+      var u=units[ui];
+      var w=unitW(ui);
+      if(u.type==="couple"){
+        var a=u.members[0], b=u.members[1];
+        var aS=spouseOf[a]||[], bS=spouseOf[b]||[];
+        var leftId,rightId;
+        if(aS.length>1){ var bi=aS.indexOf(b); leftId=(bi%2===0)?b:a; rightId=(bi%2===0)?a:b; }
+        else if(bS.length>1){ var ai=bS.indexOf(a); leftId=(ai%2===0)?a:b; rightId=(ai%2===0)?b:a; }
+        else { leftId=a; rightId=b; }
+        pos[leftId] ={x:cx-w/2,     y:y};
+        pos[rightId]={x:cx-w/2+SG,  y:y};
+      } else if(u.type==="cluster"){
+        var n=u.members.length;
+        var tw=n*NODE_W+(n-1)*SGAP;
+        u.members.forEach(function(mid,i){ pos[mid]={x:cx-tw/2+i*(NODE_W+SGAP),y:y}; });
+      } else {
+        pos[u.members[0]]={x:cx-NODE_W/2,y:y};
+      }
+
+      // Place children spread evenly beneath this unit
+      if(!u.childUnitIds.length) return;
+      var totalChildW=0;
+      u.childUnitIds.forEach(function(ci,i){
+        totalChildW+=subtreeW[ci];
+        if(i<u.childUnitIds.length-1) totalChildW+=GAP;
+      });
+      var childY=y+YS;
+      var cursor=cx-totalChildW/2;
+      u.childUnitIds.forEach(function(ci){
+        var sw=subtreeW[ci];
+        placeUnit(ci, cursor+sw/2, childY);
+        cursor+=sw+GAP;
+      });
+    }
+
+    // Place root units
+    var rootUnits=byDepth[0]||[];
+    var totalRootW=0;
+    rootUnits.forEach(function(ui,i){totalRootW+=subtreeW[ui];if(i<rootUnits.length-1)totalRootW+=GAP;});
+    var rootCursor=-totalRootW/2;
+    rootUnits.forEach(function(ui){
+      placeUnit(ui, rootCursor+subtreeW[ui]/2, 0);
+      rootCursor+=subtreeW[ui]+GAP;
+    });
+
+    // ── Multi-pass overlap resolution ─────────────────────────────────────────
+    for(var pass=0;pass<4;pass++){
+      depths.forEach(function(d){
+        var nodes=[], seen={};
+        (byDepth[d]||[]).forEach(function(ui){
+          units[ui].members.forEach(function(mid){
+            if(pos[mid]&&!seen[mid]){seen[mid]=true;nodes.push(mid);}
+          });
+        });
+        nodes.sort(function(a,b){return pos[a].x-pos[b].x;});
+        for(var i=1;i<nodes.length;i++){
+          var pn=nodes[i-1],cn=nodes[i];
+          var need=pos[pn].x+NODE_W+GAP;
+          if(pos[cn].x<need){
+            var sh=need-pos[cn].x;
+            for(var j=i;j<nodes.length;j++) pos[nodes[j]].x+=sh;
+            var cui=unitOf[cn];
+            if(cui!==undefined) unitCX[cui]=(unitCX[cui]||0)+sh;
+          }
+        }
+      });
+    }
+
+    // ── Bottom-up centering: re-center each parent unit over its children ─────
+    // Process from deepest to shallowest so children are already in final position
+    depths.slice().reverse().forEach(function(d){
+      (byDepth[d]||[]).forEach(function(ui){
+        var u=units[ui];
+        if(!u.childUnitIds||!u.childUnitIds.length) return;
+
+        // Find leftmost and rightmost child node positions
+        var childXs=[];
+        u.childUnitIds.forEach(function(ci){
+          units[ci].members.forEach(function(mid){
+            if(pos[mid]) childXs.push(pos[mid].x+NODE_W/2);
+          });
+        });
+        if(!childXs.length) return;
+        var childMidX=(Math.min.apply(null,childXs)+Math.max.apply(null,childXs))/2;
+
+        // Current unit centre
+        var memberXs=[];
+        u.members.forEach(function(mid){ if(pos[mid]) memberXs.push(pos[mid].x+NODE_W/2); });
+        if(!memberXs.length) return;
+        var unitMidX=(Math.min.apply(null,memberXs)+Math.max.apply(null,memberXs))/2;
+
+        var shift=childMidX-unitMidX;
+        if(Math.abs(shift)<1) return;
+        u.members.forEach(function(mid){ if(pos[mid]) pos[mid].x+=shift; });
+      });
+    });
+
+    // ── After centering, one final overlap resolution pass ────────────────────
+    for(var pass2=0;pass2<2;pass2++){
+      depths.forEach(function(d){
+        var nodes=[], seen={};
+        (byDepth[d]||[]).forEach(function(ui){
+          units[ui].members.forEach(function(mid){
+            if(pos[mid]&&!seen[mid]){seen[mid]=true;nodes.push(mid);}
+          });
+        });
+        nodes.sort(function(a,b){return pos[a].x-pos[b].x;});
+        for(var i=1;i<nodes.length;i++){
+          var pn=nodes[i-1],cn=nodes[i];
+          var need=pos[pn].x+NODE_W+GAP;
+          if(pos[cn].x<need){
+            var sh=need-pos[cn].x;
+            for(var j=i;j<nodes.length;j++) pos[nodes[j]].x+=sh;
+          }
+        }
+      });
+    }
+
+    // ── Place any still-unpositioned chars ────────────────────────────────────
+    var maxX=0;
+    Object.keys(pos).forEach(function(id){maxX=Math.max(maxX,pos[id].x+NODE_W);});
+    chars.filter(function(c){return !pos[c.id];}).forEach(function(c,i){
+      pos[c.id]={x:maxX+(i+1)*(NODE_W+GAP),y:0};
+    });
+
+    // ── Normalise ─────────────────────────────────────────────────────────────
+    var minX=Infinity,minY=Infinity;
+    Object.keys(pos).forEach(function(id){minX=Math.min(minX,pos[id].x);minY=Math.min(minY,pos[id].y);});
+    Object.keys(pos).forEach(function(id){pos[id].x+=60-minX;pos[id].y+=60-minY;});
+
+    setPreLayoutChars(chars.map(function(c){return Object.assign({},c);}));
+    setChars(function(p){return p.map(function(c){return pos[c.id]?Object.assign({},c,pos[c.id]):c;});});
+    showToast("✦ Tree arranged");
+  };
+
+  const confirmAutoLayout = () => {
+    askConfirm(
+      "Auto-Arrange",
+      "All card positions will be reset and rearranged automatically. This cannot be undone except by using the Undo button that appears after arranging.",
+      autoLayout,
+      "Confirm"
+    );
+  };
+
+  const undoLayout = () => {
+    if(!preLayoutChars) return;
+    setChars(preLayoutChars);
+    setPreLayoutChars(null);
+    showToast("↩ Layout restored");
+  };
+
+  const onNodeMouseDown = (e,id) => {
+    if(e.button!==0) return; e.stopPropagation();
+    if(linking&&linking!==id){ addRel(linking,id,linkType); setLinking(null); return; }
+    setSelected(id);
+    const c=getChar(id); if(!c) return;
+    const sr=svgRef.current.getBoundingClientRect();
+    setDragging(id); setDragOffset({x:(e.clientX-sr.left)/zoom-pan.x/zoom-c.x,y:(e.clientY-sr.top)/zoom-pan.y/zoom-c.y});
+  };
+
+  const onSvgMouseDown = e => {
+    if(e.button!==0) return;
+    if(linking){setLinking(null);return;}
+    panClickRef.current={x:e.clientX,y:e.clientY};
+    panRef.current=true; setIsPanning(true); setPanStart({x:e.clientX-pan.x,y:e.clientY-pan.y});
+  };
+
+  const onMouseMove = e => {
+    if(dragging){
+      const sr=svgRef.current.getBoundingClientRect();
+      var rawX=Math.max(0,(e.clientX-sr.left)/zoom-pan.x/zoom-dragOffset.x);
+      var rawY=Math.max(0,(e.clientY-sr.top)/zoom-pan.y/zoom-dragOffset.y);
+
+      // Snap Y: if within SNAP_Y pixels of another card's Y, snap to it
+      var SNAP_Y=18;
+      var snapY=rawY;
+      var bestDY=SNAP_Y+1;
+      chars.forEach(function(c){
+        if(c.id===dragging) return;
+        var dy=Math.abs(c.y-rawY);
+        if(dy<bestDY){ bestDY=dy; snapY=c.y; }
+      });
+
+      setChars(function(p){return p.map(function(c){
+        return c.id===dragging?Object.assign({},c,{x:rawX,y:snapY}):c;
+      });});
+    }
+    else if(isPanning) setPan({x:e.clientX-panStart.x,y:e.clientY-panStart.y});
+  };
+
+  const onMouseUp = e => {
+    if(panClickRef.current&&!dragging){
+      const dx=e.clientX-panClickRef.current.x, dy=e.clientY-panClickRef.current.y;
+      if(Math.sqrt(dx*dx+dy*dy)<5) setSelected(null);
+    }
+    panClickRef.current=null;
+    setDragging(null); setIsPanning(false); panRef.current=false;
+  };
+  const onWheel = e => {
+    e.preventDefault();
+    // Trackpad pinch or Ctrl+scroll → zoom
+    if(e.ctrlKey || e.metaKey){
+      var factor = e.deltaY < 0 ? 1.08 : 0.93;
+      setZoom(z => Math.min(3, Math.max(0.2, z * factor)));
+    } else {
+      // Two-finger trackpad pan (or plain scroll wheel pan)
+      setPan(function(p){ return {x: p.x - e.deltaX, y: p.y - e.deltaY}; });
+    }
+  };
+
+  const selectedRels = selected?rels.filter(r=>r.from===selected||r.to===selected):[];
+  const selectedChar = selected?getChar(selected):null;
+
+  // ── Hovered connection set (dims unrelated nodes/lines on hover when nothing selected) ──
+  const hoveredConnectedSet = (function(){
+    if(!hoveredChar||selected) return null;
+    const s=new Set([hoveredChar]);
+    rels.forEach(r=>{
+      if(r.from===hoveredChar) s.add(r.to);
+      if(r.to===hoveredChar) s.add(r.from);
+    });
+    return s;
+  })();
+
+  // ── Relationship lines ─────────────────────────────────────────────────────
+  // Parent rels: group children by their parent-set, draw forked lines.
+  // All other rels: simple straight lines.
+  const relLines = (function(){
+    var lines = [];
+    var parentCol = RELATION_COLORS["Parent"] || "#a0a0a0";
+
+    // ── Build lookup maps ─────────────────────────────────────────────────────
+    // parentChildren[pid] = [childId, ...]
+    // childParents[cid]   = [parentId, ...]
+    var parentChildren = {}, childParents = {};
+    rels.forEach(function(r){
+      if(r.type !== "Parent") return;
+      (parentChildren[r.from] = parentChildren[r.from]||[]).push(r.to);
+      (childParents[r.to]     = childParents[r.to]    ||[]).push(r.from);
+    });
+
+    // ── Build one fork group per unique parent-set ───────────────────────────
+    // Group children by their full sorted parent-set key, regardless of whether
+    // the parents have a Spouse/Partner relationship. This ensures children
+    // always fork from the horizontal centre between their parents.
+
+    var parentSetMap = {}; // sortedParentKey → {key, parents:[], children:[]}
+    Object.keys(childParents).forEach(function(childId){
+      var parents = childParents[childId].slice().sort();
+      var key = parents.join("|");
+      if(!parentSetMap[key]){
+        parentSetMap[key] = {key:"pset|"+key, parents:parents, children:[]};
+      }
+      parentSetMap[key].children.push(childId);
+    });
+    var forkGroups = Object.keys(parentSetMap).map(function(k){ return parentSetMap[k]; });
+
+    // ── Draw each fork group ──────────────────────────────────────────────────
+    // Layout per couple fork:
+    //
+    //   Parent A ────┬──── Parent B        ← horizontal connector at parent mid-Y
+    //                │                     ← vertical stem from couple midpoint
+    //           ─────┴─────                ← horizontal child bar
+    //           │         │               ← vertical drops to each child
+    //         Child1    Child2
+    //
+    // This means when Dad has Wife1 (left) and Wife2 (right), his node gets:
+    //   a line going LEFT  to Wife1's midpoint  (fork 1)
+    //   a line going RIGHT to Wife2's midpoint  (fork 2)
+    // These are on opposite sides so they never overlap.
+
+    forkGroups.forEach(function(grp){
+      var pNodes = grp.parents.map(function(pid){ return getChar(pid); }).filter(Boolean);
+      var cNodes = grp.children.map(function(cid){ return getChar(cid); }).filter(Boolean);
+      if(!pNodes.length || !cNodes.length) return;
+
+      var isSel = selected && (
+        pNodes.some(function(n){ return n.id===selected; }) ||
+        cNodes.some(function(n){ return n.id===selected; })
+      );
+      var isHov = hoveredConnectedSet && (
+        pNodes.some(function(n){ return hoveredConnectedSet.has(n.id); }) ||
+        cNodes.some(function(n){ return hoveredConnectedSet.has(n.id); })
+      );
+      var sw = isSel ? 2.5 : 1.5;
+      var op = isSel ? 1.0 : (hoveredConnectedSet&&!isHov) ? 0.08 : 0.6;
+
+      var cTopY    = Math.min.apply(null, cNodes.map(function(n){ return n.y; }));
+      var pBottomY = Math.max.apply(null, pNodes.map(function(n){ return n.y+NODE_H; }));
+
+      // Minimum distance each parent drops before bending — keeps forks visually distinct
+      var FORK_DROP = 28;
+
+      // Stem X = horizontal midpoint between all parents in this group
+      var stemX = pNodes.reduce(function(s,n){ return s+n.x+NODE_W/2; },0) / pNodes.length;
+
+      // stemTopY: the Y level where parent elbows meet the vertical stem.
+      // Must be at least FORK_DROP below every parent's bottom edge.
+      var stemTopY  = Math.max(pBottomY + FORK_DROP, pBottomY);
+      var junctionY = stemTopY + 24;
+
+      if(pNodes.length === 2){
+        var p0 = pNodes[0], p1 = pNodes[1];
+        var p0x = p0.x+NODE_W/2, p0y = p0.y+NODE_H;
+        var p1x = p1.x+NODE_W/2, p1y = p1.y+NODE_H;
+
+        // Each parent drops FORK_DROP then elbows horizontally to stemX
+        lines.push(h("polyline",{
+          key: grp.key+"-p0",
+          points: p0x+","+p0y+" "+p0x+","+stemTopY+" "+stemX+","+stemTopY,
+          fill:"none", stroke:parentCol, strokeWidth:sw, strokeOpacity:op, strokeLinejoin:"round"
+        }));
+        lines.push(h("polyline",{
+          key: grp.key+"-p1",
+          points: p1x+","+p1y+" "+p1x+","+stemTopY+" "+stemX+","+stemTopY,
+          fill:"none", stroke:parentCol, strokeWidth:sw, strokeOpacity:op, strokeLinejoin:"round"
+        }));
+
+        // Vertical stem from couple midpoint down to child junction
+        lines.push(h("line",{
+          key: grp.key+"-stem",
+          x1:stemX, y1:stemTopY, x2:stemX, y2:junctionY,
+          stroke:parentCol, strokeWidth:sw, strokeOpacity:op
+        }));
+
+      } else {
+        // Solo parent: drop FORK_DROP then straight to junction
+        var px = pNodes[0].x+NODE_W/2, py = pNodes[0].y+NODE_H;
+        stemTopY = py + FORK_DROP;
+        junctionY = Math.max(stemTopY + 8, stemTopY + (cTopY - stemTopY) * 0.5);
+        lines.push(h("line",{
+          key: grp.key+"-stem",
+          x1:px, y1:py, x2:px, y2:junctionY,
+          stroke:parentCol, strokeWidth:sw, strokeOpacity:op
+        }));
+        stemX = px;
+      }
+
+      // Horizontal child bar spanning all children (or just the stem point if 1 child)
+      var cMidXs = cNodes.map(function(n){ return n.x+NODE_W/2; });
+      var barL = Math.min.apply(null, cMidXs.concat([stemX]));
+      var barR = Math.max.apply(null, cMidXs.concat([stemX]));
+      lines.push(h("line",{
+        key: grp.key+"-bar",
+        x1:barL, y1:junctionY, x2:barR, y2:junctionY,
+        stroke:parentCol, strokeWidth:sw, strokeOpacity:op
+      }));
+
+      // Vertical drops from child bar down to each child's top
+      cNodes.forEach(function(cn, ci){
+        var cx = cn.x+NODE_W/2;
+        lines.push(h("line",{
+          key: grp.key+"-c"+ci,
+          x1:cx, y1:junctionY, x2:cx, y2:cn.y,
+          stroke:parentCol, strokeWidth:sw, strokeOpacity:op
+        }));
+      });
+    });
+
+    // ── Non-parent rels: straight lines ───────────────────────────────────────
+    rels.forEach(function(r){
+      if(r.type==="Parent") return;
+      var f=getChar(r.from), t=getChar(r.to);
+      if(!f||!t) return;
+      var col=RELATION_COLORS[r.type]||"#a0a0a0";
+      var isSel=selected&&(f.id===selected||t.id===selected);
+      var isRelHov=hoveredConnectedSet&&(hoveredConnectedSet.has(f.id)||hoveredConnectedSet.has(t.id));
+      var relOp=isSel?1:(hoveredConnectedSet&&!isRelHov)?0.08:0.55;
+      var fx=f.x+NODE_W/2, fy=f.y+NODE_H/2, tx=t.x+NODE_W/2, ty=t.y+NODE_H/2;
+      var mx=(fx+tx)/2, my=(fy+ty)/2;
+      lines.push(h("g",{key:"r-"+r.id, style:{cursor:"pointer"},
+        onClick:function(e){e.stopPropagation();setContextMenu({kind:"rel",x:e.clientX,y:e.clientY,rel:r});}},
+        h("line",{x1:fx,y1:fy,x2:tx,y2:ty,stroke:col,
+          strokeWidth:isSel?2.5:1.5, strokeOpacity:relOp,
+          strokeDasharray:r.type==="Rival"||r.type==="Enemy"?"6,3":undefined}),
+        isSel
+          ? h("g",null,
+              h("circle",{cx:mx,cy:my,r:8,fill:"var(--th-abyss)",stroke:col,strokeWidth:1.5}),
+              h("text",{x:mx,y:my,textAnchor:"middle",dominantBaseline:"central",
+                fontSize:11,fill:col,fontWeight:"700",
+                style:{userSelect:"none",pointerEvents:"none"}},"✕"))
+          : h("g",null,
+              h("rect",{x:mx-22,y:my-8,width:44,height:16,rx:4,fill:"var(--th-abyss)",opacity:0.82}),
+              h("text",{x:mx,y:my,textAnchor:"middle",dominantBaseline:"central",
+                fontSize:9,fill:col,fontWeight:"600",letterSpacing:"0.03em",
+                style:{userSelect:"none",pointerEvents:"none"}},r.type))
+      ));
+    });
+
+    return lines;
+  })();
+
+  // ── Generation depths ──────────────────────────────────────────────────────
+  // BFS from roots (chars with no parents) — generation 1 at the top
+  const genDepths = (function(){
+    var parentOf={};
+    rels.forEach(function(r){ if(r.type==="Parent")(parentOf[r.to]=parentOf[r.to]||[]).push(r.from); });
+    var depths={}, queue=[], visited={};
+    chars.forEach(function(c){
+      if(!(parentOf[c.id]&&parentOf[c.id].length)){ depths[c.id]=1; queue.push(c.id); }
+    });
+    while(queue.length){
+      var id=queue.shift();
+      if(visited[id]) continue;
+      visited[id]=true;
+      rels.forEach(function(r){
+        if(r.type==="Parent"&&r.from===id){
+          var child=r.to;
+          var d=(depths[id]||1)+1;
+          if(!depths[child]||d>depths[child]) depths[child]=d;
+          if(!visited[child]) queue.push(child);
+        }
+      });
+    }
+    // Any remaining unconnected chars
+    chars.forEach(function(c){ if(!depths[c.id]) depths[c.id]=1; });
+    return depths;
+  })();
+
+  // ── Lineage set: all ancestors & descendants of the selected character ──────
+  const lineageSet = (function(){
+    if(!selected) return null;
+    var s=new Set([selected]), q=[selected], vis=new Set();
+    while(q.length){
+      var id=q.shift(); if(vis.has(id)) continue; vis.add(id);
+      rels.forEach(function(r){
+        if(r.type==="Parent"){
+          if(r.to===id&&!s.has(r.from)){ s.add(r.from); q.push(r.from); }  // ancestor
+          if(r.from===id&&!s.has(r.to)){ s.add(r.to);   q.push(r.to);   }  // descendant
+        }
+      });
+    }
+    return s;
+  })();
+
+  // ── Global search ──────────────────────────────────────────────────────────
+  const globalSearchResults = globalSearch.trim()
+    ? chars.filter(c=>[c.name,c.role,c.faction,c.species].some(v=>v&&v.toLowerCase().includes(globalSearch.toLowerCase()))).slice(0,8)
+    : [];
+  const selectAndJump = id => {
+    setSelected(id); setActivePanel("tree");
+    setShowGlobalSearch(false); setGlobalSearch("");
+    requestAnimationFrame(()=>centerOnChar(id));
+  };
+
+  useEffect(()=>{
+    if(!showGlobalSearch) return;
+    const fn=e=>{if(!e.target.closest(".gs-wrap")){setShowGlobalSearch(false);setGlobalSearch("");}};
+    document.addEventListener("mousedown",fn);
+    return ()=>document.removeEventListener("mousedown",fn);
+  },[showGlobalSearch]);
+
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  useEffect(function(){
+    function onKey(e){
+      const tag=document.activeElement&&document.activeElement.tagName;
+      const inInput=["INPUT","TEXTAREA","SELECT"].includes(tag);
+      if(e.key==="Escape"){
+        if(showGlobalSearch){ setShowGlobalSearch(false); setGlobalSearch(""); return; }
+        if(linking){ setLinking(null); return; }
+        if(showDynPanel){ setShowDynPanel(false); return; }
+        if(selected){ setSelected(null); return; }
+      }
+      if((e.ctrlKey||e.metaKey)&&e.key==="z"&&(preLayoutChars||preDeleteState)){ undoLast(); return; }
+      if(e.key==="Escape"&&(showFileMenu||showThemePicker)){ setShowFileMenu(false); setShowThemePicker(false); return; }
+      if(e.key==="Delete"&&selected&&!editingChar&&!confirm&&!linking&&!inInput){
+        e.preventDefault(); deleteChar(selected); return;
+      }
+      if(e.key==="/"&&!e.ctrlKey&&!e.metaKey&&!inInput){
+        e.preventDefault(); setShowGlobalSearch(true);
+        setTimeout(()=>globalSearchRef.current&&globalSearchRef.current.focus(),50); return;
+      }
+    }
+    window.addEventListener("keydown",onKey);
+    return function(){ window.removeEventListener("keydown",onKey); };
+  },[linking,showDynPanel,selected,preLayoutChars,preDeleteState,showFileMenu,showThemePicker,editingChar,confirm,showGlobalSearch]);
+
+  // ── Dynasty panel ──────────────────────────────────────────────────────────
+  const dynastyPanel = showDynPanel && h("div",{
+    style:{position:"fixed",top:58,left:16,zIndex:200,background:"var(--th-card)",
+      border:"1px solid var(--th-border2)",borderRadius:10,width:300,
+      boxShadow:"0 12px 40px rgba(0,0,0,0.7)",overflow:"hidden"}},
+    h("div",{style:{padding:"11px 14px 9px",borderBottom:"1px solid var(--th-border)",display:"flex",alignItems:"center",justifyContent:"space-between"}},
+      h("span",{style:{fontFamily:"'Cinzel',serif",fontSize:12,color:"var(--th-accent2)",letterSpacing:"0.08em"}},"Dynasties"),
+      h("button",{className:"btn xs ghost",onClick:()=>setShowDynPanel(false)},"✕")),
+    h("div",{style:{maxHeight:340,overflowY:"auto"}},
+      Object.values(dynasties).map(function(dyn){
+        var isActive=dyn.id===activeDynId;
+        return h("div",{key:dyn.id,style:{
+          padding:"9px 12px",borderBottom:"1px solid var(--th-border)",
+          background:isActive?"var(--th-stone)":"transparent",
+          display:"flex",alignItems:"center",gap:6}},
+          dynRenameId===dyn.id
+            ? h("input",{autoFocus:true,value:dynRenameVal,
+                onChange:function(e){setDynRenameVal(e.target.value);},
+                onKeyDown:function(e){
+                  if(e.key==="Enter") renameDynasty(dyn.id,dynRenameVal.trim()||dyn.name);
+                  if(e.key==="Escape") setDynRenameId(null);
+                },
+                onBlur:function(){renameDynasty(dyn.id,dynRenameVal.trim()||dyn.name);},
+                style:{flex:1,fontSize:13,padding:"4px 8px"}})
+            : h("span",{
+                onClick:function(){if(!isActive)switchDynasty(dyn.id);},
+                title:isActive?"Current dynasty":"Switch to "+dyn.name,
+                style:{flex:1,fontSize:14,color:isActive?"var(--th-accent-hi)":"var(--th-bone)",
+                  cursor:isActive?"default":"pointer",fontWeight:isActive?600:400,
+                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},
+                (isActive?"▶ ":"")+dyn.name+
+                ((dyn.chars||[]).length?" · "+(dyn.chars||[]).length+" chars":"")),
+          h("button",{className:"btn xs ghost",title:"Rename dynasty",
+            onClick:function(){setDynRenameId(dyn.id);setDynRenameVal(dyn.name);}
+          },"✎"),
+          h("button",{className:"btn xs ghost",title:"Export this dynasty as JSON",
+            onClick:function(){exportDynasty(dyn.id);}
+          },"↓"),
+          Object.keys(dynasties).length>1&&h("button",{className:"btn xs danger",title:"Delete this dynasty",
+            onClick:function(){
+              askConfirm("Delete Dynasty","Delete \""+dyn.name+"\" and all its characters? This cannot be undone.",
+                function(){deleteDynasty(dyn.id);}, "Delete");
+            }
+          },"✕")
+        );
+      })),
+    h("div",{style:{padding:"10px 12px",borderTop:"1px solid var(--th-border)"}},
+      h("button",{className:"btn sm",style:{width:"100%"},onClick:createDynasty},"+ New Dynasty")));
+
+  const topbar=h("div",{style:{background:"var(--th-panel)",borderBottom:"2px solid var(--th-border2)",height:54,flexShrink:0,display:"flex",alignItems:"center",padding:"0 14px",gap:6,minWidth:0}},
+    h("span",{style:{fontFamily:"'Cinzel',serif",fontSize:15,color:"var(--th-accent2)",letterSpacing:"0.08em",flexShrink:0,userSelect:"none",paddingRight:4}},"✦ Lineage"),
+    h("div",{className:"tb-sep"}),
+    // Dynasty switcher
+    h("button",{className:"dyn-btn",onClick:function(){setShowDynPanel(function(v){return !v;});}},
+      h("span",{style:{fontSize:11,opacity:0.6,flexShrink:0}},"⊞"),
+      h("span",{className:"name"},(dynasties[activeDynId]||{}).name||treeName),
+      h("span",{className:"arrow"},"▾")),
+    h("div",{className:"tb-sep"}),
+    // Tree name editor
+    editName
+      ? h("input",{value:treeName,onChange:e=>setTreeName(e.target.value),onBlur:()=>setEditName(false),onKeyDown:e=>{if(e.key==="Enter"||e.key==="Escape")setEditName(false);},autoFocus:true,style:{width:160,background:"transparent",border:"none",borderBottom:"2px solid var(--th-accent1)",color:"var(--th-bone)",fontSize:14,padding:"2px 4px",fontFamily:"'EB Garamond',serif",flexShrink:0}})
+      : h("span",{onClick:()=>setEditName(true),title:"Click to rename tree",style:{fontSize:14,color:"var(--th-bone-dim)",cursor:"pointer",flexShrink:0,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",borderBottom:"1px dashed var(--th-border2)",paddingBottom:1}},treeName),
+    h("div",{className:"tb-sep"}),
+    // Panel tabs
+    h("div",{style:{display:"flex",height:"100%",alignItems:"stretch",flexShrink:0}},
+      ...[["tree","🗺 Tree"],["characters","👤 Characters"],["relationships","⇔ Links"],["disorders","⚕ Traits"]].map(function(pair){
+        var p=pair[0],label=pair[1];
+        return h("button",{key:p,className:"tab-btn"+(activePanel===p?" active":""),onClick:()=>setActivePanel(p)},label);
+      })),
+    // Global search
+    h("div",{className:"gs-wrap",style:{position:"relative",display:"flex",alignItems:"center",marginLeft:4}},
+      showGlobalSearch&&h("div",{style:{position:"absolute",right:0,top:"calc(100% + 6px)",background:"var(--th-card)",border:"1px solid var(--th-border2)",borderRadius:8,zIndex:300,width:280,boxShadow:"0 8px 32px rgba(0,0,0,0.7)",overflow:"hidden"}},
+        h("input",{ref:globalSearchRef,value:globalSearch,onChange:e=>setGlobalSearch(e.target.value),
+          placeholder:"Find character…",
+          style:{borderRadius:"8px 8px 0 0",borderBottom:"1px solid var(--th-border)"},
+          onKeyDown:e=>{
+            if(e.key==="Escape"){setShowGlobalSearch(false);setGlobalSearch("");}
+            if(e.key==="Enter"&&globalSearchResults.length)selectAndJump(globalSearchResults[0].id);
+          }}),
+        globalSearch.trim()&&globalSearchResults.length===0&&h("div",{style:{padding:"10px 14px",fontSize:13,color:"var(--th-bone-dim)",fontStyle:"italic"}},"No characters found"),
+        globalSearchResults.map(c=>h("div",{key:c.id,
+          onMouseDown:e=>{e.preventDefault();selectAndJump(c.id);},
+          style:{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",cursor:"pointer",borderBottom:"1px solid var(--th-border)"},
+          onMouseEnter:e=>e.currentTarget.style.background="var(--th-stone)",
+          onMouseLeave:e=>e.currentTarget.style.background="transparent"},
+          h("div",{style:{width:8,height:8,borderRadius:"50%",background:c.color,flexShrink:0}}),
+          h("div",{style:{flex:1,minWidth:0}},
+            h("div",{style:{fontSize:14,color:"var(--th-bone)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},c.name),
+            (c.role||c.faction)&&h("div",{style:{fontSize:11,color:"var(--th-bone-dim)"}},
+              [c.role,c.faction].filter(Boolean).join(" · ")))))),
+      h("button",{className:"btn muted sm",title:"Find character  (/)",style:{padding:"4px 8px",fontSize:15,lineHeight:1},
+        onClick:()=>{setShowGlobalSearch(s=>!s);if(!showGlobalSearch)setTimeout(()=>globalSearchRef.current&&globalSearchRef.current.focus(),50);}},"🔍")),
+    // Theme picker toggle — lives just after the tabs
+    h("div",{style:{position:"relative",display:"flex",alignItems:"center",marginLeft:4}},
+      h("button",{className:"btn muted sm",onClick:()=>{setShowThemePicker(s=>!s);setShowFileMenu(false);},
+        title:"Change theme",style:{padding:"4px 8px",fontSize:15,lineHeight:1}},"🎨"),
+      showThemePicker&&h("div",{className:"ctx-menu",style:{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:300,width:210}},
+        h("span",{className:"ctx-label"},"Theme"),
+        THEMES.map(function(t){
+          var active=theme===t.id;
+          return h("button",{key:t.id,className:"ctx-item",
+            style:{display:"flex",alignItems:"center",gap:8,background:active?"var(--th-stone)":"transparent"},
+            onClick:function(){changeTheme(t.id);setShowThemePicker(false);}},
+            h("div",{style:{display:"flex",gap:2,borderRadius:3,overflow:"hidden",width:36,height:14,flexShrink:0}},
+              t.swatches.slice(0,4).map(function(col,i){return h("div",{key:i,style:{flex:1,background:col}});})),
+            h("span",{style:{fontSize:13,flex:1,color:active?"var(--th-accent2)":"var(--th-bone)"}},t.label),
+            active&&h("span",{style:{fontSize:10,color:"var(--th-accent1)",flexShrink:0}},"✶"));
+        }))
+    ),
+    h("div",{style:{flex:1,minWidth:0}}),
+    // Right actions
+    h("div",{style:{display:"flex",gap:4,flexShrink:0,alignItems:"center"}},
+      h("button",{className:"btn sm",onClick:addChar,title:"Add a new character"},"+ Character"),
+      h("button",{className:"btn sm "+(linking?"linking":"ghost"),
+        onClick:()=>setLinking(linking?null:(selected||(chars[0]&&chars[0].id))),
+        title:linking?"Cancel link mode (Esc)":"Enter link mode to connect characters"},
+        linking?"✕ Cancel":"⇔ Link"),
+      h("div",{className:"tb-sep"}),
+      h("button",{className:"btn muted sm",onClick:confirmAutoLayout,title:"Auto-arrange all cards"},"✦ Arrange"),
+      undoLabel&&h("button",{className:"btn sm",onClick:undoLast,title:undoLabel},undoLabel),
+      h("div",{className:"tb-sep"}),
+      // File menu
+      h("div",{style:{position:"relative",display:"flex",alignItems:"center"}},
+        h("button",{className:"btn muted sm",onClick:()=>{setShowFileMenu(s=>!s);setShowThemePicker(false);},title:"Import / Export"},"⋮ File"),
+        h("input",{ref:fileRef,type:"file",accept:".json",style:{display:"none"},onChange:importJSON}),
+        showFileMenu&&h("div",{className:"ctx-menu",style:{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:300,width:200}},
+          h("span",{className:"ctx-label"},"Export"),
+          h("button",{className:"ctx-item",onClick:()=>{exportJSON();setShowFileMenu(false);}},"↓ Export JSON"),
+          h("button",{className:"ctx-item",onClick:()=>{exportSVG();setShowFileMenu(false);}},"↓ Export SVG"),
+          h("hr",{className:"ctx-sep"}),
+          h("span",{className:"ctx-label"},"Import"),
+          h("button",{className:"ctx-item",onClick:()=>{fileRef.current.click();setShowFileMenu(false);}},"↑ Import JSON"),
+          h("hr",{className:"ctx-sep"}),
+          h("span",{className:"ctx-label"},"Danger Zone"),
+          h("button",{className:"ctx-item danger",onClick:()=>{setShowFileMenu(false);clearAll();}},"✕ Clear All"),
+          h("button",{className:"ctx-item",onClick:()=>{setShowFileMenu(false);resetToDemo();}},"↺ Reset to Demo"))
+      ),
+      h("div",{className:"tb-sep"}),
+      h("button",{className:"btn muted sm icon",onClick:()=>setShowSidebar(s=>!s),title:showSidebar?"Hide sidebar":"Show sidebar"},showSidebar?"◧":"◨")));
+
+  // ── TREE CANVAS ────────────────────────────────────────────────────────────
+  const treePanel=h("div",{style:{flex:1,position:"relative",overflow:"hidden",minWidth:0,background:"var(--th-void)"}},
+    linking&&h("div",{style:{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",background:"var(--th-link-bg)",border:"1px solid var(--th-link-active)",color:"var(--th-link-hover)",padding:"8px 22px",borderRadius:22,zIndex:10,fontSize:13,fontWeight:600,whiteSpace:"nowrap",pointerEvents:"none",boxShadow:"0 4px 16px rgba(0,0,0,0.5)",letterSpacing:"0.02em"}},
+      "🔗 Click a character to link  ·  Esc to cancel"),
+    h("div",{className:"zoom-controls"},
+      h("button",{title:"Zoom out",onClick:()=>setZoom(z=>Math.max(0.2,+(z*0.8).toFixed(2)))},"−"),
+      h("button",{className:"zoom-badge",title:"Reset to 100%",onClick:()=>{setZoom(1);setPan({x:40,y:40});}},Math.round(zoom*100)+"%"),
+      h("button",{title:"Zoom in",onClick:()=>setZoom(z=>Math.min(3,+(z*1.25).toFixed(2)))},"＋"),
+      h("button",{title:"Fit all characters on screen",onClick:fitToScreen,style:{fontSize:13,paddingLeft:4,borderLeft:"1px solid var(--th-border)",borderRadius:0}},"⤢ Fit"),
+      selected&&h("button",{title:"Center view on selected character",onClick:()=>centerOnChar(selected),style:{fontSize:13,paddingLeft:4,borderLeft:"1px solid var(--th-border)",borderRadius:0}},"⊙ Focus")),
+    chars.length===0&&h("div",{style:{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none",userSelect:"none",gap:14}},
+      h("div",{style:{fontSize:48,opacity:0.15}},"✦"),
+      h("div",{style:{fontFamily:"'Cinzel',serif",fontSize:18,color:"var(--th-bone-faint)",letterSpacing:"0.06em",opacity:0.5}},"Your tree is empty"),
+      h("div",{style:{fontSize:14,color:"var(--th-bone-faint)",opacity:0.4}},"Add a character to get started")),
+    h("svg",{ref:svgRef,width:"100%",height:"100%",onMouseDown:onSvgMouseDown,onMouseMove,onMouseUp,onWheel,style:{display:"block",cursor:isPanning?"grabbing":"default"}},
+      h("defs",null,
+        h("pattern",{id:"grid",width:40,height:40,patternUnits:"userSpaceOnUse"},h("path",{d:"M 40 0 L 0 0 0 40",fill:"none",stroke:"var(--th-border)",strokeWidth:0.5,opacity:0.5})),
+        h("filter",{id:"shadow",x:"-10%",y:"-10%",width:"120%",height:"120%"},h("feDropShadow",{dx:"0",dy:"4",stdDeviation:"6",floodColor:"#000",floodOpacity:"0.5"})),
+        h("filter",{id:"glow",x:"-20%",y:"-20%",width:"140%",height:"140%"},h("feGaussianBlur",{stdDeviation:"3",result:"blur"}),h("feMerge",null,h("feMergeNode",{in:"blur"}),h("feMergeNode",{in:"SourceGraphic"}))),
+        h("clipPath",{id:"node-clip"},h("rect",{width:NODE_W,height:HEADER_H,rx:NODE_RX}))),
+      h("rect",{width:"100%",height:"100%",fill:"var(--th-void)"}),
+      h("rect",{width:"100%",height:"100%",fill:"url(#grid)"}),
+      h("g",{transform:"translate("+pan.x+","+pan.y+") scale("+zoom+")"},
+        ...relLines,
+        ...chars.map(c=>h(CharNode,{key:c.id,c,selected,linking,onMouseDown:onNodeMouseDown,
+          dimmed:lineageSet!==null ? !lineageSet.has(c.id) : hoveredConnectedSet!==null&&!hoveredConnectedSet.has(c.id),
+          onDoubleClick:c=>setEditingChar({...c}),
+          onContextMenu:(e,c)=>setContextMenu({kind:"char",x:e.clientX,y:e.clientY,char:c}),
+          onMouseEnter:id=>setHoveredChar(id),
+          onMouseLeave:()=>setHoveredChar(null)})))));
+
+  // ── CHARACTERS PANEL ───────────────────────────────────────────────────────
+  const filteredChars = charSearch.trim()
+    ? chars.filter(c=>[c.name,c.faction,c.role,c.species].some(v=>v&&v.toLowerCase().includes(charSearch.toLowerCase())))
+    : chars;
+  const charsPanel=h("div",{style:{flex:1,overflowY:"auto",padding:24,minWidth:0,background:"var(--th-void)"}},
+    h("div",{style:{maxWidth:900,margin:"0 auto"}},
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,paddingBottom:14,borderBottom:"1px solid var(--th-border)"}},
+        h("div",null,h("div",{className:"panel-heading"},"Characters"),h("div",{style:{fontSize:14,color:"var(--th-bone-dim)",marginTop:3}},chars.length+" characters in this tree")),
+        h("button",{className:"btn",onClick:addChar},"+ Add Character")),
+      h("div",{style:{marginBottom:16,display:"flex",gap:8,alignItems:"center"}},
+        h("input",{value:charSearch,onChange:e=>setCharSearch(e.target.value),placeholder:"Search by name, role, faction, species…",style:{flex:1,maxWidth:380}}),
+        charSearch&&h("button",{className:"btn xs ghost",onClick:()=>setCharSearch(""),style:{flexShrink:0}},"✕"),
+        charSearch&&h("span",{style:{fontSize:13,color:"var(--th-bone-dim)",flexShrink:0}},filteredChars.length+" result"+(filteredChars.length!==1?"s":""))),
+      chars.length===0&&h("div",{style:{color:"var(--th-bone-dim)",fontStyle:"italic",textAlign:"center",padding:"40px 0",fontSize:15}},"No characters yet. Click \"+ Add Character\" to begin."),
+      filteredChars.length===0&&chars.length>0&&h("div",{style:{color:"var(--th-bone-dim)",fontStyle:"italic",textAlign:"center",padding:"40px 0",fontSize:15}},"No characters match \""+charSearch+"\"."),
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}},
+        ...filteredChars.map(c=>h("div",{key:c.id,className:"char-card",style:{borderColor:selected===c.id?c.color:"var(--th-border)"},
+          onClick:()=>{setSelected(c.id);setActivePanel("tree");},
+          onContextMenu:e=>{e.preventDefault();setContextMenu({kind:"char",x:e.clientX,y:e.clientY,char:c});}},
+          h("div",{style:{display:"flex",alignItems:"flex-start",gap:10}},
+            h("div",{style:{width:3,minHeight:32,borderRadius:2,background:c.color,flexShrink:0,marginTop:2,alignSelf:"stretch"}}),
+            h("div",{style:{flex:1,minWidth:0}},
+              h("div",{className:"card-name"},c.name),
+              c.titles&&h("div",{className:"card-titles",style:{color:c.color}},c.titles)),
+            h("span",{className:"tag",style:{borderColor:statusColor(c.status),color:statusColor(c.status),flexShrink:0,alignSelf:"flex-start"}},c.status)),
+          [c.species,c.age?"Age "+c.age:"",c.role,c.faction].filter(Boolean).length>0&&
+            h("div",{className:"card-meta",style:{marginLeft:13}},[c.species,c.age?"Age "+c.age:"",c.role,c.faction].filter(Boolean).join(" "+dot+" ")),
+          h("div",{className:"card-actions"},
+            h("button",{className:"btn xs ghost",onClick:e=>{e.stopPropagation();setEditingChar({...c});}},"Edit"),
+            h("button",{className:"btn xs ghost",onClick:e=>{e.stopPropagation();copyChar(c.id);},title:"Duplicate this character"},"⧉"),
+            h("button",{className:"btn xs danger",onClick:e=>{e.stopPropagation();deleteChar(c.id);}},"Delete")))))));
+
+  // ── RELATIONSHIPS PANEL ────────────────────────────────────────────────────
+  const REL_FILTER_TYPES = ["All",...RELATIONSHIP_TYPES];
+  const filteredRels = relTypeFilter==="All" ? rels : rels.filter(r=>r.type===relTypeFilter);
+  const relsPanel=h("div",{style:{flex:1,overflowY:"auto",padding:24,minWidth:0,background:"var(--th-void)"}},
+    h("div",{style:{maxWidth:720,margin:"0 auto"}},
+      h("div",{style:{marginBottom:16,paddingBottom:14,borderBottom:"1px solid var(--th-border)"}},
+        h("div",{className:"panel-heading"},"Relationships"),
+        h("div",{style:{fontSize:14,color:"var(--th-bone-dim)",marginTop:3}},
+          relTypeFilter==="All" ? rels.length+" connections defined"
+            : filteredRels.length+" of "+rels.length+" shown")),
+      h("div",{style:{display:"flex",flexWrap:"wrap",gap:5,marginBottom:16}},
+        REL_FILTER_TYPES.map(t=>{
+          const active=relTypeFilter===t, col=RELATION_COLORS[t]||"var(--th-accent2)";
+          const count=t==="All"?rels.length:rels.filter(r=>r.type===t).length;
+          if(t!=="All"&&count===0) return null;
+          return h("button",{key:t,onClick:()=>setRelTypeFilter(t),style:{
+            background:active?(t==="All"?"var(--th-accent2)":col)+"22":"transparent",
+            border:"1px solid "+(active?(t==="All"?"var(--th-accent2)":col):"var(--th-border)"),
+            color:active?(t==="All"?"var(--th-accent2)":col):"var(--th-bone-dim)",
+            padding:"3px 10px",borderRadius:4,cursor:"pointer",
+            fontFamily:"'EB Garamond',serif",fontSize:13,fontWeight:600,whiteSpace:"nowrap"}},
+            t+(t!=="All"?" ("+count+")":""));
+        }).filter(Boolean)),
+      filteredRels.length===0&&h("div",{style:{color:"var(--th-bone-dim)",fontStyle:"italic",textAlign:"center",padding:"40px 0",fontSize:15}},
+        rels.length===0?"No relationships yet. Use \"⇔ Link\" on the tree view to connect characters."
+          :"No \""+relTypeFilter+"\" relationships found."),
+      filteredRels.map(r=>{
+        const f=getChar(r.from),t=getChar(r.to); if(!f||!t) return null;
+        const col=RELATION_COLORS[r.type]||"#a0a0a0";
+        const midLabel=r.type==="Parent"?"Parent Of":r.type;
+        return h("div",{key:r.id,className:"rel-row"},
+          h("div",{style:{width:3,height:32,borderRadius:2,background:f.color,flexShrink:0}}),
+          h("span",{style:{fontSize:14,color:"var(--th-bone)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer"},onClick:()=>{setSelected(f.id);setActivePanel("tree");}},f.name),
+          h("span",{className:"tag",style:{borderColor:col,color:col,background:col+"18"}},midLabel),
+          h("span",{style:{fontSize:14,color:"var(--th-bone)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer"},onClick:()=>{setSelected(t.id);setActivePanel("tree");}},t.name),
+          h("div",{style:{width:3,height:32,borderRadius:2,background:t.color,flexShrink:0}}),
+          h("button",{className:"btn xs danger",onClick:()=>deleteRel(r.id),style:{marginLeft:4}},"Remove"));
+      }).filter(Boolean)));
+
+  // ── DISORDERS PANEL ────────────────────────────────────────────────────────
+  const disordersByName = (() => {
+    const m={};
+    chars.forEach(c=>(c.disorders||[]).forEach(d=>{
+      if(!m[d.name]) m[d.name]={hereditary:d.hereditary,entries:[]};
+      m[d.name].entries.push({char:c,status:d.status,source:d.source});
+    }));
+    return m;
+  })();
+
+  const disordersPanel=h("div",{style:{flex:1,overflowY:"auto",padding:24,minWidth:0,background:"var(--th-void)"}},
+    h("div",{style:{maxWidth:760,margin:"0 auto"}},
+      h("div",{style:{paddingBottom:14,borderBottom:"1px solid var(--th-border)",marginBottom:24}},
+        h("div",{className:"panel-heading"},"⚕ Genetic Traits"),
+        h("div",{style:{fontSize:14,color:"var(--th-bone-dim)",marginTop:3}},
+          Object.keys(disordersByName).length+" trait"+(Object.keys(disordersByName).length!==1?"s":"")+" across "+
+          chars.filter(c=>(c.disorders||[]).length>0).length+" character"+(chars.filter(c=>(c.disorders||[]).length>0).length!==1?"s":""))),
+      Object.keys(disordersByName).length===0
+        ? h("div",{style:{color:"var(--th-bone-dim)",fontStyle:"italic",textAlign:"center",padding:"40px 0",fontSize:15}},
+            h("div",{style:{fontSize:32,marginBottom:12,opacity:0.4}},"⚕"),
+            "No genetic traits recorded yet.",h("br"),"Open a character's Edit modal to add one.")
+        : Object.entries(disordersByName).map(([name,{hereditary,entries}])=>{
+            const anyAff=entries.some(e=>e.status==="Affected"),anyCar=entries.some(e=>e.status==="Carrier");
+            const dc=anyAff?"#e05050":anyCar?"#e0a030":"#60b870";
+            return h("div",{key:name,style:{background:"var(--th-card)",border:"1px solid var(--th-border)",borderLeft:"4px solid "+dc,borderRadius:8,padding:"16px 18px",marginBottom:14}},
+              h("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:12}},
+                h("div",{style:{flex:1,minWidth:0}},
+                  h("div",{style:{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}},
+                    h("div",{style:{fontSize:16,fontWeight:700,color:"var(--th-bone)",fontFamily:"'Cinzel',serif",letterSpacing:"0.04em"}},name),
+                    hereditary
+                      ? h("span",{style:{fontSize:11,color:"var(--th-accent2)",border:"1px solid var(--th-accent2)",borderRadius:3,padding:"1px 6px",letterSpacing:"0.06em"}},"↓ Hereditary")
+                      : h("span",{style:{fontSize:11,color:"var(--th-bone-faint)",border:"1px solid var(--th-border2)",borderRadius:3,padding:"1px 6px",letterSpacing:"0.06em"}},"Non-hereditary"))),
+                h("div",{style:{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}},
+                  ...["Affected","Carrier","Unaffected","Unknown"].map(s=>{
+                    const n=entries.filter(e=>e.status===s).length; if(!n) return null;
+                    const sc=DISORDER_STATUS_COLORS[s];
+                    return h("span",{key:s,className:"tag",style:{borderColor:sc,color:sc,background:sc+"18",fontSize:12}},n+" "+s);
+                  }).filter(Boolean))),
+              h("div",{style:{display:"flex",flexWrap:"wrap",gap:8}},
+                entries.map((e,i)=>{
+                  const sc=DISORDER_STATUS_COLORS[e.status]||"#909090";
+                  return h("div",{key:i,style:{display:"flex",alignItems:"center",gap:6,background:"var(--th-card2)",border:"1px solid var(--th-border)",borderRadius:5,padding:"5px 10px",cursor:"pointer"},
+                    onClick:()=>{setSelected(e.char.id);setActivePanel("tree");}},
+                    h("div",{style:{width:8,height:8,borderRadius:"50%",background:e.char.color,flexShrink:0}}),
+                    h("span",{style:{fontSize:13,color:"var(--th-bone)"}},e.char.name),
+                    h("span",{style:{fontSize:12,color:sc,fontWeight:600,marginLeft:2}},e.status),
+                    e.source==="inherited"&&h("span",{style:{fontSize:10,color:"var(--th-accent1)",marginLeft:2}},"↯"));
+                })));
+          })));
+
+  // ── SIDEBAR ────────────────────────────────────────────────────────────────
+  const sidebar=showSidebar&&h("div",{style:{width:272,minWidth:272,maxWidth:272,background:"var(--th-panel)",borderLeft:"2px solid var(--th-border2)",display:"flex",flexDirection:"column",overflow:"hidden"}},
+    selectedChar?h(SidebarCharPanel,{
+      key:selectedChar.id,
+      char:selectedChar,allChars:chars,genDepths,selectedRels,
+      onSave:quickSave,onDelete:deleteChar,onDeleteRel:deleteRel,
+      onSelectChar:setSelected,onEdit:c=>setEditingChar({...c})})
+    : h("div",{style:{padding:"20px 16px",color:"var(--th-bone-dim)",flex:1,display:"flex",flexDirection:"column",gap:0}},
+        h("div",{style:{textAlign:"center",padding:"28px 0 20px"}},
+          h("div",{style:{fontSize:34,marginBottom:10,opacity:0.35}},"✦"),
+          h("div",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:"var(--th-bone-dim)",marginBottom:4,opacity:0.7}},"No character selected"),
+          h("div",{style:{fontSize:13,color:"var(--th-bone-faint)",opacity:0.6}},"Click any node to inspect")),
+        h("div",{style:{background:"var(--th-card2)",border:"1px solid var(--th-border)",borderRadius:8,padding:"14px 14px",fontSize:13,lineHeight:1,color:"var(--th-bone-faint)"}},
+          h("div",{style:{fontFamily:"'Cinzel',serif",fontSize:10,letterSpacing:"0.14em",color:"var(--th-bone-dim)",marginBottom:12,opacity:0.8}},"QUICK GUIDE"),
+          ...[
+            ["Drag","Move cards around the canvas"],
+            ["Double-click","Open character editor"],
+            ["⇔ Link","Connect two characters"],
+            ["Right-click","Context menu on any node"],
+            ["2-finger scroll","Pan the canvas"],
+            ["Pinch / Ctrl+scroll","Zoom in & out"],
+            ["Esc","Deselect / cancel action"],
+            ["Del","Delete selected character"],
+            ["/","Find character by name"],
+            ["Ctrl+Z","Undo arrange / delete"],
+          ].map(function(pair,i){
+            return h("div",{key:i,style:{display:"flex",gap:8,marginBottom:9,alignItems:"flex-start"}},
+              h("span",{style:{background:"var(--th-stone)",border:"1px solid var(--th-border2)",borderRadius:3,padding:"1px 5px",fontSize:11,fontFamily:"monospace",color:"var(--th-bone-dim)",flexShrink:0,lineHeight:1.6}},pair[0]),
+              h("span",{style:{fontSize:13,color:"var(--th-bone-faint)",lineHeight:1.5}},pair[1]));
+          }))),
+    h("div",{style:{borderTop:"2px solid var(--th-border2)",padding:"10px 14px",flexShrink:0,background:"var(--th-card2)"}},
+      h("div",{style:{fontFamily:"'Cinzel',serif",fontSize:10,letterSpacing:"0.12em",color:"var(--th-bone-dim)",marginBottom:7,textTransform:"uppercase",opacity:0.7}},"Legend"),
+      h("div",{style:{display:"flex",flexWrap:"wrap",gap:4,marginBottom:10}},
+        ...[["Parent/Child","var(--th-accent2)"],["Spouse","#e87090"],["Sibling","#60b8e0"],["Rival","#e05050"],["Mentor","#a878e0"]].map(function(pair){
+          return h("span",{key:pair[0],className:"tag",style:{borderColor:pair[1],color:pair[1],background:pair[1]+"18",fontSize:11}},pair[0]);
+        })),
+      h("div",{style:{borderTop:"1px solid var(--th-border)",paddingTop:9,marginTop:2,display:"flex",alignItems:"center",gap:8,cursor:"pointer",opacity:0.65,transition:"opacity 0.15s"},
+        onMouseOver:function(e){e.currentTarget.style.opacity="1";},
+        onMouseOut:function(e){e.currentTarget.style.opacity="0.65";},
+        onClick:function(){setShowWelcome(true);}},
+        h("span",{style:{fontSize:16}},"☕"),
+        h("div",null,
+          h("div",{style:{fontSize:12,fontWeight:600,color:"var(--th-accent2)",letterSpacing:"0.02em"}},"Support this project"),
+          h("div",{style:{fontSize:11,color:"var(--th-bone-faint)"}},"Free & solo-developed · Ko-fi coming soon")))));
+
+  return h("div",{"data-theme":theme==="default"?undefined:theme,style:{height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden"}},
+    topbar,
+    h("div",{style:{flex:1,display:"flex",overflow:"hidden",minHeight:0}},
+      activePanel==="tree"          && treePanel,
+      activePanel==="characters"    && charsPanel,
+      activePanel==="relationships" && relsPanel,
+      activePanel==="disorders"     && disordersPanel,
+      sidebar),
+    editingChar&&h(EditModal,{char:editingChar,allChars:chars,existingRels:rels,
+      palette:THEME_PALETTES[theme]||THEME_PALETTES.default,
+      onSave:saveChar,onDelete:deleteChar,onClose:()=>setEditingChar(null),
+      onAddRel:addRel,onDeleteRel:deleteRel}),
+    contextMenu&&h(ContextMenu,{menu:contextMenu,onClose:()=>setContextMenu(null),
+      onChangeRelType:changeRelType,onDeleteRel:deleteRel,onDeleteChar:deleteChar,
+      onEditChar:c=>setEditingChar({...c}),onCopyChar:copyChar}),
+    confirm&&h(ConfirmDialog,{title:confirm.title,message:confirm.message,confirmLabel:confirm.confirmLabel||"Confirm",
+      onConfirm:confirm.onConfirm,onCancel:()=>setConfirm(null)}),
+    dynastyPanel,
+    showDynPanel&&h("div",{style:{position:"fixed",inset:0,zIndex:199},onClick:()=>setShowDynPanel(false)}),
+    (showFileMenu||showThemePicker)&&h("div",{style:{position:"fixed",inset:0,zIndex:299},onClick:()=>{setShowFileMenu(false);setShowThemePicker(false);}}),
+    showWelcome&&h(WelcomePopup,{onClose:()=>setShowWelcome(false)}),
+    toast&&h("div",{key:(typeof toast==="string"?toast:toast.msg)+Date.now(),
+      className:"toast"+(toast.undoFn?" toast-action":""),
+      style:{pointerEvents:toast.undoFn?"all":"none"}},
+      typeof toast==="string"?toast:
+      h(React.Fragment,null,toast.msg,
+        h("button",{className:"toast-undo-btn",onClick:()=>{toast.undoFn();setToast(null);}},"↩ Undo"))));
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+</script>
+</body>
+</html>

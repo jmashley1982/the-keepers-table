@@ -1,5 +1,5 @@
 import { NavLink, useParams, useLocation } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, Users, Map, Scroll, Zap, Swords, Settings, Plus } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Users, Map, Scroll, Zap, Swords, Settings, Plus, GitBranch, Timer } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
 
@@ -12,6 +12,7 @@ const HIDDEN_NAV_PATTERNS: RegExp[] = [
 const MINIMAL_NAV_PATTERNS: RegExp[] = [
   /^\/campaigns$/,
   /^\/settings/,
+  /^\/tools\//,
 ]
 
 export default function MobileNav() {
@@ -51,6 +52,7 @@ export default function MobileNav() {
         }}
       >
         {tab('/campaigns', <Swords size={20} />, 'Campaigns', true)}
+        {tab('/tools/lineage', <GitBranch size={20} />, 'Lineage')}
 
         {/* Center placeholder — create campaign */}
         <NavLink
@@ -72,6 +74,7 @@ export default function MobileNav() {
           </span>
         </NavLink>
 
+        {tab('/tools/tracker', <Timer size={20} />, 'Tracker')}
         {tab('/settings', <Settings size={20} />, 'Settings')}
       </div>
     )

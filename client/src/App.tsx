@@ -25,6 +25,8 @@ import SettingsPage from './pages/SettingsPage'
 import EnemiesPage from './pages/campaign/EnemiesPage'
 import EnemyGeneratorPage from './pages/campaign/EnemyGeneratorPage'
 import AppShell from './components/layout/AppShell'
+import LineagePage from './pages/tools/LineagePage'
+import DungeonTrackerPage from './pages/tools/DungeonTrackerPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { data, isLoading } = useQuery({
@@ -86,6 +88,8 @@ export default function App() {
         <Route path="/campaign/:campaignId/generate/:kind" element={<GeneratorPage />} />
         <Route path="/campaign/:campaignId/settings" element={<CampaignSettingsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/tools/lineage" element={<LineagePage />} />
+        <Route path="/tools/tracker" element={<DungeonTrackerPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
