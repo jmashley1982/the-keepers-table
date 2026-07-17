@@ -67,18 +67,22 @@ export default function SplashPage() {
         backgroundImage: "url('/hero-haunt.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : theme === 'icarus' ? {
         backgroundImage: "url('/hero-icarus.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : theme === 'neon' ? {
         backgroundImage: "url('/hero-neon.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : theme === 'eldritch' ? {
         backgroundImage: "url('/hero-eldritch.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : { background: 'var(--color-bg)' }}
     >
       {/* Atmospheric glow / haunt overlay */}

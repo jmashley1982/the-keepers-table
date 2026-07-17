@@ -42,18 +42,22 @@ export default function LoginPage() {
         backgroundImage: "url('/hero-haunt.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : theme === 'icarus' ? {
         backgroundImage: "url('/hero-icarus.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : theme === 'neon' ? {
         backgroundImage: "url('/hero-neon.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : theme === 'eldritch' ? {
         backgroundImage: "url('/hero-eldritch.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : {
         background: `radial-gradient(ellipse 80% 60% at 50% 40%,
           color-mix(in srgb, var(--color-accent) 9%, var(--color-bg)) 0%,

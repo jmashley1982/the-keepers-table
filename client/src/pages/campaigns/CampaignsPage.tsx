@@ -58,18 +58,22 @@ export default function CampaignsPage() {
         backgroundImage: "url('/hero-haunt.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : theme === 'icarus' ? {
         backgroundImage: "url('/hero-icarus.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : theme === 'neon' ? {
         backgroundImage: "url('/hero-neon.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : theme === 'eldritch' ? {
         backgroundImage: "url('/hero-eldritch.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : undefined}
     >
       {(theme === 'haunt' || theme === 'icarus' || theme === 'neon' || theme === 'eldritch') && (
