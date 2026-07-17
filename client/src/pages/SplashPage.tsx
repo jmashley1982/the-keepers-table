@@ -67,13 +67,17 @@ export default function SplashPage() {
         backgroundImage: "url('/hero-haunt.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+      } : theme === 'icarus' ? {
+        backgroundImage: "url('/hero-icarus.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
       } : { background: 'var(--color-bg)' }}
     >
       {/* Atmospheric glow / haunt overlay */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: theme === 'haunt'
+          background: (theme === 'haunt' || theme === 'icarus')
             ? `linear-gradient(to bottom,
                 rgba(0,0,0,0.45) 0%,
                 rgba(0,0,0,0.3) 40%,

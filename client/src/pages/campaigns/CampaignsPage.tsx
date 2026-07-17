@@ -58,9 +58,13 @@ export default function CampaignsPage() {
         backgroundImage: "url('/hero-haunt.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+      } : theme === 'icarus' ? {
+        backgroundImage: "url('/hero-icarus.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
       } : undefined}
     >
-      {theme === 'haunt' && (
+      {(theme === 'haunt' || theme === 'icarus') && (
         <div
           className="pointer-events-none absolute inset-0"
           style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.7) 100%)' }}

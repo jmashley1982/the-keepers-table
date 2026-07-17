@@ -42,6 +42,10 @@ export default function LoginPage() {
         backgroundImage: "url('/hero-haunt.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+      } : theme === 'icarus' ? {
+        backgroundImage: "url('/hero-icarus.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
       } : {
         background: `radial-gradient(ellipse 80% 60% at 50% 40%,
           color-mix(in srgb, var(--color-accent) 9%, var(--color-bg)) 0%,
@@ -52,7 +56,7 @@ export default function LoginPage() {
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: theme === 'haunt'
+          background: (theme === 'haunt' || theme === 'icarus')
             ? 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)'
             : 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%)',
         }}
