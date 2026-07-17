@@ -4,6 +4,7 @@ import { Menu, Zap } from 'lucide-react'
 import { api } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
 import { themeBrandIcon } from '../../lib/themeBrandIcon'
+import ThemeSwitcher from './ThemeSwitcher'
 
 interface Props {
   onMenuOpen: () => void
@@ -53,17 +54,20 @@ export default function MobileTopBar({ onMenuOpen }: Props) {
         )}
       </div>
 
-      <button
-        onClick={() => setQuickGenerateOpen(true)}
-        className="flex items-center justify-center w-11 h-11 rounded-full transition-colors touch-manipulation"
-        style={{
-          background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
-          color: 'var(--color-accent)',
-        }}
-        aria-label="Quick Generate"
-      >
-        <Zap size={18} />
-      </button>
+      <div className="flex items-center gap-1.5">
+        <ThemeSwitcher variant="inline" />
+        <button
+          onClick={() => setQuickGenerateOpen(true)}
+          className="flex items-center justify-center w-11 h-11 rounded-full transition-colors touch-manipulation"
+          style={{
+            background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+            color: 'var(--color-accent)',
+          }}
+          aria-label="Quick Generate"
+        >
+          <Zap size={18} />
+        </button>
+      </div>
     </div>
   )
 }

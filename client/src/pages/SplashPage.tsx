@@ -4,6 +4,7 @@ import { api, apiError } from '../lib/api'
 import { useUIStore } from '../store/useUIStore'
 import { themeBrandIcon } from '../lib/themeBrandIcon'
 import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn, LayoutDashboard, UserPlus, Sparkles, ClipboardList } from 'lucide-react'
+import ThemeSwitcher from '../components/layout/ThemeSwitcher'
 
 const FEATURES = [
   {
@@ -94,23 +95,26 @@ export default function SplashPage() {
             The Keeper's Table
           </span>
         </div>
-        {loggedIn ? (
-          <button
-            className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
-            onClick={() => navigate('/campaigns')}
-          >
-            <LayoutDashboard size={15} />
-            My Campaigns
-          </button>
-        ) : (
-          <button
-            className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
-            onClick={() => navigate('/login')}
-          >
-            <LogIn size={15} />
-            Sign in
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <ThemeSwitcher variant="inline" />
+          {loggedIn ? (
+            <button
+              className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
+              onClick={() => navigate('/campaigns')}
+            >
+              <LayoutDashboard size={15} />
+              My Campaigns
+            </button>
+          ) : (
+            <button
+              className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink transition-colors"
+              onClick={() => navigate('/login')}
+            >
+              <LogIn size={15} />
+              Sign in
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Hero */}

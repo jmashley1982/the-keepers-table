@@ -24,7 +24,18 @@
       "Bash(curl -s http://localhost:5000/src/index.css -o /dev/null -w \"%{http_code}\\\\n\")",
       "Bash(sed -i 's|<p className=\"text-\\\\[10px\\\\] font-semibold uppercase tracking-widest text-ink-muted opacity-60\">Tools</p>|<p className=\"label-caps\">Tools</p>|' client/src/components/layout/Sidebar.tsx)",
       "Bash(sed -i 's|<p className=\"text-\\\\[10px\\\\] font-semibold uppercase tracking-widest text-ink-muted opacity-60\">Account</p>|<p className=\"label-caps\">Account</p>|' client/src/components/layout/Sidebar.tsx client/src/components/layout/MobileDrawer.tsx)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(netstat -ltnp)",
+      "Bash(curl -sf http://localhost:5000)",
+      "Bash(command -v chromium-cli)",
+      "Bash(find / -iname \"chromium-cli*\" -maxdepth 6)",
+      "Read(//tmp/claude-1000/bundled-skills/2.1.212/**)",
+      "Read(//tmp/claude-1000/bundled-skills/**)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(node *)",
+      "Bash(find / -maxdepth 4 -iname \"*npx*\" -type d)",
+      "Read(//home/runner/.npm/**)",
+      "Bash(npx vite *)"
     ]
   }
 }

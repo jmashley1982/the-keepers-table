@@ -5,29 +5,21 @@ import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
 import {
   LayoutDashboard, BookOpen, Map, Scroll,
-  Settings, LogOut, ChevronDown, Zap, Users,
-  Contrast, Flame, Skull, Rocket, Terminal, Swords, Shield,
+  Settings, LogOut, Zap, Users,
+  Swords, Shield,
   ChevronLeft, ChevronRight, GitBranch, Timer,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { themeBrandIcon } from '../../lib/themeBrandIcon'
 import RulesReferencePanel from '../dnd5e/RulesReferencePanel'
 import FriendQuotaBar from './FriendQuotaBar'
-
-const THEME_OPTIONS = [
-  { id: 'candlelight',   label: 'Candlelight',   icon: Flame },
-  { id: 'eldritch',     label: 'Eldritch',       icon: Skull },
-  { id: 'icarus',       label: 'Icarus',         icon: Rocket },
-  { id: 'neon',         label: 'Neon',           icon: Terminal },
-  { id: 'haunt', label: 'Haunt', icon: Contrast },
-] as const
+import ThemeSwitcher from './ThemeSwitcher'
 
 export default function Sidebar({ campaignId }: { campaignId?: string }) {
   const navigate = useNavigate()
   const location = useLocation()
   const qc = useQueryClient()
-  const { theme, setTheme, reduceEffects, setReduceEffects, setQuickGenerateOpen, leftSidebarCollapsed, setLeftSidebarCollapsed } = useUIStore()
-  const [themeOpen, setThemeOpen] = useState(false)
+  const { theme, setQuickGenerateOpen, leftSidebarCollapsed, setLeftSidebarCollapsed } = useUIStore()
   const [rulesOpen, setRulesOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const [indicator, setIndicator] = useState<{ top: number; height: number } | null>(null)
@@ -113,16 +105,22 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
       {/* Logo */}
       <div className={cn(
         'border-b border-border shrink-0',
-        collapsed ? 'px-1 py-3 flex justify-center' : 'px-4 py-4',
+        collapsed ? 'px-1 py-3 flex flex-col items-center gap-2' : 'px-4 py-4',
       )}>
         {collapsed ? (
-          <img
-            src={themeBrandIcon(theme)}
-            alt="KT"
-            className="w-8 h-8 object-contain"
-          />
+          <>
+            <img
+              src={themeBrandIcon(theme)}
+              alt="KT"
+              className="w-8 h-8 object-contain"
+            />
+            <ThemeSwitcher variant="inline" />
+          </>
         ) : (
           <>
+            <div className="flex items-center justify-end mb-1">
+              <ThemeSwitcher variant="inline" />
+            </div>
             <div className="flex flex-col items-center gap-2">
               <img
                 src={themeBrandIcon(theme)}
@@ -247,63 +245,6 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
 
       {/* Friend quota */}
       {!collapsed && <FriendQuotaBar />}
-
-      {/* Theme picker */}
-      <div className={cn('pb-2', collapsed ? 'px-1 flex justify-center' : 'px-3')}>
-        {collapsed ? (
-          <button
-            onClick={() => setThemeOpen(v => !v)}
-            title={`Theme: ${theme}`}
-            className="w-8 h-8 rounded-card flex items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors"
-          >
-            {(() => { const I = THEME_OPTIONS.find(o => o.id === theme)?.icon ?? Flame; return <I size={13} /> })()}
-          </button>
-        ) : (
-          <button
-            onClick={() => setThemeOpen(v => !v)}
-            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-card text-xs text-ink-muted hover:text-ink hover:bg-surface-2 transition-colors"
-          >
-            {(() => { const I = THEME_OPTIONS.find(o => o.id === theme)?.icon ?? Flame; return <I size={11} /> })()}
-            <span className="capitalize">{theme}</span>
-            <ChevronDown size={11} className={cn('ml-auto transition-transform', themeOpen && 'rotate-180')} />
-          </button>
-        )}
-        {themeOpen && (
-          <div className={cn('mt-1 card py-1 px-0 animate-fade-in', collapsed ? 'absolute left-12 bottom-10 z-30 w-36' : '')}>
-            {THEME_OPTIONS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => { setTheme(id); setThemeOpen(false) }}
-                className={cn(
-                  'w-full text-left px-3 py-1.5 text-xs rounded flex items-center gap-2 transition-colors',
-                  theme === id ? 'text-accent font-semibold' : 'text-ink-muted hover:text-ink hover:bg-surface-2',
-                )}
-              >
-                <Icon size={11} />
-                {label}
-              </button>
-            ))}
-            <div className="mx-3 my-1 h-px bg-border opacity-40" />
-            <button
-              onClick={() => setReduceEffects(!reduceEffects)}
-              role="switch"
-              aria-checked={reduceEffects}
-              className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-ink-muted hover:text-ink transition-colors"
-            >
-              <span>Reduce motion</span>
-              <span
-                className="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors"
-                style={{ background: reduceEffects ? 'var(--color-accent)' : 'var(--color-border)' }}
-              >
-                <span
-                  className="inline-block h-3 w-3 rounded-full bg-white transition-transform"
-                  style={{ transform: reduceEffects ? 'translateX(0.875rem)' : 'translateX(0.125rem)' }}
-                />
-              </span>
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Logout */}
       <div className={cn('pb-4', collapsed ? 'px-1 flex justify-center' : 'px-3')}>

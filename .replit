@@ -54,3 +54,6 @@ timeoutMs = 120000
 deploymentTarget = "cloudrun"
 run = ["node", "server/dist/index.js"]
 build = ["pnpm", "run", "build"]
+
+[objectStorage]
+defaultBucketID = "replit-objstore-33dd94c8-7786-4d54-8e09-3744d60c40cc"

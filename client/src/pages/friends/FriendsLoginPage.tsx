@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { api } from '../../lib/api'
+import ThemeSwitcher from '../../components/layout/ThemeSwitcher'
 
 function WelcomeModal({ onClose }: { onClose: () => void }) {
   return (
@@ -90,6 +91,8 @@ export default function FriendsLoginPage() {
   return (
     <>
       {showWelcome && <WelcomeModal onClose={handleWelcomeClose} />}
+
+      <ThemeSwitcher variant="floating" />
 
       <div className="min-h-screen bg-bg flex items-center justify-center p-4">
         <div className="w-full max-w-sm">

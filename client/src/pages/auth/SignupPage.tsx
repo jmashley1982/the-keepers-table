@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
 import { themeBrandIcon } from '../../lib/themeBrandIcon'
+import ThemeSwitcher from '../../components/layout/ThemeSwitcher'
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -26,6 +27,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
+      <ThemeSwitcher variant="floating" />
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <img

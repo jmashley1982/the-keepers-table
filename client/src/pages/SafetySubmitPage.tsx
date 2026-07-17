@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import ThemedLoader from '../components/ui/Loader'
+import ThemeSwitcher from '../components/layout/ThemeSwitcher'
 
 type Setting = 'line' | 'veil' | 'ok'
 
@@ -38,12 +39,14 @@ export default function SafetySubmitPage() {
 
   if (isLoading) return (
     <div className="min-h-screen bg-bg flex items-center justify-center">
+      <ThemeSwitcher variant="floating" />
       <ThemedLoader />
     </div>
   )
 
   if (error || !data) return (
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
+      <ThemeSwitcher variant="floating" />
       <div className="text-center max-w-sm">
         <div className="text-4xl mb-4">🔒</div>
         <h1 className="display-font text-xl font-bold text-ink mb-2">Link not available</h1>
@@ -54,6 +57,7 @@ export default function SafetySubmitPage() {
 
   if (submitted) return (
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
+      <ThemeSwitcher variant="floating" />
       <div className="text-center max-w-sm">
         <div className="text-4xl mb-4">✅</div>
         <h1 className="display-font text-xl font-bold text-ink mb-2">Submitted!</h1>
@@ -72,6 +76,7 @@ export default function SafetySubmitPage() {
       className="min-h-screen p-4 pb-16"
       style={{ background: 'var(--color-bg)' }}
     >
+      <ThemeSwitcher variant="floating" />
       <div className="max-w-lg mx-auto">
         <div className="text-center mb-8 pt-8">
           <p className="text-xs text-ink-muted uppercase tracking-wider mb-1">The Keeper's Table</p>

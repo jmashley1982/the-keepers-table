@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { CheckCircle, XCircle, Loader, ChevronRight, ChevronLeft, Plus, Trash2 } from 'lucide-react'
+import ThemeSwitcher from '../../components/layout/ThemeSwitcher'
 
 type Step = 'keys' | 'campaign' | 'party'
 
@@ -88,6 +89,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
+      <ThemeSwitcher variant="floating" />
       <div className="w-full max-w-lg">
         {/* Progress */}
         <div className="flex items-center gap-2 mb-8 justify-center">

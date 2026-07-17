@@ -5,6 +5,7 @@ import { api, apiError } from '../../lib/api'
 import { FlaskConical } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
 import { themeBrandIcon } from '../../lib/themeBrandIcon'
+import ThemeSwitcher from '../../components/layout/ThemeSwitcher'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -50,6 +51,8 @@ export default function LoginPage() {
           background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%)',
         }}
       />
+
+      <ThemeSwitcher variant="floating" />
 
       <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-8">
