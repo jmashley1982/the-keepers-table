@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { cn } from '../../lib/cn'
@@ -43,6 +44,8 @@ export interface GenerateArtButtonProps {
   onGenerated?: () => void
 }
 
+const POPUP_OPEN_EVENT = 'keeper:art-popup-open'
+
 export default function GenerateArtButton({
   kind,
   entityId,
@@ -52,6 +55,8 @@ export default function GenerateArtButton({
   onGenerated,
 }: GenerateArtButtonProps) {
   const qc = useQueryClient()
+  // Stable instance ID for singleton management
+  const instanceId = useRef(Math.random().toString(36).slice(2)).current
   const [phase, setPhase] = useState<Phase>({ name: 'idle' })
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [showRawError, setShowRawError] = useState(false)
@@ -63,7 +68,7 @@ export default function GenerateArtButton({
     try { return localStorage.getItem(`art_model_${entityType}`) ?? '' } catch { return '' }
   })
   const [aspectRatio] = useState<AspectRatio>('portrait')
-  const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 230 })
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 240 })
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const optionsBtnRef = useRef<HTMLButtonElement>(null)
 
@@ -111,6 +116,7 @@ export default function GenerateArtButton({
   const jobId = phase.name === 'generating' ? phase.jobId : null
   const jobStatus = useJobStatus(jobId, () => setPhase({ name: 'idle' }))
 
+  // ── Job status → phase transitions ─────────────────────────────────────
   useEffect(() => {
     if (phase.name !== 'generating') return
     if (jobStatus.status === 'succeeded' && jobStatus.assetId) {
@@ -127,6 +133,7 @@ export default function GenerateArtButton({
     }
   }, [jobStatus.status, jobStatus.assetId, jobStatus.errorMessage, jobStatus.rawError, phase.name, currentAssetId, campaignId, entityType, qc, onGenerated])
 
+  // ── Persist style/quality selections ───────────────────────────────────
   useEffect(() => {
     try {
       if (selectedPreset === null) localStorage.removeItem(`art_preset_${entityType}`)
@@ -141,13 +148,35 @@ export default function GenerateArtButton({
     } catch { /* ignore */ }
   }, [selectedModel, entityType])
 
+  // ── Popup open/close: body lock + Escape + singleton broadcast ──────────
   useEffect(() => {
-    if (!optionsOpen) return
+    if (!optionsOpen) {
+      document.body.style.overflow = ''
+      return
+    }
+    // Broadcast to close any other open instance
+    window.dispatchEvent(new CustomEvent(POPUP_OPEN_EVENT, { detail: { id: instanceId } }))
+    // Prevent scrollbar from shifting page layout
+    document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOptionsOpen(false) }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [optionsOpen])
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [optionsOpen, instanceId])
 
+  // ── Listen for another instance opening — close self ───────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ id: string }>).detail
+      if (detail.id !== instanceId) setOptionsOpen(false)
+    }
+    window.addEventListener(POPUP_OPEN_EVENT, handler)
+    return () => window.removeEventListener(POPUP_OPEN_EVENT, handler)
+  }, [instanceId])
+
+  // ── Mutations ───────────────────────────────────────────────────────────
   const generateMutation = useMutation({
     mutationFn: (opts?: GenerateOpts & { confirmed?: boolean }) =>
       api.post<{ jobId: string }>('/api/generate/image', {
@@ -183,6 +212,7 @@ export default function GenerateArtButton({
         })
         return
       }
+      setOptionsOpen(false)
       setPhase({ name: 'failed', error: apiError(err) })
     },
   })
@@ -202,6 +232,7 @@ export default function GenerateArtButton({
     },
   })
 
+  // ── Handlers ────────────────────────────────────────────────────────────
   function handleFirstGenerate() {
     generateMutation.mutate({ aspectRatio })
   }
@@ -211,6 +242,8 @@ export default function GenerateArtButton({
   }
 
   function handleOptionsGenerate() {
+    // Close immediately — don't wait for onSuccess
+    setOptionsOpen(false)
     generateMutation.mutate({
       prompt: customPrompt.trim() || undefined,
       stylePreset: selectedPreset ?? undefined,
@@ -220,6 +253,7 @@ export default function GenerateArtButton({
   }
 
   async function handlePreviewPrompt() {
+    setIsPreviewLoading(true)
     try {
       const res = await api.post<{ prompt: string }>('/api/generate/preview-prompt', {
         kind, entityId, campaignId,
@@ -228,13 +262,15 @@ export default function GenerateArtButton({
       setCustomPrompt(res.data.prompt)
     } catch {
       // silently ignore
+    } finally {
+      setIsPreviewLoading(false)
     }
   }
 
   function calcPopupPos(fromEl: HTMLElement) {
     const rect = fromEl.getBoundingClientRect()
     const popW = 240
-    const popH = 300
+    const popH = 310
     const top = rect.top - popH - 6 < 8 ? rect.bottom + 6 : rect.top - popH - 6
     const left = Math.min(Math.max(8, rect.left), window.innerWidth - popW - 8)
     setPopupPos({ top, left, width: popW })
@@ -246,15 +282,8 @@ export default function GenerateArtButton({
   }
 
   async function handleSmartAuto(e: React.MouseEvent<HTMLButtonElement>) {
-    if (optionsBtnRef.current) calcPopupPos(optionsBtnRef.current)
-    else {
-      const rect = e.currentTarget.getBoundingClientRect()
-      const popW = 240
-      const popH = 300
-      const top = rect.top - popH - 6 < 8 ? rect.bottom + 6 : rect.top - popH - 6
-      const left = Math.min(Math.max(8, rect.left), window.innerWidth - popW - 8)
-      setPopupPos({ top, left, width: popW })
-    }
+    const anchor = optionsBtnRef.current ?? e.currentTarget
+    calcPopupPos(anchor)
     setCustomPrompt('')
     setOptionsOpen(true)
     setIsPreviewLoading(true)
@@ -293,23 +322,178 @@ export default function GenerateArtButton({
 
   if (!canGenerateImage) return null
 
+  // ── Popup (portal-rendered at body to escape stacking contexts) ─────────
+  const popupPortal = optionsOpen ? createPortal(
+    <>
+      {/* Backdrop — covers full viewport outside any scroll container */}
+      <div
+        className="fixed inset-0 z-[9998]"
+        onClick={() => setOptionsOpen(false)}
+      />
+      {/* Floating options card */}
+      <div
+        className="fixed z-[9999] rounded-card border shadow-xl"
+        style={{
+          top: popupPos.top,
+          left: popupPos.left,
+          width: popupPos.width,
+          background: 'var(--color-surface)',
+          borderColor: 'color-mix(in srgb, var(--color-accent) 30%, var(--color-border))',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-3 py-2 border-b"
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <span className="text-[11px] font-semibold text-ink flex items-center gap-1.5">
+            <Wand2 size={11} className="text-accent" />
+            {artLabel} Options
+          </span>
+          <button
+            onClick={() => setOptionsOpen(false)}
+            className="text-ink-muted hover:text-ink transition-colors"
+          >
+            <X size={12} />
+          </button>
+        </div>
+
+        <div className="p-3 space-y-3">
+          {/* Prompt */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-ink-muted font-medium uppercase text-[9px] tracking-wide">Prompt</p>
+              <button
+                onClick={handlePreviewPrompt}
+                disabled={isPreviewLoading}
+                className="flex items-center gap-0.5 text-[9px] text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
+                title="Fill with AI-generated prompt"
+              >
+                {isPreviewLoading ? <Loader size={8} className="animate-spin" /> : <Wand2 size={8} />}
+                <span>AI preview</span>
+              </button>
+            </div>
+            <div className="relative">
+              <textarea
+                className="w-full text-[10px] rounded p-1.5 text-ink placeholder-ink-muted resize-none focus:outline-none focus:ring-1"
+                style={{
+                  background: 'var(--color-surface-2)',
+                  border: '1px solid var(--color-border)',
+                  opacity: isPreviewLoading ? 0.5 : 1,
+                }}
+                rows={3}
+                value={customPrompt}
+                onChange={e => setCustomPrompt(e.target.value)}
+                placeholder={isPreviewLoading ? 'Generating prompt…' : 'Leave empty for Art Director…'}
+                readOnly={isPreviewLoading}
+                autoFocus
+              />
+              {isPreviewLoading && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Loader size={14} className="animate-spin text-accent" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Style presets */}
+          {presets.length > 0 && (
+            <div>
+              <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Style</p>
+              <div className="flex flex-wrap gap-0.5">
+                {presets.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPreset(prev => prev === p.name ? null : p.name)}
+                    className={cn(
+                      'text-[9px] px-1.5 py-0.5 rounded border transition-colors leading-none',
+                      selectedPreset === p.name
+                        ? 'bg-accent text-white border-accent'
+                        : 'text-ink-muted hover:text-ink'
+                    )}
+                    style={selectedPreset !== p.name ? {
+                      background: 'var(--color-surface-2)',
+                      borderColor: 'var(--color-border)',
+                    } : undefined}
+                    title={p.promptFragment}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quality */}
+          <div>
+            <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Quality</p>
+            <div className="flex gap-0.5">
+              {([
+                ['gpt-image-2-ultra', 'Ultra'],
+                ['gpt-image-2',       'High'],
+                ['krea-2-turbo',      'Med'],
+                ['z-image',           'Low'],
+              ] as const).map(([v, label]) => (
+                <button
+                  key={v}
+                  onClick={() => setSelectedModel(prev => prev === v ? '' : v)}
+                  className={cn(
+                    'flex-1 text-[9px] py-0.5 rounded border transition-colors',
+                    selectedModel === v
+                      ? 'bg-accent text-white border-accent'
+                      : 'text-ink-muted hover:text-ink'
+                  )}
+                  style={selectedModel !== v ? {
+                    background: 'var(--color-surface-2)',
+                    borderColor: 'var(--color-border)',
+                  } : undefined}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-1.5 pt-0.5">
+            <button
+              onClick={handleOptionsGenerate}
+              disabled={isSubmitting}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-card text-[11px] font-bold transition-all disabled:opacity-50"
+              style={{ background: 'var(--color-accent)', color: '#fff' }}
+            >
+              {isSubmitting ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
+              Generate
+            </button>
+            <button
+              onClick={() => setOptionsOpen(false)}
+              className="px-3 py-1.5 rounded-card text-[11px] text-ink-muted border transition-colors hover:text-ink"
+              style={{
+                background: 'var(--color-surface-2)',
+                borderColor: 'var(--color-border)',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body,
+  ) : null
+
   return (
     <div className="flex flex-col gap-1 w-full">
 
-      {/* ── IDLE: no portrait → AUTO + wand (preview) + options ────────────── */}
+      {/* ── IDLE: no portrait → Generate + Wand (preview) + Options ─────────── */}
       {phase.name === 'idle' && !currentAssetId && (
         <div className="flex items-center gap-1">
           <button
             onClick={handleFirstGenerate}
             disabled={isSubmitting}
-            className="flex items-center justify-center gap-1.5 flex-1 px-2 py-1.5 rounded-card text-xs font-bold transition-all disabled:opacity-50"
-            style={{
-              background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
-              color: 'var(--color-accent)',
-              border: '1.5px solid color-mix(in srgb, var(--color-accent) 35%, transparent)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 25%, transparent)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 15%, transparent)')}
+            className="art-gen-btn flex items-center justify-center gap-1.5 flex-1 px-2 py-1.5 rounded-card text-xs font-bold transition-all disabled:opacity-50"
             title={`Generate ${artLabel} immediately`}
           >
             {isSubmitting ? <Loader size={11} className="animate-spin" /> : <ImagePlus size={11} />}
@@ -351,14 +535,7 @@ export default function GenerateArtButton({
           <button
             onClick={handleAutoRegen}
             disabled={isSubmitting}
-            className="flex items-center justify-center gap-1.5 flex-1 px-2 py-1.5 rounded-card text-xs font-bold transition-all disabled:opacity-50"
-            style={{
-              background: 'color-mix(in srgb, var(--color-accent) 18%, transparent)',
-              color: 'var(--color-accent)',
-              border: '1.5px solid color-mix(in srgb, var(--color-accent) 40%, transparent)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 28%, transparent)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 18%, transparent)')}
+            className="art-gen-btn-regen flex items-center justify-center gap-1.5 flex-1 px-2 py-1.5 rounded-card text-xs font-bold transition-all disabled:opacity-50"
             title={`Auto-regenerate ${artLabel} immediately`}
           >
             {isSubmitting ? <Loader size={11} className="animate-spin" /> : <Zap size={11} />}
@@ -482,168 +659,8 @@ export default function GenerateArtButton({
         </div>
       )}
 
-      {/* ── OPTIONS POPUP ──────────────────────────────────────────────────── */}
-      {optionsOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-[9998]"
-            onClick={() => setOptionsOpen(false)}
-          />
-          {/* Floating card */}
-          <div
-            className="fixed z-[9999] rounded-card border shadow-xl"
-            style={{
-              top: popupPos.top,
-              left: popupPos.left,
-              width: popupPos.width,
-              background: 'var(--color-surface)',
-              borderColor: 'color-mix(in srgb, var(--color-accent) 30%, var(--color-border))',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b"
-              style={{ borderColor: 'var(--color-border)' }}
-            >
-              <span className="text-[11px] font-semibold text-ink flex items-center gap-1.5">
-                <Wand2 size={11} className="text-accent" />
-                {artLabel} Options
-              </span>
-              <button
-                onClick={() => setOptionsOpen(false)}
-                className="text-ink-muted hover:text-ink transition-colors"
-              >
-                <X size={12} />
-              </button>
-            </div>
-
-            <div className="p-3 space-y-3">
-              {/* Prompt */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-ink-muted font-medium uppercase text-[9px] tracking-wide">Prompt</p>
-                  <button
-                    onClick={handlePreviewPrompt}
-                    disabled={isPreviewLoading}
-                    className="flex items-center gap-0.5 text-[9px] text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
-                    title="Fill with AI-generated prompt"
-                  >
-                    {isPreviewLoading ? <Loader size={8} className="animate-spin" /> : <Wand2 size={8} />}
-                    <span>AI preview</span>
-                  </button>
-                </div>
-                <div className="relative">
-                  <textarea
-                    className="w-full text-[10px] rounded p-1.5 text-ink placeholder-ink-muted resize-none focus:outline-none focus:ring-1"
-                    style={{
-                      background: 'var(--color-surface-2)',
-                      border: '1px solid var(--color-border)',
-                      opacity: isPreviewLoading ? 0.5 : 1,
-                    }}
-                    rows={3}
-                    value={customPrompt}
-                    onChange={e => setCustomPrompt(e.target.value)}
-                    placeholder={isPreviewLoading ? 'Generating prompt…' : 'Leave empty for Art Director…'}
-                    readOnly={isPreviewLoading}
-                    autoFocus
-                  />
-                  {isPreviewLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <Loader size={14} className="animate-spin text-accent" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Style presets */}
-              {presets.length > 0 && (
-                <div>
-                  <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Style</p>
-                  <div className="flex flex-wrap gap-0.5">
-                    {presets.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => setSelectedPreset(prev => prev === p.name ? null : p.name)}
-                        className={cn(
-                          'text-[9px] px-1.5 py-0.5 rounded border transition-colors leading-none',
-                          selectedPreset === p.name
-                            ? 'bg-accent text-white border-accent'
-                            : 'text-ink-muted hover:text-ink'
-                        )}
-                        style={selectedPreset !== p.name ? {
-                          background: 'var(--color-surface-2)',
-                          borderColor: 'var(--color-border)',
-                        } : undefined}
-                        title={p.promptFragment}
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Quality */}
-              <div>
-                <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Quality</p>
-                <div className="flex gap-0.5">
-                  {([
-                    ['gpt-image-2-ultra', 'Ultra'],
-                    ['gpt-image-2',       'High'],
-                    ['krea-2-turbo',      'Med'],
-                    ['z-image',           'Low'],
-                  ] as const).map(([v, label]) => (
-                    <button
-                      key={v}
-                      onClick={() => setSelectedModel(prev => prev === v ? '' : v)}
-                      className={cn(
-                        'flex-1 text-[9px] py-0.5 rounded border transition-colors',
-                        selectedModel === v
-                          ? 'bg-accent text-white border-accent'
-                          : 'text-ink-muted hover:text-ink'
-                      )}
-                      style={selectedModel !== v ? {
-                        background: 'var(--color-surface-2)',
-                        borderColor: 'var(--color-border)',
-                      } : undefined}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-1.5 pt-0.5">
-                <button
-                  onClick={handleOptionsGenerate}
-                  disabled={isSubmitting}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-card text-[11px] font-bold transition-all disabled:opacity-50"
-                  style={{
-                    background: 'var(--color-accent)',
-                    color: '#fff',
-                  }}
-                >
-                  {isSubmitting ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                  Generate
-                </button>
-                <button
-                  onClick={() => setOptionsOpen(false)}
-                  className="px-3 py-1.5 rounded-card text-[11px] text-ink-muted border transition-colors hover:text-ink"
-                  style={{
-                    background: 'var(--color-surface-2)',
-                    borderColor: 'var(--color-border)',
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      {/* ── OPTIONS POPUP (portal) ──────────────────────────────────────────── */}
+      {popupPortal}
     </div>
   )
 }
