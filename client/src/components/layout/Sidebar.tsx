@@ -85,7 +85,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
   return (
     <aside
       className={cn(
-        'hidden md:flex flex-col h-full overflow-y-auto flex-shrink-0 relative transition-all duration-200',
+        'hidden md:flex flex-col h-full flex-shrink-0 relative transition-all duration-200',
         collapsed ? 'w-12' : 'w-56',
       )}
       style={{
@@ -93,7 +93,11 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
         borderRight: '1px solid var(--color-border)',
       }}
     >
-      {/* Toggle button — right edge */}
+      {/* Toggle button — right edge. Kept outside the scrollable region below:
+          it straddles the sidebar's right border (`-right-3`), and living inside
+          an `overflow-y-auto` container turns that straddle into horizontal
+          scroll overflow, which browsers can default to a nonzero scrollLeft —
+          shoving all the *actual* content (logo, theme switcher, nav) off-screen. */}
       <button
         onClick={() => setLeftSidebarCollapsed(!collapsed)}
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -102,6 +106,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
         {collapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
       </button>
 
+      <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden min-w-0">
       {/* Logo */}
       <div className={cn(
         'border-b border-border shrink-0',
@@ -114,7 +119,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
               alt="KT"
               className="w-8 h-8 object-contain"
             />
-            <ThemeSwitcher variant="inline" />
+            <ThemeSwitcher variant="inline" compact />
           </>
         ) : (
           <>
@@ -259,6 +264,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
           <LogOut size={collapsed ? 13 : 11} />
           {!collapsed && 'Sign out'}
         </button>
+      </div>
       </div>
 
       {rulesOpen && <RulesReferencePanel onClose={() => setRulesOpen(false)} />}

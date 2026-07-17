@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Contrast, Flame, Skull, Rocket, Terminal } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
 import { cn } from '../../lib/cn'
@@ -13,22 +14,47 @@ const THEME_OPTIONS = [
 
 interface Props {
   variant?: 'inline' | 'floating'
+  /** Icon-only trigger with no chevron/label — for narrow spaces like the collapsed sidebar rail. */
+  compact?: boolean
   className?: string
 }
 
-export default function ThemeSwitcher({ variant = 'inline', className }: Props) {
+const MENU_WIDTH = 160 // px, matches w-40
+const VIEWPORT_MARGIN = 8
+
+export default function ThemeSwitcher({ variant = 'inline', compact = false, className }: Props) {
   const { theme, setTheme, reduceEffects, setReduceEffects } = useUIStore()
   const [open, setOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const rootRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
     function onClickAway(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (rootRef.current?.contains(target)) return
+      if (menuRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onClickAway)
     return () => document.removeEventListener('mousedown', onClickAway)
   }, [open])
+
+  // Menu is portaled to <body> (fixed position) so it always paints above
+  // page content — an absolutely-positioned descendant can be defeated by
+  // any later sibling elsewhere on the page that shares or exceeds its
+  // ancestor's stacking context (e.g. SplashPage's header/main both being
+  // `relative z-10`), leaving the menu visible but unclickable.
+  function toggleOpen() {
+    if (!open && rootRef.current) {
+      const rect = rootRef.current.getBoundingClientRect()
+      const maxLeft = window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN
+      const left = Math.min(Math.max(rect.right - MENU_WIDTH, VIEWPORT_MARGIN), Math.max(maxLeft, VIEWPORT_MARGIN))
+      setMenuPos({ top: rect.bottom + 4, left })
+    }
+    setOpen(v => !v)
+  }
 
   const ActiveIcon = THEME_OPTIONS.find(o => o.id === theme)?.icon ?? Flame
 
@@ -42,13 +68,15 @@ export default function ThemeSwitcher({ variant = 'inline', className }: Props) 
       )}
     >
       <button
-        onClick={() => setOpen(v => !v)}
+        onClick={toggleOpen}
         title={`Theme: ${theme}`}
         className={cn(
           'flex items-center gap-1.5 rounded-card text-ink-muted hover:text-ink transition-colors',
           variant === 'floating'
             ? 'w-9 h-9 justify-center border border-border shadow-sm'
-            : 'px-2.5 py-1.5 text-xs hover:bg-surface-2',
+            : compact
+              ? 'w-8 h-8 justify-center'
+              : 'px-2.5 py-1.5 text-xs hover:bg-surface-2',
         )}
         style={variant === 'floating' ? {
           background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
@@ -56,13 +84,17 @@ export default function ThemeSwitcher({ variant = 'inline', className }: Props) 
         } : undefined}
       >
         <ActiveIcon size={variant === 'floating' ? 15 : 13} />
-        {variant === 'inline' && (
+        {variant === 'inline' && !compact && (
           <ChevronDown size={11} className={cn('transition-transform', open && 'rotate-180')} />
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-1 card py-1 px-0 w-40 z-50 animate-fade-in">
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed card py-1 px-0 z-[999] animate-fade-in"
+          style={{ top: menuPos.top, left: menuPos.left, width: MENU_WIDTH }}
+        >
           {THEME_OPTIONS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -94,7 +126,8 @@ export default function ThemeSwitcher({ variant = 'inline', className }: Props) 
               />
             </span>
           </button>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

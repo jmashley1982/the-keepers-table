@@ -35,7 +35,8 @@
       "Bash(node *)",
       "Bash(find / -maxdepth 4 -iname \"*npx*\" -type d)",
       "Read(//home/runner/.npm/**)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(find / -maxdepth 6 -iname \"plans\" -type d)"
     ]
   }
 }
