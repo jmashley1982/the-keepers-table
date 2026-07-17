@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import EntityCard from '../../components/entity/EntityCard'
 import { Zap, Loader, Save, RefreshCw } from 'lucide-react'
+import ThemedLoader from '../../components/ui/Loader'
 
 type GeneratorKind = 'npc' | 'encounter' | 'treasure' | 'dialogue' | 'location' | 'item' | 'faction' | 'plot_thread'
 
@@ -265,13 +266,15 @@ export default function GeneratorPage() {
           {/* Loading placeholder (non-streaming) */}
           {streaming && !streamText && (
             <div className="card text-center py-12">
-              <Loader size={32} className="animate-spin mx-auto text-accent mb-3" />
-              <p className="text-ink-muted text-sm">Claude is crafting your {kind}…</p>
+              <ThemedLoader
+                size="lg"
+                flavor={kind === 'npc' ? 'npc' : kind === 'encounter' ? 'encounter' : kind === 'treasure' ? 'treasure' : 'default'}
+              />
             </div>
           )}
 
           {results.map((result, i) => (
-            <div key={i} className="space-y-2 animate-fade-in">
+            <div key={i} className="space-y-2 animate-resolve-in">
               <EntityCard
                 entity={result.data as unknown as Parameters<typeof EntityCard>[0]['entity']}
                 entityType={entityType}

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import PromptExpandButton from '../../components/ui/PromptExpandButton'
+import ThemedLoader from '../../components/ui/Loader'
 
 interface StylePreset { id: string; name: string; isBuiltin: boolean }
 interface EntityOption { id: string; name: string }
@@ -429,7 +430,7 @@ export default function BattleMapGeneratorPage() {
         <div className="flex-1 relative">
           {isGenerating && !hasMap && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 z-10">
-              <Loader size={40} className="animate-spin text-accent mb-4" />
+              <ThemedLoader size="lg" flavor="map" className="mb-4" />
               <p className="text-white/60 text-sm">
                 {createMap.isPending ? 'Creating map entry…'
                   : generateImage.isPending ? 'Queuing generation…'

@@ -2,9 +2,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useState } from 'react'
-import { Plus, Play, CheckCircle, Loader, Volume2, Users } from 'lucide-react'
+import { Plus, Play, CheckCircle, Volume2, Users } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
 import MentionText from '../../components/session/MentionText'
+import ThemedLoader from '../../components/ui/Loader'
 
 const CANDLELIGHT_ICONS = {
   newSession:    '/icons/candlelight/new_sesh.webp',
@@ -129,7 +130,7 @@ export default function CampaignDashboard() {
 
   if (!campaign) return (
     <div className="flex items-center justify-center h-full">
-      <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <ThemedLoader />
     </div>
   )
 
@@ -210,7 +211,7 @@ export default function CampaignDashboard() {
           <h2 className="display-font text-lg font-bold text-ink">Prep next session</h2>
           {prepSuggestions.length === 0 && (
             <button className="btn-secondary text-xs" onClick={loadPrepSuggestions} disabled={prepLoading}>
-              {prepLoading ? <><Loader size={12} className="animate-spin" /> Thinking…</> : '✨ Get suggestions'}
+              {prepLoading ? 'Thinking…' : '✨ Get suggestions'}
             </button>
           )}
         </div>
@@ -218,6 +219,8 @@ export default function CampaignDashboard() {
         {prepError && (
           <p className="text-sm text-danger mb-2">{prepError}</p>
         )}
+
+        {prepLoading && <ThemedLoader size="sm" flavor="prep" className="py-2" />}
 
         {prepSuggestions.length > 0 ? (
           <div className="space-y-2">
@@ -392,7 +395,7 @@ function RecapCard({ session, campaignId, onDismiss }: { session: Session; campa
         </button>
       </div>
       {session.generatedSummary && (
-        <p className="text-sm text-ink leading-relaxed mb-3">
+        <p className="text-sm text-ink prose-copy mb-3">
           <MentionText text={session.generatedSummary} campaignId={campaignId} />
         </p>
       )}

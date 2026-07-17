@@ -7,6 +7,9 @@ import EntityCard from '../../components/entity/EntityCard'
 import MapViewer from '../../components/map/MapViewer'
 import PinLayer from '../../components/map/PinLayer'
 import MentionTextarea, { MentionText } from '../../components/session/MentionTextarea'
+import ThemedLoader from '../../components/ui/Loader'
+import EmptyState from '../../components/ui/EmptyState'
+import SessionWrapCeremony from '../../components/ui/SessionWrapCeremony'
 import {
   Save, Loader, Clock, X, CheckCircle, StopCircle,
   Search, Users, Swords, MapPin, ChevronRight, ChevronDown, Plus,
@@ -67,6 +70,7 @@ export default function LiveSessionPage() {
   const [notesSaving, setNotesSaving] = useState(false)
   const [wrapOpen, setWrapOpen] = useState(false)
   const [wrapLoading, setWrapLoading] = useState(false)
+  const [wrapCeremony, setWrapCeremony] = useState(false)
   const [wrapResult, setWrapResult] = useState<WrapResult | null>(null)
   const [acceptedUpdates, setAcceptedUpdates] = useState<Set<number>>(new Set())
   const [acceptedNewEntities, setAcceptedNewEntities] = useState<Set<number>>(new Set())
@@ -207,6 +211,7 @@ export default function LiveSessionPage() {
   }
 
   async function triggerWrap() {
+    setWrapCeremony(true)
     setWrapLoading(true)
     setWrapOpen(true)
     try {
@@ -251,7 +256,7 @@ export default function LiveSessionPage() {
 
   if (!session) return (
     <div className="flex items-center justify-center h-full">
-      <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <ThemedLoader />
     </div>
   )
 
@@ -260,6 +265,7 @@ export default function LiveSessionPage() {
 
   return (
     <div className="flex flex-col h-screen bg-bg">
+      {wrapCeremony && <SessionWrapCeremony onDone={() => setWrapCeremony(false)} />}
       {/* ── Header bar ───────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-5 py-2.5 border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-3">
@@ -372,16 +378,19 @@ export default function LiveSessionPage() {
           {activeSection === 'maps' && (
             <div className="p-3 border-b border-border">
               {campaignMaps.length === 0 ? (
-                <div className="text-center py-4">
-                  <MapIcon size={20} className="mx-auto text-ink-muted/30 mb-2" />
-                  <p className="text-xs text-ink-muted mb-2">No maps yet.</p>
-                  <button
-                    className="btn-ghost text-xs text-accent"
-                    onClick={() => navigate(`/campaign/${campaignId}/generate/world-map`)}
-                  >
-                    <Plus size={10} /> Generate a map
-                  </button>
-                </div>
+                <EmptyState
+                  section="maps"
+                  icon={false}
+                  className="py-6"
+                  action={
+                    <button
+                      className="btn-ghost text-xs text-accent"
+                      onClick={() => navigate(`/campaign/${campaignId}/generate/world-map`)}
+                    >
+                      <Plus size={10} /> Generate a map
+                    </button>
+                  }
+                />
               ) : (
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] text-ink-muted uppercase tracking-wide font-medium">Map</label>
@@ -409,16 +418,19 @@ export default function LiveSessionPage() {
             {activeSection === 'maps' ? null
               : activeSection === 'players' ? (
                 filteredPCs.length === 0 ? (
-                  <div className="p-4 text-center">
-                    <Shield size={20} className="mx-auto text-ink-muted/30 mb-2" />
-                    <p className="text-xs text-ink-muted mb-2">No player characters yet.</p>
-                    <button
-                      className="btn-ghost text-xs text-accent"
-                      onClick={() => navigate(`/campaign/${campaignId}/players`)}
-                    >
-                      <Plus size={10} /> Add a PC
-                    </button>
-                  </div>
+                  <EmptyState
+                    section="players"
+                    icon={false}
+                    className="py-6"
+                    action={
+                      <button
+                        className="btn-ghost text-xs text-accent"
+                        onClick={() => navigate(`/campaign/${campaignId}/players`)}
+                      >
+                        <Plus size={10} /> Add a PC
+                      </button>
+                    }
+                  />
                 ) : (
                   filteredPCs.map(pc => (
                     <button
@@ -452,15 +464,19 @@ export default function LiveSessionPage() {
                   ))
                 )
               ) : filteredItems.length === 0 ? (
-                <div className="p-4 text-center">
-                  <p className="text-xs text-ink-muted">No {SECTION_LABELS[activeSection].toLowerCase()} yet.</p>
-                  <button
-                    className="btn-ghost text-xs mt-2 text-accent"
-                    onClick={() => navigate(`/campaign/${campaignId}/generate/${ENTITY_TYPES[activeSection]}`)}
-                  >
-                    <Plus size={10} /> Generate one
-                  </button>
-                </div>
+                <EmptyState
+                  section={activeSection}
+                  icon={false}
+                  className="py-6"
+                  action={
+                    <button
+                      className="btn-ghost text-xs text-accent"
+                      onClick={() => navigate(`/campaign/${campaignId}/generate/${ENTITY_TYPES[activeSection]}`)}
+                    >
+                      <Plus size={10} /> Generate one
+                    </button>
+                  }
+                />
               ) : (
                 filteredItems.map(entity => (
                   <button
@@ -864,8 +880,7 @@ export default function LiveSessionPage() {
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {wrapLoading ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3">
-                  <Loader size={32} className="animate-spin text-accent" />
-                  <p className="text-ink-muted text-sm">Claude is reading your notes and building the session recap…</p>
+                  <ThemedLoader size="lg" flavor="recap" />
                 </div>
               ) : wrapResult ? (
                 <>

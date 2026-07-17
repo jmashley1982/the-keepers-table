@@ -54,10 +54,15 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const theme = useUIStore(s => s.theme)
+  const reduceEffects = useUIStore(s => s.reduceEffects)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-reduce-motion', String(reduceEffects))
+  }, [reduceEffects])
 
   return (
     <Routes>

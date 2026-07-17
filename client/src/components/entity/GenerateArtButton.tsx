@@ -374,7 +374,7 @@ export default function GenerateArtButton({
 
       {/* ── NEW ART READY ──────────────────────────────────────────────────── */}
       {phase.name === 'await_replace' && (
-        <div className="p-2 bg-green-500/10 border border-green-500/25 rounded-card space-y-1.5">
+        <div className="p-2 bg-green-500/10 border border-green-500/25 rounded-card space-y-1.5 animate-resolve-in">
           <p className="text-[11px] font-semibold text-green-400">✦ New {artLabel.toLowerCase()} ready!</p>
           <div className="flex gap-1">
             <button

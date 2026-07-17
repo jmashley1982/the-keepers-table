@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useUIStore } from '../../store/useUIStore'
@@ -9,7 +9,7 @@ import {
   Contrast, Flame, Skull, Rocket, Terminal, Swords, Shield,
   ChevronLeft, ChevronRight, GitBranch, Timer,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { themeBrandIcon } from '../../lib/themeBrandIcon'
 import RulesReferencePanel from '../dnd5e/RulesReferencePanel'
 import FriendQuotaBar from './FriendQuotaBar'
@@ -24,10 +24,13 @@ const THEME_OPTIONS = [
 
 export default function Sidebar({ campaignId }: { campaignId?: string }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const qc = useQueryClient()
-  const { theme, setTheme, setQuickGenerateOpen, leftSidebarCollapsed, setLeftSidebarCollapsed } = useUIStore()
+  const { theme, setTheme, reduceEffects, setReduceEffects, setQuickGenerateOpen, leftSidebarCollapsed, setLeftSidebarCollapsed } = useUIStore()
   const [themeOpen, setThemeOpen] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
+  const [indicator, setIndicator] = useState<{ top: number; height: number } | null>(null)
 
   const { data: meData } = useQuery({
     queryKey: ['me'],
@@ -53,6 +56,20 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
   const isDnd5e = campaign?.systemTemplateId === 'builtin-d-d-5e'
   const collapsed = leftSidebarCollapsed
 
+  useEffect(() => {
+    if (collapsed) { setIndicator(null); return }
+    const navEl = navRef.current
+    if (!navEl) return
+    const activeEl = navEl.querySelector('a[aria-current="page"]') as HTMLElement | null
+    if (activeEl) {
+      const navRect = navEl.getBoundingClientRect()
+      const elRect = activeEl.getBoundingClientRect()
+      setIndicator({ top: elRect.top - navRect.top, height: elRect.height })
+    } else {
+      setIndicator(null)
+    }
+  }, [location.pathname, collapsed, campaign, isDnd5e])
+
   const navLink = (to: string, icon: React.ReactNode, label: string, end?: boolean) => (
     <NavLink
       to={to}
@@ -60,17 +77,11 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
       title={collapsed ? label : undefined}
       className={({ isActive }) =>
         cn(
-          'flex items-center rounded-card transition-all duration-150',
-          collapsed
-            ? 'justify-center p-2'
-            : 'gap-2.5 px-3 py-2 text-sm border-l-2',
+          'flex items-center rounded-card transition-all duration-150 ease-out',
+          collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2 text-sm',
           isActive
-            ? collapsed
-              ? 'text-accent bg-accent/10'
-              : 'border-accent bg-accent/10 text-accent font-semibold'
-            : collapsed
-              ? 'text-ink-muted hover:text-ink hover:bg-white/5'
-              : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/5',
+            ? 'text-accent bg-accent/10 font-semibold'
+            : 'text-ink-muted hover:text-ink hover:bg-white/5',
         )
       }
     >
@@ -165,7 +176,19 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
       </div>
 
       {/* Nav */}
-      <nav className={cn('flex-1 py-3 flex flex-col gap-0.5', collapsed ? 'px-1' : 'px-3')}>
+      <nav ref={navRef} className={cn('flex-1 py-3 flex flex-col gap-0.5 relative', collapsed ? 'px-1' : 'px-3')}>
+        {indicator && (
+          <div
+            className="nav-indicator absolute left-0 w-0.5 rounded-full transition-transform duration-200 ease-out pointer-events-none"
+            style={{
+              top: 0,
+              height: indicator.height,
+              transform: `translateY(${indicator.top}px)`,
+              backgroundColor: 'var(--color-accent)',
+              boxShadow: '0 0 6px rgba(var(--color-accent-rgb), 0.5)',
+            }}
+          />
+        )}
         {navLink('/campaigns', <LayoutDashboard size={15} />, 'Campaigns', true)}
 
         {campaign && (
@@ -206,7 +229,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
 
         <div className={cn('pb-1', collapsed ? 'pt-2' : 'pt-4 px-1')}>
           {!collapsed && (
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted opacity-60">Tools</p>
+            <p className="label-caps">Tools</p>
           )}
           {collapsed && <div className="h-px bg-border opacity-40" />}
         </div>
@@ -215,7 +238,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
 
         <div className={cn('pb-1', collapsed ? 'pt-2' : 'pt-4 px-1')}>
           {!collapsed && (
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted opacity-60">Account</p>
+            <p className="label-caps">Account</p>
           )}
           {collapsed && <div className="h-px bg-border opacity-40" />}
         </div>
@@ -260,6 +283,24 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
                 {label}
               </button>
             ))}
+            <div className="mx-3 my-1 h-px bg-border opacity-40" />
+            <button
+              onClick={() => setReduceEffects(!reduceEffects)}
+              role="switch"
+              aria-checked={reduceEffects}
+              className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-xs text-ink-muted hover:text-ink transition-colors"
+            >
+              <span>Reduce motion</span>
+              <span
+                className="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors"
+                style={{ background: reduceEffects ? 'var(--color-accent)' : 'var(--color-border)' }}
+              >
+                <span
+                  className="inline-block h-3 w-3 rounded-full bg-white transition-transform"
+                  style={{ transform: reduceEffects ? 'translateX(0.875rem)' : 'translateX(0.125rem)' }}
+                />
+              </span>
+            </button>
           </div>
         )}
       </div>

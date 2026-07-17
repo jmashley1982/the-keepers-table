@@ -30,7 +30,7 @@ export default function MobileDrawer({ open, onClose }: Props) {
   const { campaignId } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const { theme, setTheme, setQuickGenerateOpen } = useUIStore()
+  const { theme, setTheme, reduceEffects, setReduceEffects, setQuickGenerateOpen } = useUIStore()
   const [themeOpen, setThemeOpen] = useState(false)
 
   const { data: meData } = useQuery({
@@ -169,7 +169,7 @@ export default function MobileDrawer({ open, onClose }: Props) {
           )}
 
           <div className="pt-4 pb-1 px-1">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted opacity-60">Account</p>
+            <p className="label-caps">Account</p>
           </div>
           {navItem('/settings', <Settings size={16} />, 'Account Settings', true)}
         </nav>
@@ -205,6 +205,24 @@ export default function MobileDrawer({ open, onClose }: Props) {
                   {label}
                 </button>
               ))}
+              <div className="mx-3 my-1 h-px bg-border opacity-40" />
+              <button
+                onClick={() => setReduceEffects(!reduceEffects)}
+                role="switch"
+                aria-checked={reduceEffects}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-xs text-ink-muted hover:text-ink transition-colors touch-manipulation min-h-[44px]"
+              >
+                <span>Reduce motion</span>
+                <span
+                  className="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors"
+                  style={{ background: reduceEffects ? 'var(--color-accent)' : 'var(--color-border)' }}
+                >
+                  <span
+                    className="inline-block h-3 w-3 rounded-full bg-white transition-transform"
+                    style={{ transform: reduceEffects ? 'translateX(0.875rem)' : 'translateX(0.125rem)' }}
+                  />
+                </span>
+              </button>
             </div>
           )}
         </div>

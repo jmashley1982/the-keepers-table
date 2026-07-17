@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Search, Loader, Package } from 'lucide-react'
+import { X, Search, Package } from 'lucide-react'
 import {
   useDnd5eEquipment,
   useDnd5eMagicItems,
@@ -8,12 +8,14 @@ import {
   type SrdItem,
 } from '../../hooks/useDnd5eApi'
 import { cn } from '../../lib/cn'
+import ThemedLoader from '../ui/Loader'
+import EmptyState from '../ui/EmptyState'
 
 type ItemTab = 'equipment' | 'magic-items'
 
 function EquipmentDetail({ index }: { index: string }) {
   const { data: item, isLoading } = useDnd5eEquipmentDetail(index)
-  if (isLoading) return <div className="flex justify-center py-8"><Loader size={20} className="animate-spin text-accent" /></div>
+  if (isLoading) return <div className="flex justify-center py-8"><ThemedLoader /></div>
   if (!item) return <p className="text-sm text-ink-muted p-4">Failed to load.</p>
 
   const cost = item.cost as { quantity?: number; unit?: string } | undefined
@@ -51,7 +53,7 @@ function EquipmentDetail({ index }: { index: string }) {
 
 function MagicItemDetail({ index }: { index: string }) {
   const { data: item, isLoading } = useDnd5eMagicItemDetail(index)
-  if (isLoading) return <div className="flex justify-center py-8"><Loader size={20} className="animate-spin text-accent" /></div>
+  if (isLoading) return <div className="flex justify-center py-8"><ThemedLoader /></div>
   if (!item) return <p className="text-sm text-ink-muted p-4">Failed to load.</p>
 
   const rarity = item.rarity as { name?: string } | string | undefined
@@ -146,10 +148,10 @@ export default function ItemLookupPanel({ onClose }: ItemLookupPanelProps) {
           <div className="w-1/2 border-r border-border overflow-y-auto">
             {isLoading ? (
               <div className="flex justify-center py-12">
-                <Loader size={20} className="animate-spin text-accent" />
+                <ThemedLoader />
               </div>
             ) : displayItems.length === 0 ? (
-              <p className="text-center text-sm text-ink-muted py-12">No items found.</p>
+              <EmptyState icon="🔍" title="No items found" description="Try a different search term." />
             ) : (
               <div className="p-2 space-y-0.5">
                 {displayItems.map(item => (

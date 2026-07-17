@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { X, Search, Loader, ChevronDown, ChevronUp, BookOpen } from 'lucide-react'
+import { X, Search, ChevronDown, ChevronUp, BookOpen } from 'lucide-react'
 import { useDnd5eSpells, useDnd5eSpell, type SrdItem } from '../../hooks/useDnd5eApi'
 import { cn } from '../../lib/cn'
+import ThemedLoader from '../ui/Loader'
 
 const SCHOOLS = [
   { value: '', label: 'All Schools' },
@@ -26,7 +27,7 @@ function SpellDetail({ index, onAddToNotes }: { index: string; onAddToNotes?: (t
 
   if (isLoading) return (
     <div className="flex justify-center py-8">
-      <Loader size={20} className="animate-spin text-accent" />
+      <ThemedLoader />
     </div>
   )
   if (!spell) return <p className="text-sm text-ink-muted p-4">Failed to load spell details.</p>
@@ -189,7 +190,7 @@ export default function SpellLookupModal({ onClose, onAddToNotes }: SpellLookupM
         <div className="flex-1 overflow-y-auto min-h-0">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <Loader size={20} className="animate-spin text-accent" />
+              <ThemedLoader />
             </div>
           ) : displaySpells.length === 0 ? (
             <p className="text-center text-sm text-ink-muted py-12">No spells found.</p>

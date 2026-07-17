@@ -17,6 +17,11 @@
   --radius-card:     0.375rem;
   --font-display:    'Playfair Display', Georgia, serif;
   --texture-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+  --color-accent-rgb: 232, 184, 74;
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 65%, white);
+  --ambient-effect: ambient-flicker;
+  --ambient-duration: 4.2s;
+  --texture-opacity: 0.03;
 }
 
 
@@ -34,6 +39,11 @@
   --radius-card:     0.5rem;
   --font-display:    'Playfair Display', Georgia, serif;
   --texture-bg:      none;
+  --color-accent-rgb: 166, 226, 46;
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 65%, white);
+  --ambient-effect: ambient-flicker;
+  --ambient-duration: 3.6s;
+  --texture-opacity: 0.03;
 }
 
 /* ── Eldritch theme (deep void, teal-violet bioluminescence) ── */
@@ -50,6 +60,11 @@
   --radius-card:     0.25rem;
   --font-display:    'Cormorant Garamond', Georgia, serif;
   --texture-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  --color-accent-rgb: 120, 232, 194;
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 65%, white);
+  --ambient-effect: ambient-flicker;
+  --ambient-duration: 4.8s;
+  --texture-opacity: 0.03;
 }
 
 /* ── Icarus theme (metallic deep-sea, teal-copper) ── */
@@ -65,7 +80,12 @@
   --color-border:    #1a3340;
   --radius-card:     0.125rem;
   --font-display:    'Rajdhani', Inter, sans-serif;
-  --texture-bg:      none;
+  --texture-bg: repeating-linear-gradient(135deg, rgba(212, 144, 90, 0.4) 0px, rgba(212, 144, 90, 0.4) 1px, transparent 1px, transparent 4px);
+  --color-accent-rgb: 212, 144, 90;
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 65%, white);
+  --ambient-effect: ambient-shimmer;
+  --ambient-duration: 5.5s;
+  --texture-opacity: 0.025;
 }
 
 /* ── Neon theme (cyberpunk deep void, magenta-cyan) ── */
@@ -81,7 +101,12 @@
   --color-border:    #241e3c;
   --radius-card:     0.125rem;
   --font-display:    'Rajdhani', Inter, sans-serif;
-  --texture-bg:      none;
+  --texture-bg: repeating-linear-gradient(0deg, rgba(244, 114, 182, 0.5) 0px, rgba(244, 114, 182, 0.5) 1px, transparent 1px, transparent 3px);
+  --color-accent-rgb: 244, 114, 182;
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 65%, white);
+  --ambient-effect: ambient-pulse;
+  --ambient-duration: 2.2s;
+  --texture-opacity: 0.025;
 }
 
 /* ── Base styles ── */
@@ -101,10 +126,11 @@ body {
 }
 
 /* Scrollbar */
+* { scrollbar-color: var(--color-border) var(--color-surface-2); scrollbar-width: thin; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--color-surface-2); }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-ink-muted); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
 
 /* Focus ring */
 :focus-visible {
@@ -112,16 +138,54 @@ body {
   outline-offset: 2px;
 }
 
+/* Text selection — accent-tinted, not browser-default blue */
+::selection {
+  background-color: rgba(var(--color-accent-rgb), 0.35);
+  color: var(--color-ink);
+}
+
+/* Reduced motion — OS preference or in-app "Reduce motion / effects" toggle */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Loading spinners are functional (communicate "still working"), not decorative —
+   exempt them from the blanket freeze above so reduced-motion users still get feedback. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin, .loader-ring {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+[data-reduce-motion="true"] .animate-spin,
+[data-reduce-motion="true"] .loader-ring {
+  animation-duration: 1s !important;
+  animation-iteration-count: infinite !important;
+}
+
 /* ── Component utilities ── */
 @layer components {
   .btn {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-[var(--radius-card)] font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-[var(--radius-card)] font-medium text-sm transition-all duration-150 ease-out disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn bg-accent text-white hover:opacity-90 active:scale-[0.98];
+    @apply btn bg-accent text-white hover:opacity-90;
   }
   .btn-secondary {
-    @apply btn bg-surface-2 text-ink hover:bg-border active:scale-[0.98] border border-border;
+    @apply btn bg-surface-2 text-ink hover:bg-border border border-border;
   }
   .btn-ghost {
     @apply btn text-ink-muted hover:text-ink hover:bg-surface-2;
@@ -131,11 +195,30 @@ body {
   }
 
   .card {
-    @apply bg-surface border border-border rounded-card p-4;
+    @apply rounded-card p-4 transition-all duration-200 ease-out;
+    position: relative;
+    isolation: isolate;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+      linear-gradient(to bottom, color-mix(in srgb, var(--color-border) 55%, white 18%), var(--color-border)) border-box;
+    box-shadow:
+      inset 0 1px 0 rgba(var(--color-accent-rgb), 0.06),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-image: var(--texture-bg);
+    opacity: var(--texture-opacity, 0.03);
+    pointer-events: none;
   }
 
   .input {
-    @apply w-full bg-surface-2 border border-border rounded-card px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all;
+    @apply w-full bg-surface-2 border border-border rounded-card px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all duration-150 ease-out;
   }
 
   .textarea {
@@ -147,7 +230,7 @@ body {
   }
 
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-150 ease-out;
   }
 
   .gm-secret {
@@ -158,10 +241,37 @@ body {
 
   .display-font {
     font-family: var(--font-display, 'Playfair Display', Georgia, serif);
+    font-feature-settings: 'liga' 1, 'dlig' 1, 'onum' 1, 'pnum' 1;
+    letter-spacing: -0.01em;
   }
 
   .logo-theme {
     filter: none;
+  }
+
+  /* Section labels (e.g. sidebar "Tools"/"Account") — small-caps, not shouty uppercase */
+  .label-caps {
+    @apply text-[10px] font-semibold text-ink-muted opacity-60;
+    font-variant-caps: small-caps;
+    letter-spacing: 0.08em;
+  }
+
+  /* Prose areas — descriptions, recaps: comfortable line-height + reading width */
+  .prose-copy {
+    line-height: 1.6;
+    max-width: 70ch;
+  }
+
+  /* Drop-cap for AI-generated NPC/location descriptions */
+  .drop-cap::first-letter {
+    font-family: var(--font-display, 'Playfair Display', Georgia, serif);
+    font-size: 2.6em;
+    font-weight: 700;
+    line-height: 0.85;
+    float: left;
+    padding-right: 0.1em;
+    padding-top: 0.02em;
+    color: var(--color-accent);
   }
 }
 
@@ -175,9 +285,6 @@ body {
 }
 [data-theme="candlelight"] .btn-primary {
   color: #1a0e03;
-}
-[data-theme="candlelight"] .card {
-  box-shadow: inset 0 1px 0 rgba(232, 184, 74, 0.07), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 [data-theme="candlelight"] .input:focus {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent);
@@ -208,10 +315,6 @@ body {
   font-weight: 600;
   border: 1px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
-[data-theme="eldritch"] .card {
-  box-shadow: inset 0 1px 0 rgba(120, 232, 194, 0.06), 0 2px 8px rgba(0, 0, 0, 0.5);
-  border-color: #222944;
-}
 [data-theme="eldritch"] .input:focus {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
@@ -233,11 +336,7 @@ body {
   text-transform: uppercase;
 }
 [data-theme="icarus"] .btn-secondary {
-  border-color: #243a50;
-}
-[data-theme="icarus"] .card {
-  border-color: #1a3340;
-  box-shadow: 0 0 0 1px rgba(212, 144, 90, 0.07), 0 2px 8px rgba(0, 0, 0, 0.5);
+  border-color: color-mix(in srgb, var(--color-border) 70%, white 12%);
 }
 [data-theme="icarus"] .input:focus {
   box-shadow: 0 0 0 1px var(--color-accent), 0 0 8px color-mix(in srgb, var(--color-accent) 25%, transparent);
@@ -265,15 +364,95 @@ body {
 [data-theme="neon"] .btn-primary:hover {
   box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 60%, transparent);
 }
-[data-theme="neon"] .card {
-  border-color: #241e3c;
-  box-shadow: inset 0 1px 0 rgba(244, 114, 182, 0.06), 0 2px 12px rgba(0, 0, 0, 0.6);
-}
 [data-theme="neon"] .input:focus {
   box-shadow: 0 0 0 1px var(--color-accent), 0 0 12px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 [data-theme="neon"] .logo-theme {
   filter: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Micro-interactions — theme-aware hover/press feedback (GPU-friendly)        */
+/* ─────────────────────────────────────────────────────────────────────────── */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-accent) 45%, white 15%), color-mix(in srgb, var(--color-accent) 22%, var(--color-border))) border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(var(--color-accent-rgb), 0.08),
+    0 10px 26px -10px rgba(var(--color-accent-rgb), 0.18),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.badge:hover {
+  filter: brightness(1.18);
+  transform: translateY(-1px);
+}
+
+/* Screen-edge vignette — reinforces the "focused table" feeling */
+.main-vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 40%, transparent 55%, var(--color-bg) 145%);
+  opacity: 0.55;
+}
+
+/* Primary CTAs + active nav indicator carry the theme's ambient effect */
+.btn-primary,
+.nav-indicator {
+  background-image: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  background-position: -130% 0;
+  animation-name: var(--ambient-effect);
+  animation-duration: var(--ambient-duration, 4s);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+/* ── Themed loader (client/src/components/ui/Loader.tsx) ── */
+@keyframes loader-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes loader-glow-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.9); }
+  50%      { opacity: 1;    transform: scale(1.1); }
+}
+.loader-ring {
+  animation: loader-spin 0.9s linear infinite;
+}
+.loader-glow {
+  animation: loader-glow-pulse 1.6s ease-in-out infinite;
+}
+
+/* ── Ambient accent effects — driven by --ambient-effect per theme ── */
+/* flicker: candle-like, irregular, low-amplitude brightness drift */
+@keyframes ambient-flicker {
+  0%, 100% { filter: brightness(1); }
+  8%   { filter: brightness(1.03); }
+  22%  { filter: brightness(0.98); }
+  35%  { filter: brightness(1.02); }
+  50%  { filter: brightness(0.985); }
+  68%  { filter: brightness(1.03); }
+  80%  { filter: brightness(0.99); }
+  92%  { filter: brightness(1.015); }
+}
+/* pulse: smooth rhythmic glow breathing */
+@keyframes ambient-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(var(--color-accent-rgb), 0.28); }
+  50%      { box-shadow: 0 0 16px rgba(var(--color-accent-rgb), 0.42); }
+}
+/* shimmer: slow metallic sheen sweep */
+@keyframes ambient-shimmer {
+  0%, 100% { background-position: -130% 0; }
+  50%      { background-position: 230% 0; }
 }
 
 /* ── Animations ── */
@@ -290,6 +469,65 @@ body {
 }
 .animate-fade-in { animation: fade-in 0.2s ease-out; }
 .animate-slide-in-right { animation: slide-in-right 0.2s ease-out; }
+
+/* Soft fade+scale resolve-in for freshly-generated AI results (portraits, entity cards) */
+@keyframes resolve-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-resolve-in { animation: resolve-in 0.4s ease-out; }
+
+/* ── Session Wrap ceremony (client/src/components/ui/SessionWrapCeremony.tsx) ── */
+.session-wrap-ceremony {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  animation: wrap-ceremony-fade-in 0.15s ease-out;
+  transition: opacity 0.2s ease-out;
+}
+.session-wrap-ceremony.is-dismissing {
+  opacity: 0;
+}
+@keyframes wrap-ceremony-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.session-wrap-motif--seal {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-accent), color-mix(in srgb, var(--color-accent) 55%, black));
+  box-shadow: 0 0 40px rgba(var(--color-accent-rgb), 0.6);
+  animation: seal-press 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes seal-press {
+  0%   { transform: scale(2.2); opacity: 0; }
+  45%  { transform: scale(0.9); opacity: 1; }
+  65%  { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.session-wrap-motif--glitch {
+  width: 220px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.8);
+  animation: glitch-power-down 0.5s steps(2, jump-none);
+}
+@keyframes glitch-power-down {
+  0%   { transform: scaleX(1) translateX(0); opacity: 1; }
+  20%  { transform: scaleX(1) translateX(-6px); }
+  40%  { transform: scaleX(0.7) translateX(6px); }
+  60%  { transform: scaleX(1.15) translateX(-3px); filter: brightness(2); }
+  100% { transform: scaleX(0.02); opacity: 1; filter: brightness(3); }
+}
 
 /* Streaming text cursor */
 .streaming-cursor::after {

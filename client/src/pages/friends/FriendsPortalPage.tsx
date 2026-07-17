@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api'
+import ThemedLoader from '../../components/ui/Loader'
 
 interface FriendData {
   username: string
@@ -93,7 +94,7 @@ export default function FriendsPortalPage() {
   if (!friend) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
-        <div className="w-7 h-7 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        <ThemedLoader />
       </div>
     )
   }
@@ -176,8 +177,7 @@ export default function FriendsPortalPage() {
 
             {textLoading && (
               <div className="card p-6 flex items-center gap-3 text-ink-muted">
-                <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin shrink-0" />
-                <span className="text-sm">Claude Haiku is thinking…</span>
+                <ThemedLoader flavor="default" />
               </div>
             )}
 
@@ -228,8 +228,7 @@ export default function FriendsPortalPage() {
 
             {imageLoading && (
               <div className="card p-6 flex flex-col items-center gap-3 text-ink-muted">
-                <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm">Z-Image Turbo is rendering… (up to ~60s)</span>
+                <ThemedLoader flavor="portrait" label="Rendering your image… (up to ~60s)" />
               </div>
             )}
 

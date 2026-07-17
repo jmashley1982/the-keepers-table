@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import EntityCard from '../../components/entity/EntityCard'
 import { ArrowLeft } from 'lucide-react'
+import ThemedLoader from '../../components/ui/Loader'
 
 const TAB_ENTITY_MAP: Record<string, string> = {
   npcs: 'npc', items: 'item', locations: 'location',
@@ -32,7 +33,7 @@ export default function EntityDetailPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <ThemedLoader />
         </div>
       ) : item ? (
         <EntityCard

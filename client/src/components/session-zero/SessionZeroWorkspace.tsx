@@ -2,6 +2,8 @@ import { useState, useRef, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { Loader, StopCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import ThemedLoader from '../ui/Loader'
+import SessionWrapCeremony from '../ui/SessionWrapCeremony'
 import PitchModule from './PitchModule'
 import SafetyModule from './SafetyModule'
 import CharterModule from './CharterModule'
@@ -32,6 +34,7 @@ export default function SessionZeroWorkspace({ campaignId, session }: Props) {
   const [notes, setNotes] = useState(session.dmRawNotes ?? '')
   const [saving, setSaving] = useState(false)
   const [wrapping, setWrapping] = useState(false)
+  const [wrapCeremony, setWrapCeremony] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { data: campaignData } = useQuery({
@@ -55,6 +58,7 @@ export default function SessionZeroWorkspace({ campaignId, session }: Props) {
   }, [campaignId, session.id])
 
   async function wrapSessionZero() {
+    setWrapCeremony(true)
     setWrapping(true)
     try {
       const { data } = await api.post(`/api/generate/session-wrap/${session.id}`)
@@ -87,6 +91,7 @@ export default function SessionZeroWorkspace({ campaignId, session }: Props) {
 
   return (
     <div className="card border-accent/30 bg-accent/[0.03]">
+      {wrapCeremony && <SessionWrapCeremony onDone={() => setWrapCeremony(false)} />}
       {/* Header */}
       <button
         className="w-full flex items-center justify-between"
@@ -152,7 +157,7 @@ export default function SessionZeroWorkspace({ campaignId, session }: Props) {
                 )}
                 {activeTab === 'Campaign Pitch' && !pitchInitial && (
                   <div className="flex justify-center py-12">
-                    <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                    <ThemedLoader />
                   </div>
                 )}
 

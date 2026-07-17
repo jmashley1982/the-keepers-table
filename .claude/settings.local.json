@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -rn \"icons/\\\\${\" /home/runner/workspace/client/src --include=\"*.tsx\" --include=\"*.ts\")",
+      "Bash(npx tsc *)",
+      "Skill(run)",
+      "Bash(env)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5000/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001/api/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001/)",
+      "Bash(chromium-cli --help)",
+      "Bash(npx playwright *)",
+      "Bash(find / -maxdepth 6 -iname \"chromium-cli*\")",
+      "Read(//root/.cache/**)",
+      "Bash(find / -maxdepth 4 -iname \"*playwright*\" -type d)",
+      "Bash(pkill -f \"find / -maxdepth\")",
+      "Bash(find / -maxdepth 2 -iname \"*.cache\")",
+      "Read(//home/runner/.cache/**)",
+      "Bash(curl -s http://localhost:5000/src/index.css)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5000/src/index.css\")",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(git *)",
+      "Bash(curl -s http://localhost:5000/src/index.css -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(sed -i 's|<p className=\"text-\\\\[10px\\\\] font-semibold uppercase tracking-widest text-ink-muted opacity-60\">Tools</p>|<p className=\"label-caps\">Tools</p>|' client/src/components/layout/Sidebar.tsx)",
+      "Bash(sed -i 's|<p className=\"text-\\\\[10px\\\\] font-semibold uppercase tracking-widest text-ink-muted opacity-60\">Account</p>|<p className=\"label-caps\">Account</p>|' client/src/components/layout/Sidebar.tsx client/src/components/layout/MobileDrawer.tsx)",
+      "Bash(grep *)"
+    ]
+  }
+}

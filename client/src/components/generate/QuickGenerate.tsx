@@ -3,6 +3,7 @@ import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { X, Zap, Loader, RefreshCw, CheckCircle2, Image, Skull, PlusCircle, Copy } from 'lucide-react'
 import { useJobStatus } from '../../lib/useJobStatus'
+import ThemedLoader from '../ui/Loader'
 
 type TextKind = 'auto' | 'npc' | 'encounter' | 'treasure' | 'location' | 'foe'
 type Kind = TextKind | 'image' | 'note'
@@ -500,9 +501,8 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
               {imageJobId && (
                 <div className="mt-3">
                   {imageLoading && (
-                    <div className="flex items-center gap-2 text-sm text-ink-muted p-3 bg-surface-2 rounded-card">
-                      <Loader size={14} className="animate-spin" />
-                      Generating image…
+                    <div className="p-3 bg-surface-2 rounded-card">
+                      <ThemedLoader size="sm" flavor="portrait" />
                     </div>
                   )}
 

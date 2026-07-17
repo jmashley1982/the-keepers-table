@@ -8,6 +8,8 @@ import {
   ChevronDown, ChevronUp, Loader, Users, ArrowUp, ArrowDown, GripVertical,
   BookOpen, Sparkles,
 } from 'lucide-react'
+import ThemedLoader from '../../components/ui/Loader'
+import EmptyState from '../../components/ui/EmptyState'
 import { DW_CLASSES, applyDWTemplate } from '../../lib/dwClasses'
 import { EntityAvatarWithArt } from '../../components/entity/GenerateArtButton'
 import GenerateArtButton from '../../components/entity/GenerateArtButton'
@@ -818,7 +820,7 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld, syste
                   ))}
                 </ul>
               ) : (
-                <p className="text-xs text-ink-muted italic">No equipment added yet.</p>
+                <EmptyState section="equipment" className="py-3" />
               )}
             </div>
           ))}
@@ -1053,19 +1055,17 @@ export default function PlayersPage() {
       <div className="flex-1 overflow-y-auto px-8 py-6">
         {isLoading ? (
           <div className="flex justify-center py-16">
-            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <ThemedLoader />
           </div>
         ) : characters.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">🎲</div>
-            <h2 className="display-font text-xl text-ink mb-2">No player characters yet</h2>
-            <p className="text-ink-muted text-sm mb-4">
-              Add your party members to track their stats and portraits.
-            </p>
-            <button className="btn-primary" onClick={() => setCreating(true)}>
-              <Plus size={16} /> Add Character
-            </button>
-          </div>
+          <EmptyState
+            section="players"
+            action={(
+              <button className="btn-primary" onClick={() => setCreating(true)}>
+                <Plus size={16} /> Add Character
+              </button>
+            )}
+          />
         ) : (
           <DndContext
             sensors={sensors}

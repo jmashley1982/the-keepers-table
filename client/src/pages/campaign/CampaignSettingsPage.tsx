@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useState } from 'react'
 import { Save, Loader, Info } from 'lucide-react'
+import ThemedLoader from '../../components/ui/Loader'
 
 const CLAUDE_MODELS = [
   { value: '',                  label: 'Use account default',  desc: 'Falls back to your global AI settings' },
@@ -58,7 +59,7 @@ export default function CampaignSettingsPage() {
 
   if (!campaign) return (
     <div className="flex items-center justify-center h-full">
-      <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <ThemedLoader />
     </div>
   )
 

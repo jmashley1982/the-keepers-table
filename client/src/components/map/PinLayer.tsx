@@ -251,9 +251,9 @@ export default function PinLayer({
                   bottom: '110%',
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  background: '#1a1a2e',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: 8,
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-card)',
                   padding: '10px 12px',
                   minWidth: 200,
                   maxWidth: 260,
@@ -266,37 +266,37 @@ export default function PinLayer({
                 {/* Location info */}
                 {pin.location ? (
                   <>
-                    <p style={{ color: '#e2d9c8', fontWeight: 600, fontSize: 13, margin: '0 0 2px' }}>
+                    <p style={{ color: 'var(--color-ink)', fontWeight: 600, fontSize: 13, margin: '0 0 2px' }}>
                       {pin.location.name}
                     </p>
-                    <p style={{ color: '#a09080', fontSize: 11, textTransform: 'capitalize', margin: '0 0 6px' }}>
+                    <p style={{ color: 'var(--color-ink-muted)', fontSize: 11, textTransform: 'capitalize', margin: '0 0 6px' }}>
                       {pin.location.type}
                     </p>
                     {pin.location.description && (
-                      <p style={{ color: '#c8bfb0', fontSize: 11, lineHeight: 1.5, margin: '0 0 8px', WebkitLineClamp: 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      <p style={{ color: 'var(--color-ink-muted)', fontSize: 11, lineHeight: 1.5, margin: '0 0 8px', WebkitLineClamp: 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {pin.location.description}
                       </p>
                     )}
                   </>
                 ) : pin.label ? (
-                  <p style={{ color: '#e2d9c8', fontWeight: 600, fontSize: 13, margin: '0 0 8px' }}>{pin.label}</p>
+                  <p style={{ color: 'var(--color-ink)', fontWeight: 600, fontSize: 13, margin: '0 0 8px' }}>{pin.label}</p>
                 ) : (
-                  <p style={{ color: '#a09080', fontSize: 12, margin: '0 0 8px' }}>Unnamed pin</p>
+                  <p style={{ color: 'var(--color-ink-muted)', fontSize: 12, margin: '0 0 8px' }}>Unnamed pin</p>
                 )}
 
                 {/* Location selector — edit mode only */}
                 {editMode && availableLocations.length > 0 && (
                   <div style={{ marginBottom: 8 }}>
-                    <p style={{ color: '#a09080', fontSize: 10, marginBottom: 4 }}>Link to location</p>
+                    <p style={{ color: 'var(--color-ink-muted)', fontSize: 10, marginBottom: 4 }}>Link to location</p>
                     <select
                       defaultValue={pin.locationId ?? ''}
                       onChange={e => { void handleLocationLink(pin.id, e.target.value || null) }}
                       style={{
                         width: '100%',
-                        background: '#0d0d1a',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        borderRadius: 4,
-                        color: '#e2d9c8',
+                        background: 'var(--color-surface-2)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-card)',
+                        color: 'var(--color-ink)',
                         fontSize: 11,
                         padding: '4px 6px',
                       }}
@@ -315,9 +315,10 @@ export default function PinLayer({
                     onClick={() => handleDeletePin(pin.id)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 4,
-                      background: 'rgba(220,50,50,0.15)', border: '1px solid rgba(220,50,50,0.3)',
-                      borderRadius: 4, padding: '3px 8px', cursor: 'pointer',
-                      color: '#e06060', fontSize: 11, width: '100%', justifyContent: 'center',
+                      background: 'color-mix(in srgb, var(--color-danger) 15%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)',
+                      borderRadius: 'var(--radius-card)', padding: '3px 8px', cursor: 'pointer',
+                      color: 'var(--color-danger)', fontSize: 11, width: '100%', justifyContent: 'center',
                     }}
                   >
                     <X size={10} /> Remove pin
@@ -328,7 +329,7 @@ export default function PinLayer({
                     style={{
                       position: 'absolute', top: 6, right: 6,
                       background: 'transparent', border: 'none', cursor: 'pointer',
-                      color: '#a09080', padding: 2,
+                      color: 'var(--color-ink-muted)', padding: 2,
                     }}
                   >
                     <X size={12} />
@@ -345,9 +346,10 @@ export default function PinLayer({
         <div
           style={{
             position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(139,90,43,0.9)', border: '1px solid rgba(255,200,100,0.4)',
-            borderRadius: 8, padding: '8px 14px',
-            color: '#fde8c0', fontSize: 12, whiteSpace: 'nowrap',
+            background: 'color-mix(in srgb, var(--color-accent) 35%, black 55%)',
+            border: '1px solid color-mix(in srgb, var(--color-accent) 50%, transparent)',
+            borderRadius: 'var(--radius-card)', padding: '8px 14px',
+            color: 'color-mix(in srgb, var(--color-accent) 35%, white)', fontSize: 12, whiteSpace: 'nowrap',
             pointerEvents: 'none',
           }}
         >
@@ -360,9 +362,10 @@ export default function PinLayer({
         <div
           style={{
             position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 8, padding: '8px 14px',
-            color: 'rgba(255,255,255,0.5)', fontSize: 12, whiteSpace: 'nowrap',
+            background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-card)', padding: '8px 14px',
+            color: 'var(--color-ink-muted)', fontSize: 12, whiteSpace: 'nowrap',
             pointerEvents: 'none',
           }}
         >

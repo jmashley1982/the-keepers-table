@@ -4,6 +4,8 @@ import { useDnd5eMonsters, useDnd5eMonster, type SrdItem } from '../../hooks/use
 import { cn } from '../../lib/cn'
 import { api, apiError } from '../../lib/api'
 import { useQueryClient } from '@tanstack/react-query'
+import ThemedLoader from '../ui/Loader'
+import EmptyState from '../ui/EmptyState'
 
 function abilityMod(v: number) {
   const m = Math.floor((v - 10) / 2)
@@ -12,7 +14,7 @@ function abilityMod(v: number) {
 
 function MonsterPreview({ index }: { index: string }) {
   const { data: m, isLoading } = useDnd5eMonster(index)
-  if (isLoading) return <div className="flex justify-center py-8"><Loader size={20} className="animate-spin text-accent" /></div>
+  if (isLoading) return <div className="flex justify-center py-8"><ThemedLoader /></div>
   if (!m) return <p className="text-sm text-ink-muted p-3">Failed to load.</p>
 
   const size = m.size as string | undefined
@@ -203,10 +205,10 @@ export default function MonsterImportModal({ campaignId, onClose, onImported }: 
           <div className="w-1/2 border-r border-border overflow-y-auto">
             {isLoading ? (
               <div className="flex justify-center py-12">
-                <Loader size={20} className="animate-spin text-accent" />
+                <ThemedLoader />
               </div>
             ) : displayMonsters.length === 0 ? (
-              <p className="text-center text-sm text-ink-muted py-12">No monsters found.</p>
+              <EmptyState icon="🔍" title="No monsters found" description="Try a different search term." />
             ) : (
               <div className="p-2 space-y-0.5">
                 {displayMonsters.map(m => (

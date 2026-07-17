@@ -68,9 +68,11 @@ export default function AppShell() {
         <Sidebar campaignId={campaignId} />
 
         {/* Main content — full width on mobile, padded bottom for nav bar */}
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0 min-w-0">
-          <Outlet />
-        </main>
+        <div className="relative flex-1 min-w-0 main-vignette">
+          <main className="h-full overflow-y-auto pb-20 md:pb-0">
+            <Outlet />
+          </main>
+        </div>
 
         {/* Right Quick-Gen sidebar — desktop only, campaign-scoped */}
         <RightSidebar campaignId={campaignId} />

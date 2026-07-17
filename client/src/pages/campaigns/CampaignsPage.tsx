@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { Plus, BookOpen, Archive, MoreHorizontal, Trash2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import ThemedLoader from '../../components/ui/Loader'
+import EmptyState from '../../components/ui/EmptyState'
 
 export default function CampaignsPage() {
   const navigate = useNavigate()
@@ -90,17 +92,18 @@ export default function CampaignsPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <ThemedLoader />
         </div>
       ) : campaigns.length === 0 ? (
-        <div className="text-center py-20">
-          <BookOpen size={48} className="mx-auto text-ink-muted/30 mb-4" />
-          <h2 className="display-font text-xl text-ink mb-2">No campaigns yet</h2>
-          <p className="text-ink-muted text-sm mb-4">Every great story starts somewhere.</p>
-          <button className="btn-primary" onClick={() => setCreating(true)}>
-            <Plus size={16} /> Start your first campaign
-          </button>
-        </div>
+        <EmptyState
+          section="campaigns"
+          icon={<BookOpen size={48} className="mx-auto text-ink-muted/30" />}
+          action={
+            <button className="btn-primary" onClick={() => setCreating(true)}>
+              <Plus size={16} /> Start your first campaign
+            </button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {campaigns.map((c: {

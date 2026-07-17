@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import ThemedLoader from '../components/ui/Loader'
 
 type Setting = 'line' | 'veil' | 'ok'
 
@@ -37,7 +38,7 @@ export default function SafetySubmitPage() {
 
   if (isLoading) return (
     <div className="min-h-screen bg-bg flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <ThemedLoader />
     </div>
   )
 

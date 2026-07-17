@@ -10,6 +10,8 @@ import { GridOverlay, GridEditor, DEFAULT_GRID } from '../../components/map/Grid
 import type { GridSettings } from '../../components/map/GridOverlay'
 import { useJobStatus } from '../../lib/useJobStatus'
 import { cn } from '../../lib/cn'
+import ThemedLoader from '../../components/ui/Loader'
+import EmptyState from '../../components/ui/EmptyState'
 
 type KindFilter = 'all' | 'battle' | 'region' | 'world' | 'other'
 
@@ -388,36 +390,37 @@ export default function MapsPage() {
       {/* Gallery */}
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <ThemedLoader />
         </div>
       ) : maps.length === 0 ? (
-        <div className="text-center py-20">
-          <Map size={48} className="mx-auto text-ink-muted/30 mb-4" />
-          <h2 className="display-font text-xl text-ink mb-2">
-            {kindFilter === 'all' ? 'No maps yet' : `No ${KIND_LABELS[kindFilter] ?? kindFilter}s yet`}
-          </h2>
-          <p className="text-sm text-ink-muted mb-6">Generate a map with AI, upload an image, or drag & drop a file here.</p>
-          <div className="flex gap-3 justify-center flex-wrap">
-            <button
-              className="btn-secondary gap-1"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload size={14} /> Upload Map
-            </button>
-            <button
-              className="btn-secondary gap-1"
-              onClick={() => navigate(`/campaign/${campaignId}/generate/world-map`)}
-            >
-              <Globe size={14} /> Generate World Map
-            </button>
-            <button
-              className="btn-primary gap-1"
-              onClick={() => navigate(`/campaign/${campaignId}/generate/battle-map`)}
-            >
-              <Wand2 size={14} /> Generate Battle Map
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          section="maps"
+          icon={<Map size={48} className="text-ink-muted/30" />}
+          title={kindFilter === 'all' ? undefined : `No ${KIND_LABELS[kindFilter] ?? kindFilter}s yet`}
+          description="Generate a map with AI, upload an image, or drag & drop a file here."
+          action={(
+            <div className="flex gap-3 justify-center flex-wrap">
+              <button
+                className="btn-secondary gap-1"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload size={14} /> Upload Map
+              </button>
+              <button
+                className="btn-secondary gap-1"
+                onClick={() => navigate(`/campaign/${campaignId}/generate/world-map`)}
+              >
+                <Globe size={14} /> Generate World Map
+              </button>
+              <button
+                className="btn-primary gap-1"
+                onClick={() => navigate(`/campaign/${campaignId}/generate/battle-map`)}
+              >
+                <Wand2 size={14} /> Generate Battle Map
+              </button>
+            </div>
+          )}
+        />
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {maps.map(m => {

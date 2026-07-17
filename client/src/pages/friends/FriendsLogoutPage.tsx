@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api'
+import ThemedLoader from '../../components/ui/Loader'
 
 export default function FriendsLogoutPage() {
   const navigate = useNavigate()
@@ -13,7 +14,7 @@ export default function FriendsLogoutPage() {
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center">
-      <div className="w-7 h-7 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <ThemedLoader />
     </div>
   )
 }

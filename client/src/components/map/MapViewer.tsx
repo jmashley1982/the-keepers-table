@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback, ReactNode } from 'react'
 import { cn } from '../../lib/cn'
+import EmptyState from '../ui/EmptyState'
 
 interface Props {
   assetId: string | null
@@ -233,8 +234,8 @@ export default function MapViewer({ assetId, className, children, alt, onSizeLoa
 
   if (!assetId) {
     return (
-      <div className={cn('flex items-center justify-center bg-neutral-900 rounded-card text-ink-muted text-sm', className)}>
-        No map loaded
+      <div className={cn('flex items-center justify-center bg-neutral-900 rounded-card', className)}>
+        <EmptyState icon="🗺️" title="No map loaded" className="py-4" />
       </div>
     )
   }

@@ -5,6 +5,8 @@ import { useState } from 'react'
 import { cn } from '../../lib/cn'
 import { Plus, Search, ChevronDown, ChevronRight, Trash2, BookOpen, Swords, Edit2, Check, X, Download } from 'lucide-react'
 import MonsterImportModal from '../../components/dnd5e/MonsterImportModal'
+import ThemedLoader from '../../components/ui/Loader'
+import EmptyState from '../../components/ui/EmptyState'
 
 interface Enemy {
   id: string
@@ -386,7 +388,7 @@ export default function EnemiesPage() {
       <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8">
         {isLoading ? (
           <div className="flex justify-center py-16">
-            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <ThemedLoader />
           </div>
         ) : (
           <>
@@ -433,21 +435,26 @@ export default function EnemiesPage() {
 
             {/* Empty state */}
             {srdEnemies.length === 0 && customEnemies.length === 0 && (
-              <div className="text-center py-20">
-                <div className="text-5xl mb-4">⚔️</div>
-                <h2 className="display-font text-xl text-ink mb-2">No creatures found</h2>
-                <p className="text-ink-muted text-sm mb-4">
-                  {search
-                    ? `No creatures match "${search}"`
-                    : 'Generate creatures with AI or switch to a system with a built-in bestiary.'}
-                </p>
-                <button
-                  className="btn-primary"
-                  onClick={() => navigate(`/campaign/${campaignId}/generate/enemy`)}
-                >
-                  <Plus size={16} /> Generate Foe
-                </button>
-              </div>
+              search ? (
+                <EmptyState
+                  icon="🔍"
+                  title="No creatures match your search"
+                  description={`No creatures match "${search}"`}
+                />
+              ) : (
+                <EmptyState
+                  section="creatures"
+                  description="Generate creatures with AI or switch to a system with a built-in bestiary."
+                  action={(
+                    <button
+                      className="btn-primary"
+                      onClick={() => navigate(`/campaign/${campaignId}/generate/enemy`)}
+                    >
+                      <Plus size={16} /> Generate Foe
+                    </button>
+                  )}
+                />
+              )
             )}
           </>
         )}

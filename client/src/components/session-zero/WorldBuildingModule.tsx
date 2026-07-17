@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { Plus, ChevronDown, ChevronUp, Sparkles, Loader, BookOpen, Trash2, ExternalLink } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import ThemedLoader from '../ui/Loader'
 
 type Category = 'faction' | 'region' | 'npc' | 'pantheon' | 'conflict' | 'secret'
 
@@ -166,7 +167,7 @@ export default function WorldBuildingModule({ campaignId }: Props) {
       {/* Entry list */}
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <ThemedLoader />
         </div>
       ) : (
         <div className="space-y-2">

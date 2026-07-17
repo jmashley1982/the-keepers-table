@@ -12,6 +12,9 @@ export interface UIState {
   theme: 'candlelight' | 'haunt' | 'eldritch' | 'icarus' | 'neon'
   setTheme: (t: UIState['theme']) => void
 
+  reduceEffects: boolean
+  setReduceEffects: (v: boolean) => void
+
   scratchTray: ScratchItem[]
   addScratchItem: (item: Omit<ScratchItem, 'saved'>) => void
   markScratchSaved: (id: string) => void
@@ -38,6 +41,12 @@ export const useUIStore = create<UIState>()(
       setTheme: (theme) => {
         set({ theme })
         document.documentElement.setAttribute('data-theme', theme)
+      },
+
+      reduceEffects: false,
+      setReduceEffects: (reduceEffects) => {
+        set({ reduceEffects })
+        document.documentElement.setAttribute('data-reduce-motion', String(reduceEffects))
       },
 
       scratchTray: [],
@@ -67,6 +76,7 @@ export const useUIStore = create<UIState>()(
       name: 'kt-ui',
       partialize: (s) => ({
         theme: s.theme,
+        reduceEffects: s.reduceEffects,
         activeCampaignId: s.activeCampaignId,
         leftSidebarCollapsed: s.leftSidebarCollapsed,
         rightSidebarCollapsed: s.rightSidebarCollapsed,
@@ -75,6 +85,7 @@ export const useUIStore = create<UIState>()(
         if (state?.theme) {
           document.documentElement.setAttribute('data-theme', state.theme)
         }
+        document.documentElement.setAttribute('data-reduce-motion', String(!!state?.reduceEffects))
       },
     },
   ),

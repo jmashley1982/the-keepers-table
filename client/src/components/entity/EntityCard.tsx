@@ -441,7 +441,10 @@ export default function EntityCard({
               onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
             />
           ) : (
-            <p className="text-sm text-ink-muted leading-relaxed">{entity.description}</p>
+            <p className={cn(
+              'text-sm text-ink-muted prose-copy',
+              (entityType === 'npc' || entityType === 'location') && 'drop-cap',
+            )}>{entity.description}</p>
           )}
         </div>
       )}
@@ -622,7 +625,7 @@ function NpcField({
           onChange={e => onChange(e.target.value)}
         />
       ) : (
-        <p className="text-sm text-ink leading-relaxed">{fieldVal}</p>
+        <p className="text-sm text-ink prose-copy">{fieldVal}</p>
       )}
     </div>
   )
@@ -638,7 +641,7 @@ function Field({ label, value, editing, onChange, draft }: {
       {editing ? (
         <textarea className="textarea text-sm" rows={2} value={draft ?? value} onChange={e => onChange(e.target.value)} />
       ) : (
-        <p className="text-sm text-ink leading-relaxed">{value}</p>
+        <p className="text-sm text-ink prose-copy">{value}</p>
       )}
     </div>
   )

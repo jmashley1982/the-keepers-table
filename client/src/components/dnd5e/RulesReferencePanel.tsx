@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { X, Search, Loader, Shield } from 'lucide-react'
+import { X, Search, Shield } from 'lucide-react'
 import { useDnd5eRules, useDnd5eRulesItem, type SrdItem } from '../../hooks/useDnd5eApi'
 import { cn } from '../../lib/cn'
+import ThemedLoader from '../ui/Loader'
 
 type RulesTab = 'conditions' | 'damage-types' | 'skills' | 'ability-scores'
 
@@ -14,7 +15,7 @@ const TABS: { id: RulesTab; label: string }[] = [
 
 function RulesItemDetail({ category, index }: { category: RulesTab; index: string }) {
   const { data, isLoading } = useDnd5eRulesItem(category, index)
-  if (isLoading) return <div className="flex justify-center py-8"><Loader size={20} className="animate-spin text-accent" /></div>
+  if (isLoading) return <div className="flex justify-center py-8"><ThemedLoader /></div>
   if (!data) return <p className="text-sm text-ink-muted p-4">Failed to load.</p>
 
   const name = data.name as string
@@ -132,7 +133,7 @@ export default function RulesReferencePanel({ onClose }: RulesReferencePanelProp
           <div className="w-1/2 border-r border-border overflow-y-auto">
             {isLoading ? (
               <div className="flex justify-center py-12">
-                <Loader size={20} className="animate-spin text-accent" />
+                <ThemedLoader />
               </div>
             ) : filtered.length === 0 ? (
               <p className="text-center text-sm text-ink-muted py-12">No results.</p>

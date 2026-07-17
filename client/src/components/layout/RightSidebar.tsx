@@ -3,6 +3,7 @@ import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useUIStore } from '../../store/useUIStore'
 import { useJobStatus } from '../../lib/useJobStatus'
+import ThemedLoader from '../ui/Loader'
 import {
   ChevronLeft, ChevronRight, Wand2, User, Swords, Package,
   MapPin, Skull, Image as ImageIcon, Loader,
@@ -17,6 +18,11 @@ type SaveKind = 'npc' | 'encounter' | 'location' | 'treasure' | 'foe'
 const TEXT_KIND_MAP: Record<TextKind, string> = {
   auto: 'quick', npc: 'npc', encounter: 'encounter',
   treasure: 'treasure', location: 'location', foe: 'enemy',
+}
+
+const TEXT_FLAVOR_MAP: Record<TextKind, string> = {
+  auto: 'default', npc: 'npc', encounter: 'encounter',
+  treasure: 'treasure', location: 'map', foe: 'creature',
 }
 
 const QUALITY_MODELS: Record<Quality, string> = {
@@ -329,6 +335,11 @@ export default function RightSidebar({ campaignId }: { campaignId?: string }) {
             {/* Error */}
             {error && <p className="text-xs text-danger px-1">{error}</p>}
 
+            {/* Text-generation loading state (before first streamed chunk arrives) */}
+            {busy && kind !== 'image' && !streamText && (
+              <ThemedLoader size="sm" flavor={TEXT_FLAVOR_MAP[kind as TextKind]} />
+            )}
+
             {/* Streaming preview */}
             {busy && kind !== 'image' && streamText && (
               <div className="p-2 bg-surface-2 rounded-card">
@@ -402,8 +413,8 @@ export default function RightSidebar({ campaignId }: { campaignId?: string }) {
             {imageJobId && (
               <div>
                 {imageLoading && (
-                  <div className="flex items-center gap-2 text-xs text-ink-muted p-2 bg-surface-2 rounded-card">
-                    <Loader size={12} className="animate-spin" /> Generating image…
+                  <div className="p-2 bg-surface-2 rounded-card">
+                    <ThemedLoader size="sm" flavor="portrait" />
                   </div>
                 )}
                 {imageStatus.status === 'failed' && (

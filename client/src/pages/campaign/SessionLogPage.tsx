@@ -5,6 +5,8 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, Play, Loader, Sparkles } from 'lucide-react'
 import MentionText from '../../components/session/MentionText'
 import SessionZeroWorkspace from '../../components/session-zero/SessionZeroWorkspace'
+import ThemedLoader from '../../components/ui/Loader'
+import EmptyState from '../../components/ui/EmptyState'
 
 export default function SessionLogPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
@@ -44,7 +46,7 @@ export default function SessionLogPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <ThemedLoader />
         </div>
       ) : (
         <div className="space-y-3">
@@ -62,11 +64,7 @@ export default function SessionLogPage() {
           )}
 
           {sessions.length === 0 && !sessionZero ? (
-            <div className="text-center py-20 text-ink-muted">
-              <div className="text-5xl mb-4">📜</div>
-              <h2 className="display-font text-xl text-ink mb-2">No sessions yet</h2>
-              <p className="text-sm">Every great campaign starts with a first session.</p>
-            </div>
+            <EmptyState section="sessions" />
           ) : (
             sessions.map(s => (
             <div key={s.id} className="card">

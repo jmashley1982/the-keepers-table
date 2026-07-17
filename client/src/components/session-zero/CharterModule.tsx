@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { ChevronDown, ChevronUp, Loader } from 'lucide-react'
+import ThemedLoader from '../ui/Loader'
 
 interface Charter {
   scheduling?: string
@@ -113,7 +114,7 @@ export default function CharterModule({ campaignId }: Props) {
 
   if (isLoading) return (
     <div className="flex justify-center py-12">
-      <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <ThemedLoader />
     </div>
   )
 

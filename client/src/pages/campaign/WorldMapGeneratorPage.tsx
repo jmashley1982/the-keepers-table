@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import PromptExpandButton from '../../components/ui/PromptExpandButton'
+import ThemedLoader from '../../components/ui/Loader'
+import EmptyState from '../../components/ui/EmptyState'
 
 interface StylePreset { id: string; name: string; isBuiltin: boolean }
 
@@ -331,10 +333,7 @@ export default function WorldMapGeneratorPage() {
               )}
 
               {allLocations.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-xs text-ink-muted">No locations in campaign library yet.</p>
-                  <p className="text-xs text-ink-muted mt-1">Place anonymous pins freely, or add locations to the library first.</p>
-                </div>
+                <EmptyState section="locations" />
               )}
 
               <div className="pt-2">
@@ -590,10 +589,13 @@ export default function WorldMapGeneratorPage() {
         <div className="flex-1 relative">
           {isGenerating && !hasMap && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 z-10">
-              <Loader size={40} className="animate-spin text-accent mb-4" />
-              <p className="text-white/60 text-sm">
-                {!mapAsset ? 'Creating map entry…' : jobStatus.status === 'queued' ? 'Queued…' : `Generating ${scope} map…`}
-              </p>
+              {!mapAsset ? (
+                <ThemedLoader size="lg" label="Creating map entry…" />
+              ) : jobStatus.status === 'queued' ? (
+                <ThemedLoader size="lg" label="Queued…" />
+              ) : (
+                <ThemedLoader size="lg" flavor="map" />
+              )}
               <p className="text-white/30 text-xs mt-1">Painted world maps take 20–90 seconds</p>
             </div>
           )}

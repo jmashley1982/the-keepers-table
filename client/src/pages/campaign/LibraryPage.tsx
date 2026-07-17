@@ -5,6 +5,8 @@ import { useState } from 'react'
 import { cn } from '../../lib/cn'
 import EntityCard from '../../components/entity/EntityCard'
 import { Plus, Search, X } from 'lucide-react'
+import ThemedLoader from '../../components/ui/Loader'
+import EmptyState from '../../components/ui/EmptyState'
 
 type Tab = 'npcs' | 'items' | 'locations' | 'factions' | 'encounters' | 'plot-threads'
 
@@ -177,29 +179,27 @@ export default function LibraryPage() {
       <div className="flex-1 overflow-y-auto px-8 py-6">
         {isLoading ? (
           <div className="flex justify-center py-16">
-            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <ThemedLoader />
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">{currentTabDef.emoji}</div>
-            <h2 className="display-font text-xl text-ink mb-2">No {currentTabDef.label.toLowerCase()} yet</h2>
-            <p className="text-ink-muted text-sm mb-4">
-              {search
-                ? `No results for "${search}"`
-                : hasActiveFilters
-                  ? 'No NPCs match the selected filters.'
-                  : `Generate your first ${currentTabDef.label.slice(0, -1).toLowerCase()} to build your world.`
-              }
-            </p>
-            {!search && !hasActiveFilters && (
-              <button
-                className="btn-primary"
-                onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'plot_thread' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
-              >
-                <Plus size={16} /> Generate
-              </button>
-            )}
-          </div>
+          search || hasActiveFilters ? (
+            <EmptyState
+              icon="🔍"
+              title={search ? `No results for "${search}"` : 'No NPCs match the selected filters.'}
+            />
+          ) : (
+            <EmptyState
+              section={currentTabDef.id}
+              action={(
+                <button
+                  className="btn-primary"
+                  onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'plot_thread' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
+                >
+                  <Plus size={16} /> Generate
+                </button>
+              )}
+            />
+          )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {items.map((item: Record<string, unknown>) => (

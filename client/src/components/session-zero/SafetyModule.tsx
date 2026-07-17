@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { Link2, Loader, Plus, X, Users, ExternalLink } from 'lucide-react'
+import ThemedLoader from '../ui/Loader'
 
 type Setting = 'line' | 'veil' | 'ok' | null
 
@@ -104,7 +105,7 @@ export default function SafetyModule({ campaignId }: Props) {
 
   if (isLoading) return (
     <div className="flex justify-center py-12">
-      <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <ThemedLoader />
     </div>
   )
 

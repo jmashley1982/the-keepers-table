@@ -4,6 +4,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { Zap, Loader, Save, RefreshCw, ChevronDown, ChevronRight, Swords } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import ThemedLoader from '../../components/ui/Loader'
 
 interface EnemyResult {
   name: string
@@ -386,21 +387,21 @@ export default function EnemyGeneratorPage() {
 
           {streaming && !streamText && (
             <div className="card text-center py-12">
-              <Loader size={32} className="animate-spin mx-auto text-accent mb-3" />
-              <p className="text-ink-muted text-sm">Claude is crafting your creature…</p>
+              <ThemedLoader size="lg" flavor="creature" />
             </div>
           )}
 
           {results.map((result, i) => (
-            <EnemyCard
-              key={i}
-              enemy={result.data}
-              systemTemplateId={systemTemplateId}
-              scratchMode={!result.saved}
-              saved={result.saved}
-              onSave={(patch) => saveResult.mutate({ data: result.data, patch: patch ?? {}, index: i })}
-              onRegenerate={generate}
-            />
+            <div key={i} className="animate-resolve-in">
+              <EnemyCard
+                enemy={result.data}
+                systemTemplateId={systemTemplateId}
+                scratchMode={!result.saved}
+                saved={result.saved}
+                onSave={(patch) => saveResult.mutate({ data: result.data, patch: patch ?? {}, index: i })}
+                onRegenerate={generate}
+              />
+            </div>
           ))}
         </div>
       </div>
