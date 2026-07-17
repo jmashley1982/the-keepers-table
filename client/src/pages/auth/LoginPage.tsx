@@ -58,6 +58,11 @@ export default function LoginPage() {
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
         backgroundAttachment: 'fixed',
+      } : theme === 'candlelight' ? {
+        backgroundImage: "url('/hero-candlelight.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : {
         background: `radial-gradient(ellipse 80% 60% at 50% 40%,
           color-mix(in srgb, var(--color-accent) 9%, var(--color-bg)) 0%,
@@ -68,7 +73,7 @@ export default function LoginPage() {
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: (theme === 'haunt' || theme === 'icarus' || theme === 'neon' || theme === 'eldritch')
+          background: (theme === 'haunt' || theme === 'icarus' || theme === 'neon' || theme === 'eldritch' || theme === 'candlelight')
             ? 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)'
             : 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%)',
         }}

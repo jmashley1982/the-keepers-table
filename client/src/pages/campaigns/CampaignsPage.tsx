@@ -74,9 +74,14 @@ export default function CampaignsPage() {
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
         backgroundAttachment: 'fixed',
+      } : theme === 'candlelight' ? {
+        backgroundImage: "url('/hero-candlelight.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundAttachment: 'fixed',
       } : undefined}
     >
-      {(theme === 'haunt' || theme === 'icarus' || theme === 'neon' || theme === 'eldritch') && (
+      {(theme === 'haunt' || theme === 'icarus' || theme === 'neon' || theme === 'eldritch' || theme === 'candlelight') && (
         <div
           className="pointer-events-none absolute inset-0"
           style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.7) 100%)' }}
