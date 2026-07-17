@@ -60,6 +60,7 @@ export default function GenerateArtButton({
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [aspectRatio] = useState<AspectRatio>('portrait')
   const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 230 })
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const optionsBtnRef = useRef<HTMLButtonElement>(null)
 
   const { data: authData } = useQuery({
@@ -212,16 +213,44 @@ export default function GenerateArtButton({
     }
   }
 
+  function calcPopupPos(fromEl: HTMLElement) {
+    const rect = fromEl.getBoundingClientRect()
+    const popW = 240
+    const popH = 300
+    const top = rect.top - popH - 6 < 8 ? rect.bottom + 6 : rect.top - popH - 6
+    const left = Math.min(Math.max(8, rect.left), window.innerWidth - popW - 8)
+    setPopupPos({ top, left, width: popW })
+  }
+
   function handleOpenOptions() {
-    if (optionsBtnRef.current) {
-      const rect = optionsBtnRef.current.getBoundingClientRect()
+    if (optionsBtnRef.current) calcPopupPos(optionsBtnRef.current)
+    setOptionsOpen(true)
+  }
+
+  async function handleSmartAuto(e: React.MouseEvent<HTMLButtonElement>) {
+    if (optionsBtnRef.current) calcPopupPos(optionsBtnRef.current)
+    else {
+      const rect = e.currentTarget.getBoundingClientRect()
       const popW = 240
-      const popH = 280
+      const popH = 300
       const top = rect.top - popH - 6 < 8 ? rect.bottom + 6 : rect.top - popH - 6
       const left = Math.min(Math.max(8, rect.left), window.innerWidth - popW - 8)
       setPopupPos({ top, left, width: popW })
     }
+    setCustomPrompt('')
     setOptionsOpen(true)
+    setIsPreviewLoading(true)
+    try {
+      const res = await api.post<{ prompt: string }>('/api/generate/preview-prompt', {
+        kind, entityId, campaignId,
+        stylePreset: selectedPreset ?? undefined,
+      })
+      setCustomPrompt(res.data.prompt)
+    } catch {
+      // silently ignore — user can still type or use AI preview button
+    } finally {
+      setIsPreviewLoading(false)
+    }
   }
 
   function handleUseNew() {
@@ -269,7 +298,7 @@ export default function GenerateArtButton({
         </button>
       )}
 
-      {/* ── IDLE: has portrait → AUTO + Options popup trigger ──────────────── */}
+      {/* ── IDLE: has portrait → AUTO + Preview + Options popup trigger ──────── */}
       {phase.name === 'idle' && currentAssetId && (
         <div className="flex items-center gap-1">
           <button
@@ -283,18 +312,31 @@ export default function GenerateArtButton({
             }}
             onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 28%, transparent)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 18%, transparent)')}
-            title={`Auto-regenerate ${artLabel}`}
+            title={`Auto-regenerate ${artLabel} immediately`}
           >
             {isSubmitting ? <Loader size={11} className="animate-spin" /> : <Zap size={11} />}
             AUTO
           </button>
           <button
             ref={optionsBtnRef}
+            onClick={handleSmartAuto}
+            disabled={isSubmitting || isPreviewLoading}
+            className={cn(
+              'flex items-center justify-center w-7 h-7 rounded-card border transition-colors shrink-0',
+              optionsOpen && isPreviewLoading
+                ? 'text-accent border-accent/40 bg-accent/10'
+                : 'text-ink-muted border-border bg-surface-2 hover:text-ink hover:bg-surface hover:border-accent/30'
+            )}
+            title="Preview AI prompt, then generate"
+          >
+            {isPreviewLoading ? <Loader size={10} className="animate-spin text-accent" /> : <Wand2 size={11} />}
+          </button>
+          <button
             onClick={handleOpenOptions}
             disabled={isSubmitting}
             className={cn(
               'flex items-center justify-center w-7 h-7 rounded-card border transition-colors shrink-0',
-              optionsOpen
+              optionsOpen && !isPreviewLoading
                 ? 'text-accent border-accent/40 bg-accent/10'
                 : 'text-ink-muted border-border bg-surface-2 hover:text-ink hover:bg-surface hover:border-accent/30'
             )}
@@ -437,25 +479,35 @@ export default function GenerateArtButton({
                   <p className="text-ink-muted font-medium uppercase text-[9px] tracking-wide">Prompt</p>
                   <button
                     onClick={handlePreviewPrompt}
-                    className="flex items-center gap-0.5 text-[9px] text-accent hover:text-accent/80 transition-colors"
+                    disabled={isPreviewLoading}
+                    className="flex items-center gap-0.5 text-[9px] text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
                     title="Fill with AI-generated prompt"
                   >
-                    <Wand2 size={8} />
+                    {isPreviewLoading ? <Loader size={8} className="animate-spin" /> : <Wand2 size={8} />}
                     <span>AI preview</span>
                   </button>
                 </div>
-                <textarea
-                  className="w-full text-[10px] rounded p-1.5 text-ink placeholder-ink-muted resize-none focus:outline-none focus:ring-1"
-                  style={{
-                    background: 'var(--color-surface-2)',
-                    border: '1px solid var(--color-border)',
-                  }}
-                  rows={3}
-                  value={customPrompt}
-                  onChange={e => setCustomPrompt(e.target.value)}
-                  placeholder="Leave empty for Art Director…"
-                  autoFocus
-                />
+                <div className="relative">
+                  <textarea
+                    className="w-full text-[10px] rounded p-1.5 text-ink placeholder-ink-muted resize-none focus:outline-none focus:ring-1"
+                    style={{
+                      background: 'var(--color-surface-2)',
+                      border: '1px solid var(--color-border)',
+                      opacity: isPreviewLoading ? 0.5 : 1,
+                    }}
+                    rows={3}
+                    value={customPrompt}
+                    onChange={e => setCustomPrompt(e.target.value)}
+                    placeholder={isPreviewLoading ? 'Generating prompt…' : 'Leave empty for Art Director…'}
+                    readOnly={isPreviewLoading}
+                    autoFocus
+                  />
+                  {isPreviewLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <Loader size={14} className="animate-spin text-accent" />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Style presets */}
