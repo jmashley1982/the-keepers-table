@@ -45,7 +45,7 @@ export default function MobileDrawer({ open, onClose }: Props) {
 
   const logout = useMutation({
     mutationFn: () => api.post('/auth/logout'),
-    onSuccess: () => { qc.clear(); navigate('/login') },
+    onSuccess: () => { qc.clear(); navigate('/') },
   })
 
   useEffect(() => {

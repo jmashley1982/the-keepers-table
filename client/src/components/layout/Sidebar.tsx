@@ -39,7 +39,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
     mutationFn: () => api.post('/auth/logout'),
     onSuccess: () => {
       qc.clear()
-      navigate('/login')
+      navigate('/')
     },
   })
 
