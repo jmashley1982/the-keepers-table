@@ -278,24 +278,53 @@ export default function GenerateArtButton({
   return (
     <div className="flex flex-col gap-1 w-full">
 
-      {/* ── IDLE: no portrait → prominent first-gen button ─────────────────── */}
+      {/* ── IDLE: no portrait → AUTO + wand (preview) + options ────────────── */}
       {phase.name === 'idle' && !currentAssetId && (
-        <button
-          onClick={handleFirstGenerate}
-          disabled={isSubmitting}
-          className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-card text-xs font-semibold transition-all disabled:opacity-50"
-          style={{
-            background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
-            color: 'var(--color-accent)',
-            border: '1.5px solid color-mix(in srgb, var(--color-accent) 35%, transparent)',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 25%, transparent)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 15%, transparent)')}
-          title={`Generate ${artLabel}`}
-        >
-          {isSubmitting ? <Loader size={11} className="animate-spin" /> : <ImagePlus size={11} />}
-          Generate {artLabel}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleFirstGenerate}
+            disabled={isSubmitting}
+            className="flex items-center justify-center gap-1.5 flex-1 px-2 py-1.5 rounded-card text-xs font-bold transition-all disabled:opacity-50"
+            style={{
+              background: 'color-mix(in srgb, var(--color-accent) 15%, transparent)',
+              color: 'var(--color-accent)',
+              border: '1.5px solid color-mix(in srgb, var(--color-accent) 35%, transparent)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 25%, transparent)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 15%, transparent)')}
+            title={`Generate ${artLabel} immediately`}
+          >
+            {isSubmitting ? <Loader size={11} className="animate-spin" /> : <ImagePlus size={11} />}
+            Generate
+          </button>
+          <button
+            ref={optionsBtnRef}
+            onClick={handleSmartAuto}
+            disabled={isSubmitting || isPreviewLoading}
+            className={cn(
+              'flex items-center justify-center w-7 h-7 rounded-card border transition-colors shrink-0',
+              optionsOpen && isPreviewLoading
+                ? 'text-accent border-accent/40 bg-accent/10'
+                : 'text-ink-muted border-border bg-surface-2 hover:text-ink hover:bg-surface hover:border-accent/30'
+            )}
+            title="Preview AI prompt, then generate"
+          >
+            {isPreviewLoading ? <Loader size={10} className="animate-spin text-accent" /> : <Wand2 size={11} />}
+          </button>
+          <button
+            onClick={handleOpenOptions}
+            disabled={isSubmitting}
+            className={cn(
+              'flex items-center justify-center w-7 h-7 rounded-card border transition-colors shrink-0',
+              optionsOpen && !isPreviewLoading
+                ? 'text-accent border-accent/40 bg-accent/10'
+                : 'text-ink-muted border-border bg-surface-2 hover:text-ink hover:bg-surface hover:border-accent/30'
+            )}
+            title="Generation options"
+          >
+            <SlidersHorizontal size={11} />
+          </button>
+        </div>
       )}
 
       {/* ── IDLE: has portrait → AUTO + Preview + Options popup trigger ──────── */}
