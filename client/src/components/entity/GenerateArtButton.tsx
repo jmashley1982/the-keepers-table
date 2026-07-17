@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useJobStatus } from '../../lib/useJobStatus'
 import {
   Sparkles, RotateCcw, AlertCircle, ChevronDown, ChevronUp,
-  Check, X, Loader, Wand2, ImagePlus, RefreshCw,
+  Check, X, Loader, Wand2, ImagePlus, Zap, SlidersHorizontal,
 } from 'lucide-react'
 
 const ENTITY_EMOJI: Record<string, string> = {
@@ -20,7 +20,6 @@ type GenerateOpts = { prompt?: string; stylePreset?: string; model?: string; asp
 
 type Phase =
   | { name: 'idle' }
-  | { name: 'regen_panel'; promptDraft: string; promptLoading: boolean }
   | { name: 'confirm'; estimate: number; softCap: number; pendingOpts: GenerateOpts }
   | { name: 'generating'; jobId: string }
   | { name: 'await_replace'; newAssetId: string; prevAssetId: string }
@@ -54,12 +53,14 @@ export default function GenerateArtButton({
 }: GenerateArtButtonProps) {
   const qc = useQueryClient()
   const [phase, setPhase] = useState<Phase>({ name: 'idle' })
-  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [optionsOpen, setOptionsOpen] = useState(false)
   const [showRawError, setShowRawError] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [aspectRatio] = useState<AspectRatio>('portrait')
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 230 })
+  const optionsBtnRef = useRef<HTMLButtonElement>(null)
 
   const { data: authData } = useQuery({
     queryKey: ['me'],
@@ -96,7 +97,6 @@ export default function GenerateArtButton({
   const patchBase = isPc
     ? `/api/campaigns/${campaignId}/player-characters`
     : `/api/entities/${campaignId}/${entityPath}`
-  // entityPath is plural ('npcs', 'items', 'locations') — matches LibraryPage queryKey third element
   const invalidateKey = isPc
     ? ['player-characters', campaignId]
     : ['entities', campaignId, entityPath]
@@ -122,6 +122,13 @@ export default function GenerateArtButton({
     }
   }, [jobStatus.status, jobStatus.assetId, jobStatus.errorMessage, jobStatus.rawError, phase.name, currentAssetId, campaignId, entityType, qc, onGenerated])
 
+  useEffect(() => {
+    if (!optionsOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOptionsOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [optionsOpen])
+
   const generateMutation = useMutation({
     mutationFn: (opts?: GenerateOpts & { confirmed?: boolean }) =>
       api.post<{ jobId: string }>('/api/generate/image', {
@@ -136,7 +143,7 @@ export default function GenerateArtButton({
       }),
     onSuccess: (res) => {
       setPhase({ name: 'generating', jobId: res.data.jobId })
-      setShowAdvanced(false)
+      setOptionsOpen(false)
       setCustomPrompt('')
     },
     onError: (err: unknown) => {
@@ -148,6 +155,7 @@ export default function GenerateArtButton({
           model: selectedModel || undefined,
           aspectRatio,
         }
+        setOptionsOpen(false)
         setPhase({
           name: 'confirm',
           estimate: axiosErr.response.data.estimate ?? 0,
@@ -176,37 +184,14 @@ export default function GenerateArtButton({
   })
 
   function handleFirstGenerate() {
-    generateMutation.mutate({ stylePreset: selectedPreset ?? undefined, aspectRatio })
+    generateMutation.mutate({ aspectRatio })
   }
 
-  async function handleRegenClick() {
-    setPhase({ name: 'regen_panel', promptDraft: '', promptLoading: true })
-    try {
-      const res = await api.post<{ prompt: string }>('/api/generate/preview-prompt', {
-        kind, entityId, campaignId,
-      })
-      setPhase(prev => prev.name === 'regen_panel'
-        ? { name: 'regen_panel', promptDraft: res.data.prompt, promptLoading: false }
-        : prev
-      )
-    } catch {
-      setPhase(prev => prev.name === 'regen_panel'
-        ? { name: 'regen_panel', promptDraft: '', promptLoading: false }
-        : prev
-      )
-    }
+  function handleAutoRegen() {
+    generateMutation.mutate({ aspectRatio })
   }
 
-  function handleRegenConfirm() {
-    if (phase.name !== 'regen_panel') return
-    generateMutation.mutate({
-      prompt: phase.promptDraft.trim() || undefined,
-      stylePreset: selectedPreset ?? undefined,
-      aspectRatio,
-    })
-  }
-
-  function handleAdvancedGenerate() {
+  function handleOptionsGenerate() {
     generateMutation.mutate({
       prompt: customPrompt.trim() || undefined,
       stylePreset: selectedPreset ?? undefined,
@@ -227,6 +212,18 @@ export default function GenerateArtButton({
     }
   }
 
+  function handleOpenOptions() {
+    if (optionsBtnRef.current) {
+      const rect = optionsBtnRef.current.getBoundingClientRect()
+      const popW = 240
+      const popH = 280
+      const top = rect.top - popH - 6 < 8 ? rect.bottom + 6 : rect.top - popH - 6
+      const left = Math.min(Math.max(8, rect.left), window.innerWidth - popW - 8)
+      setPopupPos({ top, left, width: popW })
+    }
+    setOptionsOpen(true)
+  }
+
   function handleUseNew() {
     if (phase.name !== 'await_replace') return
     deleteAssetMutation.mutate(phase.prevAssetId)
@@ -242,7 +239,7 @@ export default function GenerateArtButton({
 
   function handleRetry() {
     setPhase({ name: 'idle' })
-    generateMutation.mutate({ stylePreset: selectedPreset ?? undefined, aspectRatio })
+    generateMutation.mutate({ aspectRatio })
   }
 
   const isSubmitting = generateMutation.isPending
@@ -272,70 +269,39 @@ export default function GenerateArtButton({
         </button>
       )}
 
-      {/* ── IDLE: has portrait → regen + advanced ──────────────────────────── */}
+      {/* ── IDLE: has portrait → AUTO + Options popup trigger ──────────────── */}
       {phase.name === 'idle' && currentAssetId && (
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           <button
-            onClick={handleRegenClick}
+            onClick={handleAutoRegen}
             disabled={isSubmitting}
-            className="flex items-center gap-1 flex-1 px-2 py-1 rounded text-[11px] font-medium text-ink-muted hover:text-accent bg-surface-2 hover:bg-accent/10 border border-border hover:border-accent/30 transition-colors leading-none"
-            title="Regenerate portrait"
+            className="flex items-center justify-center gap-1.5 flex-1 px-2 py-1.5 rounded-card text-xs font-bold transition-all disabled:opacity-50"
+            style={{
+              background: 'color-mix(in srgb, var(--color-accent) 18%, transparent)',
+              color: 'var(--color-accent)',
+              border: '1.5px solid color-mix(in srgb, var(--color-accent) 40%, transparent)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 28%, transparent)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-accent) 18%, transparent)')}
+            title={`Auto-regenerate ${artLabel}`}
           >
-            {isSubmitting ? <Loader size={9} className="animate-spin" /> : <RefreshCw size={9} />}
-            Regenerate
+            {isSubmitting ? <Loader size={11} className="animate-spin" /> : <Zap size={11} />}
+            AUTO
           </button>
           <button
-            onClick={() => setShowAdvanced(v => !v)}
+            ref={optionsBtnRef}
+            onClick={handleOpenOptions}
+            disabled={isSubmitting}
             className={cn(
-              'text-ink-muted hover:text-ink bg-surface-2 hover:bg-surface border border-border rounded px-1 py-1 transition-colors',
-              showAdvanced && 'bg-surface border-accent/40 text-accent'
+              'flex items-center justify-center w-7 h-7 rounded-card border transition-colors shrink-0',
+              optionsOpen
+                ? 'text-accent border-accent/40 bg-accent/10'
+                : 'text-ink-muted border-border bg-surface-2 hover:text-ink hover:bg-surface hover:border-accent/30'
             )}
-            title="Advanced options"
+            title="Generation options"
           >
-            {showAdvanced ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+            <SlidersHorizontal size={11} />
           </button>
-        </div>
-      )}
-
-      {/* ── REGEN PANEL: prompt preview + edit ─────────────────────────────── */}
-      {phase.name === 'regen_panel' && (
-        <div className="p-2 bg-surface-2 border border-border/60 rounded-card space-y-2">
-          <p className="text-[10px] font-medium text-ink-muted uppercase tracking-wide">Prompt before regenerating</p>
-          {phase.promptLoading ? (
-            <div className="flex items-center gap-1.5 text-[11px] text-ink-muted py-1">
-              <Loader size={10} className="animate-spin" />
-              <span>Loading prompt…</span>
-            </div>
-          ) : (
-            <textarea
-              className="w-full text-[11px] bg-surface border border-border rounded p-1.5 text-ink placeholder-ink-muted resize-none focus:outline-none focus:border-accent/60"
-              rows={3}
-              value={phase.promptDraft}
-              onChange={e => setPhase({ name: 'regen_panel', promptDraft: e.target.value, promptLoading: false })}
-              placeholder="Leave blank for AI to decide…"
-              autoFocus
-            />
-          )}
-          <div className="flex gap-1">
-            <button
-              onClick={handleRegenConfirm}
-              disabled={isSubmitting || phase.promptLoading}
-              className="flex items-center gap-1 flex-1 justify-center px-2 py-1 rounded text-[11px] font-semibold transition-colors disabled:opacity-50"
-              style={{
-                background: 'var(--color-accent)',
-                color: '#fff',
-              }}
-            >
-              {isSubmitting ? <Loader size={9} className="animate-spin" /> : <Sparkles size={9} />}
-              Generate
-            </button>
-            <button
-              onClick={() => setPhase({ name: 'idle' })}
-              className="flex items-center gap-1 px-2 py-1 rounded text-[11px] text-ink-muted bg-surface border border-border hover:text-ink transition-colors"
-            >
-              <X size={9} /> Cancel
-            </button>
-          </div>
         </div>
       )}
 
@@ -427,95 +393,157 @@ export default function GenerateArtButton({
         </div>
       )}
 
-      {/* ── ADVANCED PANEL ─────────────────────────────────────────────────── */}
-      {showAdvanced && phase.name === 'idle' && (
-        <div className="p-2 bg-surface-2 border border-border rounded-card space-y-2 text-[11px]">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-ink-muted font-medium uppercase text-[9px] tracking-wide">Prompt</p>
+      {/* ── OPTIONS POPUP ──────────────────────────────────────────────────── */}
+      {optionsOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={() => setOptionsOpen(false)}
+          />
+          {/* Floating card */}
+          <div
+            className="fixed z-[9999] rounded-card border shadow-xl"
+            style={{
+              top: popupPos.top,
+              left: popupPos.left,
+              width: popupPos.width,
+              background: 'var(--color-surface)',
+              borderColor: 'color-mix(in srgb, var(--color-accent) 30%, var(--color-border))',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b"
+              style={{ borderColor: 'var(--color-border)' }}
+            >
+              <span className="text-[11px] font-semibold text-ink flex items-center gap-1.5">
+                <Wand2 size={11} className="text-accent" />
+                {artLabel} Options
+              </span>
               <button
-                onClick={handlePreviewPrompt}
-                className="flex items-center gap-0.5 text-[9px] text-accent hover:text-accent/80 transition-colors"
-                title="AI preview"
+                onClick={() => setOptionsOpen(false)}
+                className="text-ink-muted hover:text-ink transition-colors"
               >
-                <Wand2 size={8} />
-                <span>AI preview</span>
+                <X size={12} />
               </button>
             </div>
-            <textarea
-              className="w-full text-[10px] bg-surface border border-border rounded p-1.5 text-ink placeholder-ink-muted resize-none focus:outline-none focus:border-accent/60"
-              rows={3}
-              value={customPrompt}
-              onChange={e => setCustomPrompt(e.target.value)}
-              placeholder="Leave empty for Art Director…"
-            />
-          </div>
 
-          {presets.length > 0 && (
-            <div>
-              <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Style</p>
-              <div className="flex flex-wrap gap-0.5">
-                {presets.map(p => (
+            <div className="p-3 space-y-3">
+              {/* Prompt */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-ink-muted font-medium uppercase text-[9px] tracking-wide">Prompt</p>
                   <button
-                    key={p.id}
-                    onClick={() => setSelectedPreset(prev => prev === p.name ? null : p.name)}
-                    className={cn(
-                      'text-[9px] px-1 py-0.5 rounded border transition-colors leading-none',
-                      selectedPreset === p.name
-                        ? 'bg-accent text-white border-accent'
-                        : 'bg-surface border-border text-ink-muted hover:border-accent/40 hover:text-ink'
-                    )}
-                    title={p.promptFragment}
+                    onClick={handlePreviewPrompt}
+                    className="flex items-center gap-0.5 text-[9px] text-accent hover:text-accent/80 transition-colors"
+                    title="Fill with AI-generated prompt"
                   >
-                    {p.name}
+                    <Wand2 size={8} />
+                    <span>AI preview</span>
                   </button>
-                ))}
+                </div>
+                <textarea
+                  className="w-full text-[10px] rounded p-1.5 text-ink placeholder-ink-muted resize-none focus:outline-none focus:ring-1"
+                  style={{
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                  }}
+                  rows={3}
+                  value={customPrompt}
+                  onChange={e => setCustomPrompt(e.target.value)}
+                  placeholder="Leave empty for Art Director…"
+                  autoFocus
+                />
+              </div>
+
+              {/* Style presets */}
+              {presets.length > 0 && (
+                <div>
+                  <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Style</p>
+                  <div className="flex flex-wrap gap-0.5">
+                    {presets.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedPreset(prev => prev === p.name ? null : p.name)}
+                        className={cn(
+                          'text-[9px] px-1.5 py-0.5 rounded border transition-colors leading-none',
+                          selectedPreset === p.name
+                            ? 'bg-accent text-white border-accent'
+                            : 'text-ink-muted hover:text-ink'
+                        )}
+                        style={selectedPreset !== p.name ? {
+                          background: 'var(--color-surface-2)',
+                          borderColor: 'var(--color-border)',
+                        } : undefined}
+                        title={p.promptFragment}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quality */}
+              <div>
+                <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Quality</p>
+                <div className="flex gap-0.5">
+                  {([
+                    ['gpt-image-2-ultra', 'Ultra'],
+                    ['gpt-image-2',       'High'],
+                    ['krea-2-turbo',      'Med'],
+                    ['z-image',           'Low'],
+                  ] as const).map(([v, label]) => (
+                    <button
+                      key={v}
+                      onClick={() => setSelectedModel(prev => prev === v ? '' : v)}
+                      className={cn(
+                        'flex-1 text-[9px] py-0.5 rounded border transition-colors',
+                        selectedModel === v
+                          ? 'bg-accent text-white border-accent'
+                          : 'text-ink-muted hover:text-ink'
+                      )}
+                      style={selectedModel !== v ? {
+                        background: 'var(--color-surface-2)',
+                        borderColor: 'var(--color-border)',
+                      } : undefined}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-1.5 pt-0.5">
+                <button
+                  onClick={handleOptionsGenerate}
+                  disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-card text-[11px] font-bold transition-all disabled:opacity-50"
+                  style={{
+                    background: 'var(--color-accent)',
+                    color: '#fff',
+                  }}
+                >
+                  {isSubmitting ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                  Generate
+                </button>
+                <button
+                  onClick={() => setOptionsOpen(false)}
+                  className="px-3 py-1.5 rounded-card text-[11px] text-ink-muted border transition-colors hover:text-ink"
+                  style={{
+                    background: 'var(--color-surface-2)',
+                    borderColor: 'var(--color-border)',
+                  }}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
-          )}
-
-          <div>
-            <p className="text-ink-muted mb-1 font-medium uppercase text-[9px] tracking-wide">Quality</p>
-            <div className="flex gap-0.5">
-              {([
-                ['gpt-image-2-ultra', 'Ultra'],
-                ['gpt-image-2',       'High'],
-                ['krea-2-turbo',      'Med'],
-                ['z-image',           'Low'],
-              ] as const).map(([v, label]) => (
-                <button
-                  key={v}
-                  onClick={() => setSelectedModel(prev => prev === v ? '' : v)}
-                  className={cn(
-                    'flex-1 text-[9px] py-0.5 rounded border transition-colors',
-                    selectedModel === v
-                      ? 'bg-accent text-white border-accent'
-                      : 'bg-surface border-border text-ink-muted hover:border-accent/40'
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
-
-          <div className="flex gap-1 pt-0.5">
-            <button
-              onClick={handleAdvancedGenerate}
-              disabled={isSubmitting}
-              className="flex-1 btn-primary py-1 text-[10px] flex items-center justify-center gap-1"
-            >
-              {isSubmitting ? <Loader size={10} className="animate-spin" /> : <Sparkles size={10} />}
-              Generate
-            </button>
-            <button
-              onClick={() => setShowAdvanced(false)}
-              className="btn-secondary py-1 text-[10px] px-2"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        </>
       )}
     </div>
   )
