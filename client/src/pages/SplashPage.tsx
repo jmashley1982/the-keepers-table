@@ -63,20 +63,29 @@ export default function SplashPage() {
   return (
     <div
       className="min-h-screen flex flex-col relative overflow-hidden"
-      style={{ background: 'var(--color-bg)' }}
+      style={theme === 'haunt' ? {
+        backgroundImage: "url('/hero-haunt.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+      } : { background: 'var(--color-bg)' }}
     >
-      {/* Atmospheric glow */}
+      {/* Atmospheric glow / haunt overlay */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: `
-            radial-gradient(ellipse 70% 50% at 50% 0%,
-              color-mix(in srgb, var(--color-accent) 12%, transparent) 0%,
-              transparent 70%),
-            radial-gradient(ellipse 100% 100% at 50% 50%,
-              transparent 40%,
-              rgba(0,0,0,0.5) 100%)
-          `,
+          background: theme === 'haunt'
+            ? `linear-gradient(to bottom,
+                rgba(0,0,0,0.45) 0%,
+                rgba(0,0,0,0.3) 40%,
+                rgba(0,0,0,0.65) 100%)`
+            : `
+              radial-gradient(ellipse 70% 50% at 50% 0%,
+                color-mix(in srgb, var(--color-accent) 12%, transparent) 0%,
+                transparent 70%),
+              radial-gradient(ellipse 100% 100% at 50% 50%,
+                transparent 40%,
+                rgba(0,0,0,0.5) 100%)
+            `,
         }}
       />
 

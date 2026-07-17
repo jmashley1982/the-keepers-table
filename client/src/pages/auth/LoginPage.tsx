@@ -38,17 +38,23 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{
+      style={theme === 'haunt' ? {
+        backgroundImage: "url('/hero-haunt.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+      } : {
         background: `radial-gradient(ellipse 80% 60% at 50% 40%,
           color-mix(in srgb, var(--color-accent) 9%, var(--color-bg)) 0%,
           var(--color-bg) 65%)`,
       }}
     >
-      {/* Subtle vignette corners */}
+      {/* Vignette / haunt overlay */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%)',
+          background: theme === 'haunt'
+            ? 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)'
+            : 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%)',
         }}
       />
 

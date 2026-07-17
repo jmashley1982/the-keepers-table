@@ -6,8 +6,10 @@ import { Plus, BookOpen, Archive, MoreHorizontal, Trash2 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import ThemedLoader from '../../components/ui/Loader'
 import EmptyState from '../../components/ui/EmptyState'
+import { useUIStore } from '../../store/useUIStore'
 
 export default function CampaignsPage() {
+  const theme = useUIStore(s => s.theme)
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const qc = useQueryClient()
@@ -50,7 +52,21 @@ export default function CampaignsPage() {
   const templates = templatesData?.templates ?? []
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div
+      className="relative min-h-full"
+      style={theme === 'haunt' ? {
+        backgroundImage: "url('/hero-haunt.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+      } : undefined}
+    >
+      {theme === 'haunt' && (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.7) 100%)' }}
+        />
+      )}
+    <div className="relative z-10 p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="display-font text-3xl font-bold text-ink">Your Campaigns</h1>
@@ -140,6 +156,7 @@ export default function CampaignsPage() {
           ))}
         </div>
       )}
+    </div>
     </div>
   )
 }
