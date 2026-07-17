@@ -1,11 +1,12 @@
 import { useState, FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { api } from '../../lib/api'
 import ThemeSwitcher from '../../components/layout/ThemeSwitcher'
 
 function WelcomeModal({ onClose }: { onClose: () => void }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
       <div className="bg-bg border border-border rounded-xl shadow-xl w-full max-w-md p-6 relative">
         <button
@@ -57,7 +58,8 @@ function WelcomeModal({ onClose }: { onClose: () => void }) {
           Got it, let's play!
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
