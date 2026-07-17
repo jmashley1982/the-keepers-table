@@ -56,8 +56,12 @@ export default function GenerateArtButton({
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [showRawError, setShowRawError] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
-  const [selectedModel, setSelectedModel] = useState<string>('')
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(() => {
+    try { return localStorage.getItem(`art_preset_${entityType}`) ?? null } catch { return null }
+  })
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    try { return localStorage.getItem(`art_model_${entityType}`) ?? '' } catch { return '' }
+  })
   const [aspectRatio] = useState<AspectRatio>('portrait')
   const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 230 })
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
@@ -122,6 +126,20 @@ export default function GenerateArtButton({
       setPhase({ name: 'failed', error: jobStatus.rawError ?? jobStatus.errorMessage ?? 'Generation failed' })
     }
   }, [jobStatus.status, jobStatus.assetId, jobStatus.errorMessage, jobStatus.rawError, phase.name, currentAssetId, campaignId, entityType, qc, onGenerated])
+
+  useEffect(() => {
+    try {
+      if (selectedPreset === null) localStorage.removeItem(`art_preset_${entityType}`)
+      else localStorage.setItem(`art_preset_${entityType}`, selectedPreset)
+    } catch { /* ignore */ }
+  }, [selectedPreset, entityType])
+
+  useEffect(() => {
+    try {
+      if (selectedModel === '') localStorage.removeItem(`art_model_${entityType}`)
+      else localStorage.setItem(`art_model_${entityType}`, selectedModel)
+    } catch { /* ignore */ }
+  }, [selectedModel, entityType])
 
   useEffect(() => {
     if (!optionsOpen) return
