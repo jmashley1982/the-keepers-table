@@ -45,6 +45,7 @@ export interface GenerateArtButtonProps {
 }
 
 const POPUP_OPEN_EVENT = 'keeper:art-popup-open'
+const LIGHTBOX_OPEN_EVENT = 'keeper:lightbox-open'
 
 export default function GenerateArtButton({
   kind,
@@ -691,6 +692,8 @@ export function EntityAvatarWithArt({
   size?: 'sm' | 'lg'
 }) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  // Stable instance ID so the singleton event can distinguish self from others
+  const instanceId = useRef(Math.random().toString(36).slice(2)).current
 
   const src = assetId
     ? `/api/assets/${assetId}?size=thumb`
@@ -699,20 +702,61 @@ export function EntityAvatarWithArt({
     ? `/api/assets/${assetId}?size=full`
     : portraitUrl ?? imageUrl ?? null
 
+  // ── Lightbox open/close: body lock + Escape + singleton broadcast ───────
   useEffect(() => {
-    if (!lightboxOpen) return
+    if (!lightboxOpen) {
+      document.body.style.overflow = ''
+      return
+    }
+    // Tell every other EntityAvatarWithArt to close
+    window.dispatchEvent(new CustomEvent(LIGHTBOX_OPEN_EVENT, { detail: { id: instanceId } }))
+    document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightboxOpen(false) }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [lightboxOpen])
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [lightboxOpen, instanceId])
 
-  const sizeClass = size === 'lg'
-    ? 'w-24 h-32'
-    : 'w-12 h-12'
+  // ── Close self when another instance opens ──────────────────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ id: string }>).detail
+      if (detail.id !== instanceId) setLightboxOpen(false)
+    }
+    window.addEventListener(LIGHTBOX_OPEN_EVENT, handler)
+    return () => window.removeEventListener(LIGHTBOX_OPEN_EVENT, handler)
+  }, [instanceId])
+
+  const sizeClass = size === 'lg' ? 'w-24 h-32' : 'w-12 h-12'
   const imgClass = size === 'lg'
-    ? 'w-24 h-32 rounded-card object-cover hover:scale-105 transition-transform'
-    : 'w-12 h-12 rounded-card object-cover hover:scale-105 transition-transform'
+    ? 'w-24 h-32 rounded-card object-cover transition-opacity hover:opacity-90'
+    : 'w-12 h-12 rounded-card object-cover transition-opacity hover:opacity-90'
   const emojiFontSize = size === 'lg' ? 'text-4xl' : 'text-xl'
+
+  // ── Lightbox portal — rendered at document.body to escape stacking contexts
+  const lightboxPortal = lightboxOpen && fullSrc ? createPortal(
+    <div
+      className="fixed inset-0 z-[9990] bg-black/85 flex items-center justify-center p-6 cursor-zoom-out"
+      onClick={() => setLightboxOpen(false)}
+    >
+      <button
+        onClick={() => setLightboxOpen(false)}
+        className="absolute top-4 right-4 p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+        title="Close"
+      >
+        <X size={20} />
+      </button>
+      <img
+        src={fullSrc}
+        alt={altText ?? `${entityType} art`}
+        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-default"
+        onClick={e => e.stopPropagation()}
+      />
+    </div>,
+    document.body,
+  ) : null
 
   return (
     <>
@@ -741,26 +785,8 @@ export function EntityAvatarWithArt({
         )}
       </div>
 
-      {lightboxOpen && fullSrc && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/85 flex items-center justify-center p-6 cursor-zoom-out"
-          onClick={() => setLightboxOpen(false)}
-        >
-          <button
-            onClick={() => setLightboxOpen(false)}
-            className="absolute top-4 right-4 p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-            title="Close"
-          >
-            <X size={20} />
-          </button>
-          <img
-            src={fullSrc}
-            alt={altText ?? `${entityType} art`}
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          />
-        </div>
-      )}
+      {/* Lightbox (portal-rendered at body to escape all ancestor stacking contexts) */}
+      {lightboxPortal}
     </>
   )
 }
