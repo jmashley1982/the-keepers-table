@@ -75,13 +75,17 @@ export default function SplashPage() {
         backgroundImage: "url('/hero-neon.webp')",
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
+      } : theme === 'eldritch' ? {
+        backgroundImage: "url('/hero-eldritch.webp')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
       } : { background: 'var(--color-bg)' }}
     >
       {/* Atmospheric glow / haunt overlay */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: (theme === 'haunt' || theme === 'icarus' || theme === 'neon')
+          background: (theme === 'haunt' || theme === 'icarus' || theme === 'neon' || theme === 'eldritch')
             ? `linear-gradient(to bottom,
                 rgba(0,0,0,0.45) 0%,
                 rgba(0,0,0,0.3) 40%,
