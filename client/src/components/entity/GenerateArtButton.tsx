@@ -148,7 +148,7 @@ export default function GenerateArtButton({
     } catch { /* ignore */ }
   }, [selectedModel, entityType])
 
-  // ── Popup open/close: body lock + Escape + singleton broadcast ──────────
+  // ── Popup open/close: body lock + Escape + singleton broadcast + reposition ──
   useEffect(() => {
     if (!optionsOpen) {
       document.body.style.overflow = ''
@@ -159,9 +159,17 @@ export default function GenerateArtButton({
     // Prevent scrollbar from shifting page layout
     document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOptionsOpen(false) }
+    const reposition = () => {
+      if (optionsBtnRef.current) calcPopupPos(optionsBtnRef.current)
+    }
     window.addEventListener('keydown', onKey)
+    window.addEventListener('resize', reposition)
+    // capture:true catches scroll from any scrollable ancestor
+    window.addEventListener('scroll', reposition, { capture: true })
     return () => {
       window.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', reposition)
+      window.removeEventListener('scroll', reposition, { capture: true })
       document.body.style.overflow = ''
     }
   }, [optionsOpen, instanceId])
