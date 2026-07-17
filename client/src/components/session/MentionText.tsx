@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../../lib/api'
@@ -216,7 +217,7 @@ export function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
     : []
   const allSubtitleParts = [...subtitleParts, ...levelRaceParts]
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4"
       onClick={onClose}
@@ -400,7 +401,8 @@ export function EntityMentionOverlay({ target, rawMap, campaignId, onClose }: {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

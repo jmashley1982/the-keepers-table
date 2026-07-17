@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Search, Loader, Download } from 'lucide-react'
 import { useDnd5eMonsters, useDnd5eMonster, type SrdItem } from '../../hooks/useDnd5eApi'
 import { cn } from '../../lib/cn'
@@ -174,7 +175,7 @@ export default function MonsterImportModal({ campaignId, onClose, onImported }: 
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div
         className="bg-surface rounded-card border border-border w-full max-w-2xl my-4 shadow-xl flex flex-col"
@@ -258,6 +259,7 @@ export default function MonsterImportModal({ campaignId, onClose, onImported }: 
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

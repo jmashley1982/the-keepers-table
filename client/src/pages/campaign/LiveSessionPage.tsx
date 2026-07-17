@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -864,7 +865,7 @@ export default function LiveSessionPage() {
       </div>
 
       {/* ── Session Wrap Modal ────────────────────────────────────── */}
-      {wrapOpen && (
+      {wrapOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => !wrapLoading && setWrapOpen(false)} />
           <div className="relative bg-surface rounded-card border border-border w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-fade-in">
@@ -987,7 +988,8 @@ export default function LiveSessionPage() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

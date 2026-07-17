@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, BookOpen, ChevronDown, ChevronUp, PlusCircle, CheckCircle } from 'lucide-react'
 import { DW_CLASSES, DWAdvancedMove, DWClassTemplate } from '../../lib/dwClasses'
 import { cn } from '../../lib/cn'
@@ -110,7 +111,7 @@ export default function DWClassMovesModal({
   )
   const [showStarting, setShowStarting] = useState(false)
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] bg-black/60 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div
         className="bg-surface rounded-card border border-border w-full max-w-2xl my-4 shadow-xl"
@@ -209,6 +210,7 @@ export default function DWClassMovesModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

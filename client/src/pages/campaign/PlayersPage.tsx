@@ -1,4 +1,5 @@
 import { useParams, useSearchParams } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { useState, useRef } from 'react'
@@ -489,7 +490,7 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld, syste
     </div>
   )
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-surface rounded-card border border-border w-full max-w-3xl my-4 shadow-xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
@@ -855,7 +856,8 @@ function PCSheetEditor({ pc, campaignId, onClose, onSaved, isDungeonWorld, syste
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

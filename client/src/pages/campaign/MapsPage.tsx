@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import { useState, useCallback, useRef, useEffect } from 'react'
@@ -260,13 +261,14 @@ export default function MapsPage() {
       onDrop={handleDrop}
     >
       {/* Drag-drop overlay */}
-      {dragOver && (
+      {dragOver && createPortal(
         <div className="fixed inset-0 z-[60] pointer-events-none flex items-center justify-center">
           <div className="absolute inset-4 border-2 border-dashed border-accent rounded-2xl bg-accent/5 flex flex-col items-center justify-center gap-3">
             <Upload size={40} className="text-accent" />
             <p className="text-accent font-semibold text-lg">Drop image to upload map</p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Header */}
@@ -503,7 +505,7 @@ export default function MapsPage() {
       )}
 
       {/* Full-screen viewer */}
-      {viewingMap && (
+      {viewingMap && createPortal(
         <div className="fixed inset-0 z-50 flex flex-col bg-neutral-950">
           {/* Toolbar */}
           <div className="flex items-center gap-3 px-4 py-2 bg-black/70 border-b border-white/10 flex-shrink-0">
@@ -611,7 +613,8 @@ export default function MapsPage() {
               </div>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

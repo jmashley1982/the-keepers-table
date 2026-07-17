@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Search, Package } from 'lucide-react'
 import {
   useDnd5eEquipment,
@@ -104,7 +105,7 @@ export default function ItemLookupPanel({ onClose }: ItemLookupPanelProps) {
   const isLoading = tab === 'equipment' ? loadingEq : loadingMi
   const displayItems = items.slice(0, 100)
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div
         className="bg-surface rounded-card border border-border w-full max-w-2xl my-4 shadow-xl flex flex-col"
@@ -188,6 +189,7 @@ export default function ItemLookupPanel({ onClose }: ItemLookupPanelProps) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
