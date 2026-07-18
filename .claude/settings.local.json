@@ -36,7 +36,11 @@
       "Bash(find / -maxdepth 4 -iname \"*npx*\" -type d)",
       "Read(//home/runner/.npm/**)",
       "Bash(npx vite *)",
-      "Bash(find / -maxdepth 6 -iname \"plans\" -type d)"
+      "Bash(find / -maxdepth 6 -iname \"plans\" -type d)",
+      "Bash(timeout 18 npx tsx server/src/index.ts)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(timeout 20 npx tsx server/src/index.ts)",
+      "Read(//tmp/**)"
     ]
   }
 }

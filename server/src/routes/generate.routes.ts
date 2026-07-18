@@ -197,6 +197,95 @@ async function buildCampaignContext(campaignId: string, query: string, opts: Bui
   return result
 }
 
+// ── Full-lore context for the Lore Checker ────────────────────────────────────
+// Unlike buildCampaignContext (which caps at ~25 entities / 12k chars for a single
+// generation), this gathers EVERY lore-bearing row so a whole-campaign consistency
+// pass can see all of it. Each entity is tagged [type:id] so the model can
+// reference exact records in its proposed edits.
+const LORE_CONTEXT_CHAR_LIMIT = 90000
+
+async function buildFullLoreContext(campaignId: string): Promise<{ text: string; truncated: boolean }> {
+  const [campaign, npcs, locations, items, factions, encounters, threads, sessions, relationships] = await Promise.all([
+    prisma.campaign.findUnique({ where: { id: campaignId }, include: { systemTemplate: { select: { name: true } } } }),
+    prisma.nPC.findMany({ where: { campaignId, deletedAt: null }, orderBy: { sortOrder: 'asc' } }),
+    prisma.location.findMany({ where: { campaignId, deletedAt: null }, orderBy: { sortOrder: 'asc' } }),
+    prisma.item.findMany({ where: { campaignId, deletedAt: null }, orderBy: { sortOrder: 'asc' } }),
+    prisma.faction.findMany({ where: { campaignId, deletedAt: null }, orderBy: { sortOrder: 'asc' } }),
+    prisma.encounter.findMany({ where: { campaignId, deletedAt: null }, orderBy: { sortOrder: 'asc' } }),
+    prisma.plotThread.findMany({ where: { campaignId, deletedAt: null }, orderBy: { updatedAt: 'desc' } }),
+    prisma.gameSession.findMany({ where: { campaignId }, orderBy: { sessionNumber: 'asc' } }),
+    prisma.entityRelationship.findMany({ where: { campaignId } }),
+  ])
+
+  const f = (label: string, val: unknown): string =>
+    val === null || val === undefined || val === '' ? '' : `  ${label}: ${typeof val === 'string' ? val : JSON.stringify(val)}\n`
+
+  const parts: string[] = []
+  parts.push(`=== CAMPAIGN: ${campaign?.name ?? '?'} (System: ${campaign?.systemTemplate?.name ?? 'Generic'}) ===`)
+  if (campaign?.settingNotes) parts.push(`SETTING NOTES:\n${campaign.settingNotes}`)
+  if (campaign?.pitchElevator) parts.push(`PITCH: ${campaign.pitchElevator}`)
+
+  parts.push(`\n=== NPCs (${npcs.length}) ===`)
+  for (const n of npcs) {
+    parts.push(`[npc:${n.id}] ${n.name}\n` +
+      f('role', n.role) + f('status', n.status) + f('dispositionToParty', n.dispositionToParty) +
+      f('description', n.description) + f('appearance', n.appearance) + f('personality', n.personality) +
+      f('motivations', n.motivations) + f('secrets', n.secrets) + f('voiceNotes', n.voiceNotes) + f('dmOnlyNotes', n.dmOnlyNotes))
+  }
+
+  parts.push(`\n=== LOCATIONS (${locations.length}) ===`)
+  for (const l of locations) {
+    parts.push(`[location:${l.id}] ${l.name}\n` +
+      f('type', l.type) + f('description', l.description) + f('ambience', l.ambience) + f('dmOnlyNotes', l.dmOnlyNotes))
+  }
+
+  parts.push(`\n=== ITEMS (${items.length}) ===`)
+  for (const i of items) {
+    parts.push(`[item:${i.id}] ${i.name}\n` +
+      f('category', i.category) + f('rarity', i.rarity) + f('description', i.description) +
+      f('mechanicalEffect', i.mechanicalEffect) + f('dmOnlyNotes', i.dmOnlyNotes))
+  }
+
+  parts.push(`\n=== FACTIONS (${factions.length}) ===`)
+  for (const fa of factions) {
+    parts.push(`[faction:${fa.id}] ${fa.name}\n` +
+      f('dispositionToParty', fa.dispositionToParty) + f('description', fa.description) +
+      f('goals', fa.goals) + f('dmOnlyNotes', fa.dmOnlyNotes))
+  }
+
+  parts.push(`\n=== ENCOUNTERS (${encounters.length}) ===`)
+  for (const e of encounters) {
+    parts.push(`[encounter:${e.id}] ${e.name}\n` +
+      f('type', e.type) + f('difficulty', e.difficulty) + f('description', e.description) +
+      f('setup', e.setup) + f('tactics', e.tactics) + f('twist', e.twist) + f('outcome', e.outcome) + f('dmOnlyNotes', e.dmOnlyNotes))
+  }
+
+  parts.push(`\n=== PLOT THREADS (${threads.length}) ===`)
+  for (const t of threads) {
+    parts.push(`[plot_thread:${t.id}] ${t.title}\n` + f('status', t.status) + f('description', t.description))
+  }
+
+  parts.push(`\n=== SESSION NOTES (${sessions.length}) ===`)
+  for (const s of sessions) {
+    parts.push(`SESSION #${s.sessionNumber}${s.isSessionZero ? ' (Session Zero)' : ''}${s.title ? ` — ${s.title}` : ''} [${s.status}]\n` +
+      f('summary', s.generatedSummary) + f('keyEvents', s.keyEvents) + f('hooksForNext', s.hooksForNext) +
+      (s.dmRawNotes?.trim() ? `  notes: ${s.dmRawNotes}\n` : ''))
+  }
+
+  if (relationships.length) {
+    parts.push(`\n=== EXISTING RELATIONSHIPS (${relationships.length}) — do not re-propose these ===`)
+    for (const r of relationships) {
+      parts.push(`[${r.entityAType}:${r.entityAId}] --${r.relationshipType}--> [${r.entityBType}:${r.entityBId}]${r.notes ? ` (${r.notes})` : ''}`)
+    }
+  }
+
+  const full = parts.join('\n')
+  if (full.length > LORE_CONTEXT_CHAR_LIMIT) {
+    return { text: full.slice(0, LORE_CONTEXT_CHAR_LIMIT) + '\n\n[…lore truncated — campaign too large for a single pass…]', truncated: true }
+  }
+  return { text: full, truncated: false }
+}
+
 // ── Resolve the best Claude model for a campaign+user combination ─────────────
 async function resolveTextModel(opts: {
   requestModel?: string
@@ -250,14 +339,36 @@ const ENCOUNTER_SCHEMA = `{
 
 // ── Treasure Generator ────────────────────────────────────────────────────────
 
+// Generic/Homebrew fallback — used when there is no campaign context. Deliberately
+// system-agnostic so it never leaks another system's mechanics.
 const TREASURE_SCHEMA = `[{
   "name": "string",
   "description": "string",
-  "category": "weapon|armor|potion|scroll|trinket|currency|other",
-  "rarity": "common|uncommon|rare|very rare|legendary|artifact",
-  "mechanicalEffect": "string — game mechanical benefit, if any",
+  "category": "string — an item category appropriate to this campaign",
+  "rarity": "common|uncommon|rare|legendary",
+  "mechanicalEffect": "string — keep it narrative and system-agnostic; follow the campaign's setting notes and any house rules",
   "tags": ["string"]
 }]`
+
+const TREASURE_SCHEMA_5E = `[{
+  "name": "string",
+  "description": "string",
+  "category": "weapon|armor|potion|scroll|wondrous item|ring|rod|staff|wand|currency|other",
+  "rarity": "common|uncommon|rare|very rare|legendary|artifact",
+  "mechanicalEffect": "string — D&D 5e mechanical benefit (bonuses, damage dice, saving throws, whether it requires attunement), if any",
+  "tags": ["string"]
+}]`
+
+const TREASURE_SCHEMA_DW = `[{
+  "name": "string",
+  "description": "string",
+  "category": "weapon|armor|gear|consumable|treasure|other",
+  "rarity": "mundane|precious|arcane",
+  "mechanicalEffect": "string — Dungeon World terms only: weapon/armor tags (e.g. Close, Reach, Hand, Forceful, Piercing 1, +1 damage, +1 armor), uses/ammo (e.g. '3 uses'), or a magical move it grants. Never use D&D 5e rarity tiers, attunement, or numeric magic bonuses beyond DW conventions.",
+  "tags": ["string — Dungeon World item tags"]
+}]`
+
+const TREASURE_SCHEMA_HOMEBREW = TREASURE_SCHEMA
 
 // ── Dialogue Generator ────────────────────────────────────────────────────────
 
@@ -470,17 +581,23 @@ async function handleTextGenerate(req: Request, res: Response): Promise<void> {
     }
   }
 
-  // For enemy generation, pick a system-specific schema
+  // Mechanical kinds (enemy, treasure) must match the campaign's game system, so
+  // swap in a system-specific output schema. One lookup serves every mechanical kind.
   let outputSchema = KIND_SCHEMAS[kind]
-  if (kind === 'enemy' && campaignId) {
+  if (campaignId && (kind === 'enemy' || kind === 'treasure')) {
     const campaignForSystem = await prisma.campaign.findFirst({
       where: { id: campaignId, ownerUserId: userId },
       select: { systemTemplateId: true },
     })
-    if (campaignForSystem?.systemTemplateId === 'builtin-d-d-5e') {
-      outputSchema = ENEMY_SCHEMA_5E
-    } else if (campaignForSystem?.systemTemplateId === 'builtin-dungeon-world') {
-      outputSchema = ENEMY_SCHEMA_DW
+    const sys = campaignForSystem?.systemTemplateId
+    if (kind === 'enemy') {
+      outputSchema = sys === 'builtin-d-d-5e' ? ENEMY_SCHEMA_5E
+        : sys === 'builtin-dungeon-world' ? ENEMY_SCHEMA_DW
+        : ENEMY_SCHEMA
+    } else if (kind === 'treasure') {
+      outputSchema = sys === 'builtin-d-d-5e' ? TREASURE_SCHEMA_5E
+        : sys === 'builtin-dungeon-world' ? TREASURE_SCHEMA_DW
+        : TREASURE_SCHEMA_HOMEBREW
     }
   }
   const userPref = await prisma.userPreference.findUnique({ where: { userId } })
@@ -491,6 +608,8 @@ async function handleTextGenerate(req: Request, res: Response): Promise<void> {
 CONTENT RATING: ${contentRating} — ${contentRating === 'family' ? 'keep content appropriate for all ages' : contentRating === 'grim' ? 'mature themes allowed, gritty and dark tone permitted' : 'standard adventure fare, moderate peril OK'}
 
 Always return valid JSON matching the exact schema provided. Reference existing entities by their [id] when they appear in your output. Never invent entities that contradict established campaign facts.
+
+All mechanical content — items, treasure, stat blocks, difficulty, currencies, rarities — MUST use the conventions of THIS campaign's game system as described in the SYSTEM RULES in the context above. Never mix in another system's mechanics (for example, do not use D&D 5e rarity tiers, attunement, or challenge ratings in a Dungeon World or narrative game).
 
 ${outputSchema ? `OUTPUT SCHEMA:\n${outputSchema}` : 'Return a JSON object with your response.'}`
 
@@ -864,6 +983,204 @@ Generate 3-4 concrete next-session prep suggestions. Return JSON array:
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed' })
   }
+})
+
+// ── Lore Checker ──────────────────────────────────────────────────────────────
+// Reviews the WHOLE campaign for contradictions and loose/duplicate threads, then
+// returns proposed changes for the user to edit/confirm. Nothing is written here —
+// the client sends accepted changes back to /lore-check/:campaignId/apply.
+
+const LORE_CHECK_SCHEMA = `{
+  "edits": [
+    {
+      "entityType": "npc|item|location|faction|encounter|plot_thread",
+      "entityId": "the id from the [type:id] tag",
+      "entityName": "human-readable name (for display)",
+      "field": "the exact field name to change (e.g. description, status, motivations, goals, secrets, setup, twist, outcome)",
+      "currentValue": "the existing value (verbatim, for a before/after diff)",
+      "newValue": "the corrected/tidied value to write",
+      "reason": "one sentence: why this change (cite the conflicting source)"
+    }
+  ],
+  "merges": [
+    {
+      "keepId": "plot_thread id to keep",
+      "keepName": "its title",
+      "mergeId": "plot_thread id to fold in (will be marked dormant)",
+      "mergeName": "its title",
+      "mergedDescription": "the combined description to write onto the kept thread",
+      "reason": "why these two are the same/overlapping thread"
+    }
+  ],
+  "links": [
+    {
+      "entityAType": "npc|item|location|faction|encounter|plot_thread",
+      "entityAId": "id", "entityAName": "name",
+      "entityBType": "npc|item|location|faction|encounter|plot_thread",
+      "entityBId": "id", "entityBName": "name",
+      "relationshipType": "short verb phrase, e.g. member-of, ally-of, located-in, owns, rivals",
+      "notes": "optional one-line context",
+      "reason": "why this connection matters"
+    }
+  ],
+  "contradictions": [
+    {
+      "summary": "the conflict, in one sentence",
+      "involved": [{ "type": "npc|item|location|faction|encounter|plot_thread", "id": "id", "name": "name" }],
+      "suggestion": "how the GM might resolve it (advisory only — no automatic fix)"
+    }
+  ]
+}`
+
+generateRouter.post('/lore-check/:campaignId', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params
+  const body = z.object({ model: z.string().optional() }).safeParse(req.body ?? {})
+  if (!body.success) { res.status(400).json({ error: 'Invalid request' }); return }
+
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId } })
+  if (!campaign) { res.status(403).json({ error: 'Access denied.' }); return }
+
+  const client = await getAnthropicClient(userId)
+  if (!client) { res.status(402).json({ error: 'No API key configured. Add an Anthropic or Evolink key in Settings.' }); return }
+
+  const quota = await checkFriendTextQuota(userId)
+  if (!quota.allowed) { res.status(429).json({ error: quota.error }); return }
+
+  const textModel = await resolveTextModel({ requestModel: body.data.model, campaignId, taskKey: 'loreCheck', userId })
+  const { text: lore, truncated } = await buildFullLoreContext(campaignId)
+
+  const systemPrompt = `You are a meticulous continuity editor for a tabletop RPG campaign. You are given the FULL current state of one campaign's lore. Your job:
+1. Find factual CONTRADICTIONS between entities and session notes (e.g. an NPC marked "alive" who dies in a later session note; a location described two incompatible ways).
+2. Propose concrete text EDITS that resolve contradictions or tidy loose wording, writing to the correct existing field.
+3. Propose MERGES of plot threads that are duplicates or clearly the same storyline (keep the richer one, fold the other in).
+4. Propose LINKS (relationships) between entities that the lore implies but that are not yet recorded. Do NOT re-propose relationships already listed as existing.
+Be conservative: only propose a change you can justify from the provided lore. Reference every entity by the exact id in its [type:id] tag. Never invent ids. If there is nothing to change in a category, return an empty array for it.
+
+Always return a single valid JSON object matching this schema, and nothing else:
+OUTPUT SCHEMA:
+${LORE_CHECK_SCHEMA}`
+
+  const job = await prisma.generationJob.create({
+    data: { userId, campaignId, provider: 'anthropic', kind: 'lore_check', status: 'running', input: { model: textModel } },
+  })
+
+  try {
+    const message = await client.messages.create({
+      model: textModel,
+      max_tokens: 8192,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: `FULL CAMPAIGN LORE:\n\n${lore}` }],
+    })
+    const raw = message.content[0].type === 'text' ? message.content[0].text : ''
+    let proposals: unknown = { edits: [], merges: [], links: [], contradictions: [] }
+    try {
+      const match = raw.match(/```json\n?([\s\S]*?)\n?```/) ?? raw.match(/(\{[\s\S]*\})/)
+      proposals = JSON.parse(match ? (match[1] ?? match[0]) : raw)
+    } catch { /* leave defaults */ }
+
+    await prisma.generationJob.update({
+      where: { id: job.id },
+      data: {
+        status: 'succeeded',
+        tokensOrUnits: { input: message.usage.input_tokens, output: message.usage.output_tokens },
+        outputRef: JSON.parse(JSON.stringify({ proposals })),
+      },
+    })
+    await recordAnthropicUsageForFriend(userId, 'lore_check', campaignId)
+    res.json({ proposals, jobId: job.id, model: textModel, truncated })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Lore check failed'
+    await prisma.generationJob.update({ where: { id: job.id }, data: { status: 'failed', error: msg } })
+    res.status(500).json({ error: msg })
+  }
+})
+
+generateRouter.post('/lore-check/:campaignId/apply', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params
+
+  const campaign = await prisma.campaign.findFirst({ where: { id: campaignId, ownerUserId: userId } })
+  if (!campaign) { res.status(403).json({ error: 'Access denied.' }); return }
+
+  const schema = z.object({
+    acceptedEdits: z.array(z.object({
+      entityType: z.string(), entityId: z.string(), field: z.string(), newValue: z.unknown(),
+    })).default([]),
+    acceptedMerges: z.array(z.object({
+      keepId: z.string(), mergeId: z.string(), mergedDescription: z.string(),
+    })).default([]),
+    acceptedLinks: z.array(z.object({
+      entityAType: z.string(), entityAId: z.string(),
+      entityBType: z.string(), entityBId: z.string(),
+      relationshipType: z.string(), notes: z.string().optional(),
+    })).default([]),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message }); return }
+  const { acceptedEdits, acceptedMerges, acceptedLinks } = parsed.data
+
+  const modelMap: Record<string, string> = {
+    npc: 'nPC', item: 'item', location: 'location',
+    faction: 'faction', encounter: 'encounter', plot_thread: 'plotThread',
+  }
+
+  // IDOR guard: only allow writes to entities that actually belong to this campaign.
+  // (model.update is keyed by id alone, and these ids originate from model output.)
+  const [npcs, items, locations, factions, encounters, threads] = await Promise.all([
+    prisma.nPC.findMany({ where: { campaignId }, select: { id: true } }),
+    prisma.item.findMany({ where: { campaignId }, select: { id: true } }),
+    prisma.location.findMany({ where: { campaignId }, select: { id: true } }),
+    prisma.faction.findMany({ where: { campaignId }, select: { id: true } }),
+    prisma.encounter.findMany({ where: { campaignId }, select: { id: true } }),
+    prisma.plotThread.findMany({ where: { campaignId }, select: { id: true } }),
+  ])
+  const idsByType: Record<string, Set<string>> = {
+    npc: new Set(npcs.map(x => x.id)), item: new Set(items.map(x => x.id)),
+    location: new Set(locations.map(x => x.id)), faction: new Set(factions.map(x => x.id)),
+    encounter: new Set(encounters.map(x => x.id)), plot_thread: new Set(threads.map(x => x.id)),
+  }
+  const owns = (type: string, id: string): boolean => Boolean(idsByType[type]?.has(id))
+
+  const applied = { edits: 0, merges: 0, links: 0 }
+
+  await prisma.$transaction(async (tx) => {
+    for (const u of acceptedEdits) {
+      const modelName = modelMap[u.entityType]
+      if (!modelName || !owns(u.entityType, u.entityId)) continue
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (tx as any)[modelName].update({ where: { id: u.entityId }, data: { [u.field]: u.newValue } })
+        applied.edits++
+      } catch { /* skip bad updates */ }
+    }
+
+    for (const m of acceptedMerges) {
+      if (!owns('plot_thread', m.keepId) || !owns('plot_thread', m.mergeId)) continue
+      try {
+        await tx.plotThread.update({ where: { id: m.keepId }, data: { description: m.mergedDescription } })
+        await tx.plotThread.update({ where: { id: m.mergeId }, data: { status: 'dormant' } })
+        applied.merges++
+      } catch { /* skip bad merges */ }
+    }
+
+    for (const l of acceptedLinks) {
+      if (!owns(l.entityAType, l.entityAId) || !owns(l.entityBType, l.entityBId)) continue
+      try {
+        await tx.entityRelationship.create({
+          data: {
+            campaignId,
+            entityAType: l.entityAType, entityAId: l.entityAId,
+            entityBType: l.entityBType, entityBId: l.entityBId,
+            relationshipType: l.relationshipType, notes: l.notes ?? '',
+          },
+        })
+        applied.links++
+      } catch { /* skip bad links */ }
+    }
+  })
+
+  res.json({ ok: true, applied })
 })
 
 // ── Image generation (pg-boss worker) ────────────────────────────────────────

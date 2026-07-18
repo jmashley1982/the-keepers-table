@@ -23,6 +23,7 @@ import WorldMapGeneratorPage from './pages/campaign/WorldMapGeneratorPage'
 import MapsPage from './pages/campaign/MapsPage'
 import PlayersPage from './pages/campaign/PlayersPage'
 import CampaignSettingsPage from './pages/campaign/CampaignSettingsPage'
+import LoreCheckerPage from './pages/campaign/LoreCheckerPage'
 import SettingsPage from './pages/SettingsPage'
 import EnemiesPage from './pages/campaign/EnemiesPage'
 import EnemyGeneratorPage from './pages/campaign/EnemyGeneratorPage'
@@ -94,6 +95,7 @@ export default function App() {
         <Route path="/campaign/:campaignId/generate/battle-map" element={<BattleMapGeneratorPage />} />
         <Route path="/campaign/:campaignId/generate/world-map" element={<WorldMapGeneratorPage />} />
         <Route path="/campaign/:campaignId/generate/:kind" element={<GeneratorPage />} />
+        <Route path="/campaign/:campaignId/lore-check" element={<LoreCheckerPage />} />
         <Route path="/campaign/:campaignId/settings" element={<CampaignSettingsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/tools/lineage" element={<LineagePage />} />

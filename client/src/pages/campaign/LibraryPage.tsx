@@ -4,6 +4,7 @@ import { api } from '../../lib/api'
 import { useState } from 'react'
 import { cn } from '../../lib/cn'
 import EntityCard from '../../components/entity/EntityCard'
+import NpcImportExportButtons from '../../components/entity/NpcImportExportButtons'
 import { Plus, Search, X } from 'lucide-react'
 import ThemedLoader from '../../components/ui/Loader'
 import EmptyState from '../../components/ui/EmptyState'
@@ -80,12 +81,15 @@ export default function LibraryPage() {
       <div className="px-8 py-6 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <h1 className="display-font text-3xl font-bold text-ink">Library</h1>
-          <button
-            className="btn-primary"
-            onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'plot_thread' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
-          >
-            <Plus size={16} /> Generate {currentTabDef.label.slice(0, -1)}
-          </button>
+          <div className="flex items-center gap-2">
+            {isNpcTab && <NpcImportExportButtons campaignId={campaignId!} onImported={refetch} />}
+            <button
+              className="btn-primary"
+              onClick={() => navigate(`/campaign/${campaignId}/generate/${currentTabDef.id === 'plot-threads' ? 'plot_thread' : currentTabDef.id === 'encounters' ? 'encounter' : currentTabDef.id.slice(0, -1)}`)}
+            >
+              <Plus size={16} /> Generate {currentTabDef.label.slice(0, -1)}
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}

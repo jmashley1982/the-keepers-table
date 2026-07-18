@@ -202,6 +202,7 @@ const TEXT_TASK_OPTIONS = [
   { key: 'sessionWrap',  label: 'Session wrap & prep',  desc: 'Post-session summaries and next-session prep suggestions' },
   { key: 'dialogue',     label: 'Dialogue writing',     desc: 'NPC voices and conversation generation' },
   { key: 'sheetExtract', label: 'PC sheet scan',        desc: 'Reading uploaded character sheets' },
+  { key: 'loreCheck',    label: 'Lore Checker',         desc: 'Whole-campaign consistency & continuity review' },
 ]
 
 const IMAGE_MODEL_OPTIONS = [

@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BookOpen, Map, Scroll,
   Settings, LogOut, Zap, Users,
   Swords, Shield,
-  ChevronLeft, ChevronRight, GitBranch, Timer,
+  ChevronLeft, ChevronRight, GitBranch, Timer, Sparkles,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { themeBrandIcon } from '../../lib/themeBrandIcon'
@@ -212,6 +212,7 @@ export default function Sidebar({ campaignId }: { campaignId?: string }) {
             {navLink(`/campaign/${campaignId}/players`, <Users size={15} />, 'Players')}
             {navLink(`/campaign/${campaignId}/maps`, <Map size={15} />, 'Maps')}
             {navLink(`/campaign/${campaignId}/log`, <Scroll size={15} />, 'Session Log')}
+            {navLink(`/campaign/${campaignId}/lore-check`, <Sparkles size={15} />, 'Lore Checker')}
             {navLink(`/campaign/${campaignId}/settings`, <Settings size={15} />, 'Campaign Settings')}
 
             {isDnd5e && (

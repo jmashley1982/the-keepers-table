@@ -6,13 +6,18 @@ import { z } from 'zod'
 export const templatesRouter = Router()
 templatesRouter.use(requireAuth)
 
+// The only built-in game systems currently offered. Other seeded builtins (e.g.
+// Pathfinder, Call of Cthulhu, Blades) are hidden from the pickers without deleting
+// them, since existing campaigns may still reference them (required FK, Restrict).
+const ALLOWED_BUILTIN_IDS = ['builtin-d-d-5e', 'builtin-dungeon-world', 'builtin-generic---homebrew']
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const toJson = (v: unknown): any => JSON.parse(JSON.stringify(v ?? null))
 
 templatesRouter.get('/', async (req, res) => {
   const userId = res.locals.user.id
   const templates = await prisma.systemTemplate.findMany({
-    where: { OR: [{ isBuiltin: true }, { ownerUserId: userId }] },
+    where: { OR: [{ isBuiltin: true, id: { in: ALLOWED_BUILTIN_IDS } }, { ownerUserId: userId }] },
     orderBy: [{ isBuiltin: 'desc' }, { name: 'asc' }],
   })
   res.json({ templates })

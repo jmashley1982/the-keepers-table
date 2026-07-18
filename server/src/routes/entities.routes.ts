@@ -112,6 +112,7 @@ const npcCreate = z.object({
   secrets: z.string().optional(),
   voiceNotes: z.string().optional(),
   statBlock: z.record(z.unknown()).optional(),
+  customFields: z.record(z.unknown()).optional(),
   status: z.string().optional(),
   dispositionToParty: z.string().optional(),
   locationId: z.string().optional(),

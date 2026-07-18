@@ -183,15 +183,25 @@ export default function GeneratorPage() {
 
   const saveResult = useMutation({
     mutationFn: async ({ data: entityData, index }: { data: Record<string, unknown>; index: number }) => {
-      await api.post(`/api/entities/${campaignId}/${config.entityEndpoint}`, entityData)
-      return index
+      const res = await api.post(`/api/entities/${campaignId}/${config.entityEndpoint}`, entityData)
+      return { index, item: res.data?.item as Record<string, unknown> | undefined }
     },
-    onSuccess: (index) => {
-      setResults(r => r.map((item, i) => i === index ? { ...item, saved: true } : item))
+    onSuccess: ({ index, item }) => {
+      // Merge the persisted entity (with its real DB id) back into the card so the
+      // portrait/generate-art button fires with a valid entityId.
+      setResults(r => r.map((r0, i) => i === index
+        ? { ...r0, data: item ? { ...r0.data, ...item } : r0.data, saved: true }
+        : r0))
       qc.invalidateQueries({ queryKey: ['entities', campaignId] })
     },
     onError: (e) => alert(apiError(e)),
   })
+
+  function createAnother() {
+    setResults([])
+    setStreamText('')
+    setFields({ prompt: '' })
+  }
 
   const entityType = config.entityType as Parameters<typeof EntityCard>[0]['entityType']
 
@@ -284,9 +294,15 @@ export default function GeneratorPage() {
                 onRegenerate={generate}
               />
               {result.saved && (
-                <p className="text-xs text-green-500 text-center flex items-center justify-center gap-1">
-                  <Save size={12} /> Saved to campaign library
-                </p>
+                <div className="card bg-surface-2 border-accent/20 text-center space-y-2 py-4">
+                  <p className="text-xs text-green-500 flex items-center justify-center gap-1">
+                    <Save size={12} /> Saved to campaign library
+                  </p>
+                  <p className="text-sm text-ink">Create another {config.title.replace(' Generator', '')}?</p>
+                  <button className="btn-primary justify-center mx-auto" onClick={createAnother}>
+                    <Zap size={14} /> Create another
+                  </button>
+                </div>
               )}
               {!result.saved && (
                 <button

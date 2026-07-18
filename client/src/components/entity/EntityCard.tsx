@@ -39,6 +39,9 @@ export interface EntityCardData {
   rarity?: string
   category?: string
   mechanicalEffect?: string
+  // Faction / Location vitals
+  goals?: string
+  ambience?: string
   // Location / Encounter — attached battle map
   type?: string
   mapAsset?: { id: string; imageAsset?: { id: string } | null } | null
@@ -88,6 +91,66 @@ const ABILITY_ABBR: Record<string, string> = {
 function abilityMod(score: number): string {
   const mod = Math.floor((score - 10) / 2)
   return mod >= 0 ? `+${mod}` : String(mod)
+}
+
+function cap(str: string | undefined, n = 70): string {
+  if (!str) return ''
+  const s = str.trim()
+  return s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s
+}
+
+// Vital aspects surfaced as a compact bullet list when a card is minimized.
+function vitalBullets(
+  entityType: EntityCardProps['entityType'],
+  entity: EntityCardData,
+): { label: string; value: string }[] {
+  const pairs: { label: string; value: string }[] = (() => {
+    switch (entityType) {
+      case 'npc':
+        return [
+          { label: 'Role', value: entity.role ?? '' },
+          { label: 'Status', value: entity.status ?? '' },
+          { label: 'Disposition', value: entity.dispositionToParty ?? '' },
+          { label: 'Motivation', value: cap(entity.motivations) },
+        ]
+      case 'item':
+        return [
+          { label: 'Rarity', value: entity.rarity ?? '' },
+          { label: 'Category', value: entity.category ?? '' },
+          { label: 'Effect', value: cap(entity.mechanicalEffect) },
+        ]
+      case 'location':
+        return [
+          { label: 'Type', value: entity.type ?? '' },
+          { label: 'Ambience', value: cap(entity.ambience) },
+        ]
+      case 'faction':
+        return [
+          { label: 'Disposition', value: entity.dispositionToParty ?? '' },
+          { label: 'Goals', value: cap(entity.goals) },
+        ]
+      case 'encounter':
+        return [
+          { label: 'Type', value: entity.type ?? '' },
+          { label: 'Difficulty', value: entity.difficulty ?? '' },
+          { label: 'Setup', value: cap(entity.setup) },
+        ]
+      case 'plot_thread':
+        return [
+          { label: 'Status', value: entity.status ?? '' },
+          { label: 'Summary', value: cap(entity.description) },
+        ]
+      default:
+        return []
+    }
+  })()
+
+  const bullets = pairs.filter(p => p.value.trim()).slice(0, 4)
+  // Fallback so a minimized card is never empty.
+  if (bullets.length === 0 && entity.description) {
+    return [{ label: '', value: cap(entity.description) }]
+  }
+  return bullets
 }
 
 function StatBlock({ statBlock }: { statBlock: Record<string, unknown> }) {
@@ -429,8 +492,8 @@ export default function EntityCard({
         </div>
       </div>
 
-      {/* Description — always show in edit for NPCs */}
-      {(editing || entity.description) && (
+      {/* Description (expanded) / vital bullets (minimized) — always show in edit for NPCs */}
+      {(editing || entity.description || (!expanded && vitalBullets(entityType, entity).length > 0)) && (
         <div className="mt-3">
           {editing ? (
             <textarea
@@ -440,11 +503,23 @@ export default function EntityCard({
               value={draft.description ?? ''}
               onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
             />
-          ) : (
+          ) : expanded ? (
             <p className={cn(
               'text-sm text-ink-muted prose-copy',
               (entityType === 'npc' || entityType === 'location') && 'drop-cap',
             )}>{entity.description}</p>
+          ) : (
+            <ul className="space-y-0.5">
+              {vitalBullets(entityType, entity).map((b, i) => (
+                <li key={i} className="text-xs text-ink-muted flex gap-1.5 truncate">
+                  <span className="text-accent/60 shrink-0">•</span>
+                  <span className="truncate">
+                    {b.label && <span className="font-medium text-ink/80">{b.label}: </span>}
+                    <span>{b.value}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
