@@ -1,25 +1,68 @@
-import { Client } from '@replit/object-storage'
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3'
 
-let _client: Client | null = null
+// ─── Cloudflare R2 storage backend ─────────────────────────────────────────
+// R2 is S3-compatible, so we talk to it with the standard AWS SDK v3 client
+// pointed at the account's R2 endpoint. Required env vars:
+//   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME
+// (Replaces the previous @replit/object-storage backend, which only worked
+// inside a Repl.)
+
+let _client: S3Client | null = null
 let _initFailed = false
 
-function newClient(): Client {
-  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID
-  return bucketId ? new Client({ bucketId }) : new Client()
+function newClient(): S3Client {
+  const accountId = process.env.R2_ACCOUNT_ID
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY
+  if (!accountId || !accessKeyId || !secretAccessKey) {
+    throw new Error(
+      'Cloudflare R2 storage is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, ' +
+        'R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME.',
+    )
+  }
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId, secretAccessKey },
+  })
 }
 
-function getClient(): Client {
-  if (_initFailed) throw new Error('Replit Object Storage is not configured (no bucket available). Enable it in the Replit storage panel.')
+function getClient(): S3Client {
+  if (_initFailed) {
+    throw new Error(
+      'Cloudflare R2 storage is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, ' +
+        'R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME.',
+    )
+  }
   if (!_client) {
     try {
       _client = newClient()
     } catch (err) {
       _initFailed = true
-      const msg = err instanceof Error ? err.message : String(err)
-      throw new Error(`Replit Object Storage initialization failed: ${msg}. Enable Object Storage in your Repl settings.`)
+      throw err
     }
   }
   return _client
+}
+
+function bucketName(): string {
+  const name = process.env.R2_BUCKET_NAME
+  if (!name) throw new Error('R2_BUCKET_NAME environment variable is not set.')
+  return name
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function streamToBuffer(stream: any): Promise<Buffer> {
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  return Buffer.concat(chunks)
 }
 
 export const StorageService = {
@@ -35,32 +78,40 @@ export const StorageService = {
     }
   },
 
-  async put(key: string, buffer: Buffer, _contentType?: string): Promise<void> {
-    const result = await getClient().uploadFromBytes(key, buffer)
-    if (!result.ok) {
-      throw new Error(`Storage put failed for key "${key}": ${result.error?.message ?? 'unknown error'}`)
-    }
+  async put(key: string, buffer: Buffer, contentType?: string): Promise<void> {
+    await getClient().send(
+      new PutObjectCommand({
+        Bucket: bucketName(),
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+      }),
+    )
   },
 
   async get(key: string): Promise<Buffer | null> {
-    const result = await getClient().downloadAsBytes(key)
-    if (!result.ok) {
-      if (result.error?.message?.includes('not found') || result.error?.message?.includes('404')) {
+    try {
+      const result = await getClient().send(
+        new GetObjectCommand({ Bucket: bucketName(), Key: key }),
+      )
+      if (!result.Body) return null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return await streamToBuffer(result.Body as any)
+    } catch (err: unknown) {
+      const name = (err as { name?: string })?.name
+      const status = (err as { $metadata?: { httpStatusCode?: number } })?.$metadata?.httpStatusCode
+      if (name === 'NoSuchKey' || status === 404) {
         return null
       }
-      throw new Error(`Storage get failed for key "${key}": ${result.error?.message ?? 'unknown error'}`)
+      throw new Error(`Storage get failed for key "${key}": ${err instanceof Error ? err.message : String(err)}`)
     }
-    const raw = result.value as unknown
-    if (Buffer.isBuffer(raw)) return raw
-    if (raw instanceof Uint8Array) return Buffer.from(raw)
-    if (Array.isArray(raw) && raw.length > 0) return Buffer.from(raw[0] as Uint8Array)
-    return Buffer.from(raw as ArrayBuffer)
   },
 
   async delete(key: string): Promise<void> {
-    const result = await getClient().delete(key)
-    if (!result.ok) {
-      console.warn(`Storage delete failed for key "${key}": ${result.error?.message ?? 'unknown error'}`)
+    try {
+      await getClient().send(new DeleteObjectCommand({ Bucket: bucketName(), Key: key }))
+    } catch (err) {
+      console.warn(`Storage delete failed for key "${key}": ${err instanceof Error ? err.message : String(err)}`)
     }
   },
 
