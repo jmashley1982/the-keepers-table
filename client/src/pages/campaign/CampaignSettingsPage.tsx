@@ -1,8 +1,8 @@
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
-import { useState } from 'react'
-import { Save, Loader, Info } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Save, Loader, Info, Download, Upload, CheckCircle, AlertCircle } from 'lucide-react'
 import ThemedLoader from '../../components/ui/Loader'
 
 const CLAUDE_MODELS = [
@@ -14,6 +14,7 @@ const CLAUDE_MODELS = [
 
 export default function CampaignSettingsPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
+  const navigate = useNavigate()
   const qc = useQueryClient()
 
   const { data: campData } = useQuery({
@@ -56,6 +57,35 @@ export default function CampaignSettingsPage() {
     }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['campaign', campaignId] }),
   })
+
+  // ── Export ────────────────────────────────────────────────────────────────
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
+
+  const handleExport = async () => {
+    setExporting(true)
+    setExportError('')
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}/export`, {
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const safeName = (campaign?.name ?? 'campaign').replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+      a.download = `kt-${safeName}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch {
+      setExportError('Export failed — please try again.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   if (!campaign) return (
     <div className="flex items-center justify-center h-full">
@@ -177,6 +207,32 @@ export default function CampaignSettingsPage() {
         ))}
         {parties.length === 0 && (
           <p className="text-sm text-ink-muted">No parties. Go through onboarding or add one below.</p>
+        )}
+      </div>
+
+      {/* Export */}
+      <div className="card space-y-3">
+        <div>
+          <h2 className="font-semibold text-ink">Export Campaign</h2>
+          <p className="text-xs text-ink-muted mt-0.5">
+            Download everything in this campaign — NPCs, sessions, locations, factions, encounters,
+            plot threads, and more — as a single JSON file you can back up or import elsewhere.
+            Uploaded images are not included in the export.
+          </p>
+        </div>
+        <button
+          className="btn-secondary flex items-center gap-2"
+          onClick={handleExport}
+          disabled={exporting}
+        >
+          {exporting
+            ? <><Loader size={14} className="animate-spin" /> Preparing export…</>
+            : <><Download size={14} /> Download export</>}
+        </button>
+        {exportError && (
+          <p className="text-xs text-danger flex items-center gap-1">
+            <AlertCircle size={12} /> {exportError}
+          </p>
         )}
       </div>
     </div>
