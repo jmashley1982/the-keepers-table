@@ -70,7 +70,7 @@ export default function CampaignsPage() {
     }
   }
 
-  // ── Import ─────────────────────────────────────────────────────────────────
+  // ── Import (single campaign) ───────────────────────────────────────────────
   const importRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState('')
@@ -88,6 +88,32 @@ export default function CampaignsPage() {
       const msg = e?.response?.data?.error ?? e?.message ?? 'Import failed'
       setImportError(msg)
       setImporting(false)
+    }
+  }
+
+  // ── Restore full backup ────────────────────────────────────────────────────
+  const restoreRef = useRef<HTMLInputElement>(null)
+  const [restoring, setRestoring] = useState(false)
+  const [restoreDone, setRestoreDone] = useState(false)
+
+  const handleRestoreFile = async (file: File) => {
+    setRestoring(true)
+    setImportError('')
+    setRestoreDone(false)
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      if (!data?.accountExport) {
+        throw new Error('This file is a single-campaign export. Use the "Import" button instead.')
+      }
+      await api.post('/api/preferences/import', data)
+      qc.invalidateQueries({ queryKey: ['campaigns'] })
+      setRestoreDone(true)
+    } catch (e: any) {
+      const msg = e?.response?.data?.error ?? e?.message ?? 'Restore failed'
+      setImportError(msg)
+    } finally {
+      setRestoring(false)
     }
   }
 
@@ -151,7 +177,7 @@ export default function CampaignsPage() {
                 : <><Download size={14} /> Export everything</>}
           </button>
 
-          {/* Hidden file input for import */}
+          {/* Hidden file input for single-campaign import */}
           <input
             ref={importRef}
             type="file"
@@ -167,10 +193,36 @@ export default function CampaignsPage() {
             className="btn-secondary flex items-center gap-2"
             onClick={() => importRef.current?.click()}
             disabled={importing}
+            title="Import a single exported campaign file"
           >
             {importing
               ? <><Loader size={14} className="animate-spin" /> Importing…</>
               : <><Upload size={14} /> Import</>}
+          </button>
+
+          {/* Hidden file input for full account restore */}
+          <input
+            ref={restoreRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files?.[0]
+              if (file) handleRestoreFile(file)
+              e.target.value = ''
+            }}
+          />
+          <button
+            className="btn-secondary flex items-center gap-2"
+            onClick={() => restoreRef.current?.click()}
+            disabled={restoring}
+            title="Restore all campaigns, settings, and generators from a full account export"
+          >
+            {restoring
+              ? <><Loader size={14} className="animate-spin" /> Restoring…</>
+              : restoreDone
+                ? <>✓ Restored!</>
+                : <><Upload size={14} /> Restore full backup</>}
           </button>
           <button className="btn-primary" onClick={() => setCreating(true)}>
             <Plus size={16} /> New Campaign
