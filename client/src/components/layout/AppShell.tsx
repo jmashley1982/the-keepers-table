@@ -11,6 +11,7 @@ import MobileNav from './MobileNav'
 import QuickGenerate from '../generate/QuickGenerate'
 import ScratchTray from '../generate/ScratchTray'
 import { FlaskConical } from 'lucide-react'
+import MigrationBanner from './MigrationBanner'
 
 export default function AppShell() {
   const { campaignId } = useParams()
@@ -42,6 +43,9 @@ export default function AppShell() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-bg">
+      {/* Migration banner */}
+      <MigrationBanner loggedIn={!isDemo} />
+
       {/* Demo banner */}
       {isDemo && (
         <div className="flex items-center justify-between px-4 py-2 text-sm font-medium shrink-0"

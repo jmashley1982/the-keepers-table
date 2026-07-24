@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
-import { Plus, BookOpen, Archive, Trash2, Upload, Loader, AlertCircle } from 'lucide-react'
+import { Plus, BookOpen, Archive, Trash2, Upload, Loader, AlertCircle, Download } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import ThemedLoader from '../../components/ui/Loader'
 import EmptyState from '../../components/ui/EmptyState'
@@ -47,6 +47,28 @@ export default function CampaignsPage() {
     mutationFn: (id: string) => api.delete(`/api/campaigns/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['campaigns'] }),
   })
+
+  // ── Full account export ────────────────────────────────────────────────────
+  const [exporting, setExporting] = useState(false)
+  const [exportDone, setExportDone] = useState(false)
+
+  const handleFullExport = async () => {
+    setExporting(true)
+    try {
+      const res = await api.get('/api/preferences/export', { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'kt-account-export.json'
+      a.click()
+      URL.revokeObjectURL(url)
+      setExportDone(true)
+    } catch {
+      // silent — user sees nothing changed, they can retry
+    } finally {
+      setExporting(false)
+    }
+  }
 
   // ── Import ─────────────────────────────────────────────────────────────────
   const importRef = useRef<HTMLInputElement>(null)
@@ -115,6 +137,20 @@ export default function CampaignsPage() {
           <p className="text-ink-muted mt-1">Each campaign is its own world.</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Full account export */}
+          <button
+            className="btn-danger flex items-center gap-2 font-bold"
+            onClick={handleFullExport}
+            disabled={exporting}
+            title="Download everything — all campaigns, settings, and generators"
+          >
+            {exporting
+              ? <><Loader size={14} className="animate-spin" /> Exporting…</>
+              : exportDone
+                ? <>✓ Downloaded!</>
+                : <><Download size={14} /> Export everything</>}
+          </button>
+
           {/* Hidden file input for import */}
           <input
             ref={importRef}

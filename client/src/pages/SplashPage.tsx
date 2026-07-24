@@ -5,6 +5,7 @@ import { useUIStore } from '../store/useUIStore'
 import { themeBrandIcon } from '../lib/themeBrandIcon'
 import { FlaskConical, Zap, BookOpen, Map, Swords, LogIn, LayoutDashboard, UserPlus, Sparkles, ClipboardList } from 'lucide-react'
 import ThemeSwitcher from '../components/layout/ThemeSwitcher'
+import MigrationBanner from '../components/layout/MigrationBanner'
 
 const FEATURES = [
   {
@@ -109,6 +110,11 @@ export default function SplashPage() {
             `,
         }}
       />
+
+      {/* Migration banner */}
+      <div className="relative z-10">
+        <MigrationBanner loggedIn={loggedIn} />
+      </div>
 
       {/* Nav bar */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4 max-w-5xl mx-auto w-full">
