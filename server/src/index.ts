@@ -31,12 +31,15 @@ import './lib/auth.js'
 const app = express()
 const PORT = process.env.PORT ?? 3001
 
-// Trust Replit's HTTPS reverse proxy so cookies and req.secure work correctly
+// Trust the HTTPS reverse proxy (Cloudflare Worker in front of the container)
+// so cookies and req.secure work correctly
 app.set('trust proxy', 1)
 
 const PgSession = connectPgSimple(session)
 
-const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DOMAINS
+// NODE_ENV=production must be set explicitly on the host — it gates both the
+// SESSION_SECRET requirement below and the secure cookie flag.
+const isProduction = process.env.NODE_ENV === 'production'
 const sessionSecret = process.env.SESSION_SECRET
 if (!sessionSecret) {
   if (isProduction) {
@@ -57,7 +60,7 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: {
     // secure:true works because trust proxy is set above
-    secure: process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DOMAINS,
+    secure: isProduction,
     httpOnly: true,
     maxAge: 30 * 24 * 60 * 60 * 1000,
     sameSite: 'lax',
