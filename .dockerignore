@@ -1,0 +1,14 @@
+# Only the server is built inside the container — keep the context small.
+.git
+node_modules
+dist
+client
+attached_assets
+server/dist
+*.md
+.claude
+.agents
+.dockerignore
+Dockerfile
+wrangler.jsonc
+src/worker.ts

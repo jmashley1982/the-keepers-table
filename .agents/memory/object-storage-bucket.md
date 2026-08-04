@@ -1,10 +1,10 @@
 ---
 name: Object storage bucket setup
-description: Why image postprocess failed with "fetch failed" and how the storage client must be constructed
+description: Storage backend is Cloudflare R2 (S3 API); all four R2_* env vars must be set before first use
 ---
 
-**Rule:** Construct `@replit/object-storage` `Client` with an explicit `bucketId` from `process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID`. Do not rely on `new Client()` auto-discovery.
+**Rule:** All object storage goes through `StorageService` (server/src/lib/storage.ts), which is an S3 client pointed at Cloudflare R2 (`https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com`). It requires `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_BUCKET_NAME` — all four, at boot.
 
-**Why:** No Object Storage bucket existed originally — every `StorageService.put` in the image postprocess worker threw, surfacing to users as a raw "fetch failed" error and blank map thumbnails in production. Even after the bucket was provisioned, `new Client()` without arguments still threw "A bucket name is needed to use Cloud Storage" in this environment; only passing `bucketId` explicitly worked.
+**Why:** `storage.ts` latches an `_initFailed` flag on first failed init — if any R2 env var is missing when storage is first touched, every subsequent call throws for the life of the process, even if the env is later fixed. Historically (on the old Replit Object Storage backend) this surfaced to users as raw "fetch failed" errors and blank map thumbnails.
 
-**How to apply:** Any new code touching object storage should go through `StorageService` (server/src/lib/storage.ts), which already handles this. After provisioning storage or changing env vars, the app must be republished for production to pick them up.
+**How to apply:** Any new code touching object storage should go through `StorageService`. After changing R2 credentials or the bucket, redeploy/restart so the container picks them up. The production bucket is `keepers-table-assets`. Key layout: `campaigns/{campaignId}/assets/{assetId}/{original.ext|thumb.webp|preview.webp}` and `campaigns/{campaignId}/uploads/{uploadId}/{filename}`.

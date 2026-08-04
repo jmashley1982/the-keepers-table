@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
-import { Plus, BookOpen, Archive, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Plus, BookOpen, Archive, Trash2, Upload, Loader, AlertCircle, Download } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import ThemedLoader from '../../components/ui/Loader'
 import EmptyState from '../../components/ui/EmptyState'
@@ -47,6 +47,75 @@ export default function CampaignsPage() {
     mutationFn: (id: string) => api.delete(`/api/campaigns/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['campaigns'] }),
   })
+
+  // ── Full account export ────────────────────────────────────────────────────
+  const [exporting, setExporting] = useState(false)
+  const [exportDone, setExportDone] = useState(false)
+
+  const handleFullExport = async () => {
+    setExporting(true)
+    try {
+      const res = await api.get('/api/preferences/export', { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'kt-account-export.json'
+      a.click()
+      URL.revokeObjectURL(url)
+      setExportDone(true)
+    } catch {
+      // silent — user sees nothing changed, they can retry
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // ── Import (single campaign) ───────────────────────────────────────────────
+  const importRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState('')
+
+  const handleImportFile = async (file: File) => {
+    setImporting(true)
+    setImportError('')
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      const res = await api.post('/api/campaigns/import', data)
+      qc.invalidateQueries({ queryKey: ['campaigns'] })
+      navigate(`/campaign/${res.data.campaignId}`)
+    } catch (e: any) {
+      const msg = e?.response?.data?.error ?? e?.message ?? 'Import failed'
+      setImportError(msg)
+      setImporting(false)
+    }
+  }
+
+  // ── Restore full backup ────────────────────────────────────────────────────
+  const restoreRef = useRef<HTMLInputElement>(null)
+  const [restoring, setRestoring] = useState(false)
+  const [restoreDone, setRestoreDone] = useState(false)
+
+  const handleRestoreFile = async (file: File) => {
+    setRestoring(true)
+    setImportError('')
+    setRestoreDone(false)
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      if (!data?.accountExport) {
+        throw new Error('This file is a single-campaign export. Use the "Import" button instead.')
+      }
+      await api.post('/api/preferences/import', data)
+      qc.invalidateQueries({ queryKey: ['campaigns'] })
+      setRestoreDone(true)
+    } catch (e: any) {
+      const msg = e?.response?.data?.error ?? e?.message ?? 'Restore failed'
+      setImportError(msg)
+    } finally {
+      setRestoring(false)
+    }
+  }
 
   const campaigns = campaignsData?.campaigns ?? []
   const templates = templatesData?.templates ?? []
@@ -93,10 +162,81 @@ export default function CampaignsPage() {
           <h1 className="display-font text-3xl font-bold text-ink">Your Campaigns</h1>
           <p className="text-ink-muted mt-1">Each campaign is its own world.</p>
         </div>
-        <button className="btn-primary" onClick={() => setCreating(true)}>
-          <Plus size={16} /> New Campaign
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Full account export */}
+          <button
+            className="btn-danger flex items-center gap-2 font-bold"
+            onClick={handleFullExport}
+            disabled={exporting}
+            title="Download everything — all campaigns, settings, and generators"
+          >
+            {exporting
+              ? <><Loader size={14} className="animate-spin" /> Exporting…</>
+              : exportDone
+                ? <>✓ Downloaded!</>
+                : <><Download size={14} /> Export everything</>}
+          </button>
+
+          {/* Hidden file input for single-campaign import */}
+          <input
+            ref={importRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files?.[0]
+              if (file) handleImportFile(file)
+              e.target.value = ''
+            }}
+          />
+          <button
+            className="btn-secondary flex items-center gap-2"
+            onClick={() => importRef.current?.click()}
+            disabled={importing}
+            title="Import a single exported campaign file"
+          >
+            {importing
+              ? <><Loader size={14} className="animate-spin" /> Importing…</>
+              : <><Upload size={14} /> Import</>}
+          </button>
+
+          {/* Hidden file input for full account restore */}
+          <input
+            ref={restoreRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files?.[0]
+              if (file) handleRestoreFile(file)
+              e.target.value = ''
+            }}
+          />
+          <button
+            className="btn-secondary flex items-center gap-2"
+            onClick={() => restoreRef.current?.click()}
+            disabled={restoring}
+            title="Restore all campaigns, settings, and generators from a full account export"
+          >
+            {restoring
+              ? <><Loader size={14} className="animate-spin" /> Restoring…</>
+              : restoreDone
+                ? <>✓ Restored!</>
+                : <><Upload size={14} /> Restore full backup</>}
+          </button>
+          <button className="btn-primary" onClick={() => setCreating(true)}>
+            <Plus size={16} /> New Campaign
+          </button>
+        </div>
       </div>
+
+      {importError && (
+        <div className="mb-4 flex items-center gap-2 p-3 rounded-card text-sm text-danger"
+          style={{ background: 'color-mix(in srgb, var(--color-danger, #ef4444) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-danger, #ef4444) 30%, transparent)' }}>
+          <AlertCircle size={14} className="flex-shrink-0" />
+          {importError}
+        </div>
+      )}
 
       {creating && (
         <div className="card mb-6 space-y-4 animate-fade-in border-accent/30">

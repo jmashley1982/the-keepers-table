@@ -4,15 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Keeper's Table — a tabletop RPG campaign-management web app. React/Vite frontend, Express backend, PostgreSQL via Prisma. Deployed on Replit (Cloud Run target).
+Keeper's Table — a tabletop RPG campaign-management web app. React/Vite frontend, Express backend, PostgreSQL via Prisma. Deployed on Cloudflare: a thin Worker (`src/worker.ts` + `wrangler.jsonc`) serves the built SPA from Workers Static Assets and routes `/api/*`/`/auth/*` to a single Cloudflare Container (`Dockerfile`) running the Express app. Database is external Postgres (Neon); images live in R2 (`keepers-table-assets`). See `DEPLOY.md` for the full runbook.
 
 ## Commands
 
-Use `pnpm`, not `npm` (the repo has both lockfiles, but `pnpm-lock.yaml` and `.replit`'s workflow/post-merge script are authoritative).
+Use `pnpm`, not `npm` (`pnpm-lock.yaml` is the only lockfile).
 
 - `pnpm run dev` — runs client (Vite, port 5000) and server (tsx watch, port 3001) concurrently. Vite proxies `/api` and `/auth` to the server.
 - `pnpm run build` — `prisma generate` → `tsc -p tsconfig.json` (server) → `vite build` (client to `dist/public`).
-- `pnpm run start` — runs the built server (`node server/dist/index.js`), serving the built client as static files.
+- `pnpm run start` — runs the built server (`node server/dist/index.js`). It no longer runs `prisma db push`; schema changes are pushed deliberately (below).
+- `wrangler deploy` — builds/pushes the container image and deploys Worker + static assets (requires Docker + `wrangler login`).
 - `pnpm run db:generate` — regenerate the Prisma client after schema changes.
 - `pnpm run db:push` — push schema changes to the database (no migration files are committed; `server/prisma/migrations/` is gitignored).
 - `pnpm run db:seed` — run `server/src/seed.ts`.
@@ -31,7 +32,8 @@ There are no lint or test scripts configured in this repo.
 - `lib/crypto.ts` — AES-256-GCM encrypt/decrypt for `ApiCredential.encryptedKey`, keyed by `ENCRYPTION_KEY` (32-byte hex env var). Never store provider API keys unencrypted.
 - `lib/pricing.ts` — converts internal "credits" to USD for the per-user soft spending cap (`UserPreference.softCapPerCall`).
 - `lib/assertStaticRoutesFirst.ts` — call `assertStaticRoutesFirst`/`assertNoStaticAfterDynamic` at the bottom of any router that mixes static paths (e.g. `/active`, `/search`) with a dynamic `/:id`-style wildcard at the same level. Express resolves routes in declaration order, so a static path declared after the wildcard is silently shadowed; these assertions fail fast at server boot instead of at request time. Follow this pattern for any new router with that shape.
-- `server/replit_integrations/object_storage/**` exists but is currently unmounted in `index.ts` — don't assume it's live without checking.
+- `lib/storage.ts` — Cloudflare R2 over the S3 API. Requires all four `R2_*` env vars at boot; a failed first init latches for the process lifetime.
+- The container is a **singleton** (`max_instances: 1`, fixed instance id in `src/worker.ts`) on purpose: SSE job updates (`lib/worker.ts` `sseClients`) and the login rate limiter (`lib/rate-limit.ts`) live in process memory. Don't scale instances without replacing those.
 
 **Data model** (`server/prisma/schema.prisma`): everything is scoped under `Campaign` (owned by a `User`, tied to a `SystemTemplate` which defines the game system's stat-block schema/difficulty model/currency). Most entity models (`NPC`, `Location`, `Item`, `Faction`, `Encounter`, `PlotThread`, `Enemy`, `Party`, `GameSession`, ...) follow the same shape: `campaignId` FK with `onDelete: Cascade`, `tags`/`customFields`/`dmOnlyNotes`, soft delete via `deletedAt`, and a manual `sortOrder`. When adding a new campaign-scoped entity, mirror this shape rather than inventing a new one.
 
@@ -43,9 +45,9 @@ There are no lint or test scripts configured in this repo.
 
 ## Security-sensitive conventions
 
-See `threat_model.md` for the full threat model; the scan anchors listed there (`index.ts`, `generate.routes.ts`, `auth.routes.ts`, `friends.routes.ts`, `campaigns.routes.ts`, `entities.routes.ts`, `sessions.routes.ts`, `assets.routes.ts`, `crypto.ts`, `.replit`) are the files to check first when reasoning about attack surface.
+See `threat_model.md` for the full threat model; the scan anchors listed there (`index.ts`, `generate.routes.ts`, `auth.routes.ts`, `friends.routes.ts`, `campaigns.routes.ts`, `entities.routes.ts`, `sessions.routes.ts`, `assets.routes.ts`, `crypto.ts`, `wrangler.jsonc`) are the files to check first when reasoning about attack surface.
 
 - Every campaign-scoped route must verify the requesting user owns the `campaignId` (or resource's parent campaign) before reading/mutating — broken access control / IDOR across campaign identifiers is the top-priority threat class here.
 - Any data assembled into an AI prompt (`generate.routes.ts`, `lib/worker.ts`) must only include content the requesting user is authorized to see — cross-tenant data leakage through prompt construction is explicitly in scope.
-- `SESSION_SECRET` and `ENCRYPTION_KEY` are required in production (`index.ts` throws on boot if `SESSION_SECRET` is missing when `NODE_ENV=production` or `REPLIT_DOMAINS` is set); don't add fallback defaults that would work in production.
+- `SESSION_SECRET` and `ENCRYPTION_KEY` are required in production (`index.ts` throws on boot if `SESSION_SECRET` is missing when `NODE_ENV=production`); don't add fallback defaults that would work in production. `NODE_ENV=production` must be set explicitly on the host — it is the only production gate (the Worker sets it in the container's env vars).
 - Auth/brute-force-sensitive endpoints (login, friends login) go through `lib/rate-limit.ts`'s in-memory limiter, keyed on `req.ip` (trusted via `trust proxy`, not raw headers).

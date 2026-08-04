@@ -81,7 +81,7 @@ export default function LoginPage() {
 
       <ThemeSwitcher variant="floating" />
 
-      <div className="w-full max-w-sm relative z-10">
+      <div className="w-full max-w-sm relative z-10 mt-16">
         <div className="text-center mb-8">
           <img
             src={themeBrandIcon(theme)}
