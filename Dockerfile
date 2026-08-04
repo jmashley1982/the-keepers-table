@@ -2,7 +2,7 @@
 # The client SPA is NOT built or served here; the Worker serves it from
 # Workers Static Assets. index.ts detects the missing dist/public and serves
 # API-only, which is exactly what we want inside the container.
-FROM node:20-bookworm-slim AS build
+FROM --platform=linux/amd64 node:20-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ RUN pnpm exec prisma generate --schema=server/prisma/schema.prisma \
 RUN pnpm prune --prod
 
 
-FROM node:20-bookworm-slim
+FROM --platform=linux/amd64 node:20-bookworm-slim
 
 ENV NODE_ENV=production
 WORKDIR /app
