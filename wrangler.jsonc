@@ -1,0 +1,46 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "keepers-table",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-08-04",
+
+  // The built SPA (pnpm run build → dist/public) is served directly from
+  // Workers Static Assets; only API/auth traffic reaches the Worker → Container.
+  "assets": {
+    "directory": "dist/public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/auth/*"]
+  },
+
+  "containers": [
+    {
+      "class_name": "KeepersContainer",
+      "image": "./Dockerfile",
+      // Singleton on purpose: the Express app keeps SSE clients and the login
+      // rate limiter in process memory. Do not raise without fixing those.
+      "max_instances": 1,
+      "instance_type": "standard-1"
+    }
+  ],
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "KEEPERS_CONTAINER",
+        "class_name": "KeepersContainer"
+      }
+    ]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["KeepersContainer"]
+    }
+  ],
+
+  "observability": {
+    "enabled": true
+  }
+}

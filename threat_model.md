@@ -27,7 +27,7 @@ Keeper’s Table is a public web application with a React/Vite frontend and an E
 - Public signup/login endpoints and any shared-password entry points.
 - Authenticated campaign CRUD APIs under `/api/campaigns/**`, `/api/entities/**`, `/api/sessions/**`, `/api/maps/**`, `/api/assets/**`, and `/api/generate/**`.
 - Session-backed SSE/job endpoints.
-- Runtime configuration in `.replit` and environment variables used by `server/src/index.ts` and `server/src/lib/crypto.ts`.
+- Runtime configuration in `wrangler.jsonc`/`src/worker.ts` (Worker secrets forwarded into the container) and environment variables used by `server/src/index.ts` and `server/src/lib/crypto.ts`.
 
 ## Main threat classes to prioritize
 - Broken access control / IDOR across campaign-scoped identifiers.
@@ -46,9 +46,10 @@ Keeper’s Table is a public web application with a React/Vite frontend and an E
 - `server/src/routes/sessions.routes.ts`
 - `server/src/routes/assets.routes.ts`
 - `server/src/lib/crypto.ts`
-- `.replit`
+- `wrangler.jsonc`
+- `src/worker.ts`
 
 ## Current scoping notes
-- `server/replit_integrations/object_storage/**` currently appears unmounted and should be ignored unless production wiring changes.
+- Object storage is Cloudflare R2 via the S3 API (`server/src/lib/storage.ts`); asset reads are proxied through auth-checked routes, so the bucket stays private.
 - Deterministic scan hits in transitive `uuid` are not currently considered exploitable because the app does not directly call the affected buffer-writing APIs.
 - High-entropy record IDs reduce blind-ID guessing but do not eliminate IDOR risk when identifiers can be learned elsewhere.

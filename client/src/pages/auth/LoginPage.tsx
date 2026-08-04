@@ -6,7 +6,6 @@ import { FlaskConical } from 'lucide-react'
 import { useUIStore } from '../../store/useUIStore'
 import { themeBrandIcon } from '../../lib/themeBrandIcon'
 import ThemeSwitcher from '../../components/layout/ThemeSwitcher'
-import MigrationBanner from '../../components/layout/MigrationBanner'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -79,11 +78,6 @@ export default function LoginPage() {
             : 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%)',
         }}
       />
-
-      {/* Migration banner */}
-      <div className="absolute top-0 left-0 right-0 z-20">
-        <MigrationBanner loggedIn={false} />
-      </div>
 
       <ThemeSwitcher variant="floating" />
 

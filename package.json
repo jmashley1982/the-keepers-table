@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "concurrently \"node_modules/.bin/tsx watch server/src/index.ts\" \"vite\"",
     "build": "prisma generate --schema=server/prisma/schema.prisma && tsc -p tsconfig.json && vite build",
@@ -53,6 +54,7 @@
     }
   },
   "devDependencies": {
+    "@cloudflare/containers": "^0.3.7",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -69,6 +71,7 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "wrangler": "^4.118.0"
   }
 }
