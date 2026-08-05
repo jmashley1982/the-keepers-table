@@ -1,5 +1,9 @@
 generator client {
   provider = "prisma-client-js"
+  // Debian bookworm (the container base image) ships OpenSSL 3. Pinning this
+  // stops Prisma from guessing and emitting an OpenSSL 1.1 engine that cannot
+  // load at runtime.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {

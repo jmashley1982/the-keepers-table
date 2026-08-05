@@ -6,6 +6,14 @@ FROM --platform=linux/amd64 node:20-bookworm-slim AS build
 
 WORKDIR /app
 
+# Prisma's query engine links against libssl. Without openssl installed, Prisma
+# misdetects the platform at generate time and emits an engine for the wrong
+# OpenSSL version, which then fails at runtime with
+# "libssl.so.1.1: cannot open shared object file".
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable
 
 # Install with dev deps (tsc, types) for the server build
@@ -24,6 +32,11 @@ RUN pnpm prune --prod
 
 
 FROM --platform=linux/amd64 node:20-bookworm-slim
+
+# Same libssl requirement applies to the runtime image.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 WORKDIR /app
