@@ -106,7 +106,7 @@ export default function ItemLookupPanel({ onClose }: ItemLookupPanelProps) {
   const displayItems = items.slice(0, 100)
 
   return createPortal(
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto" onClick={e => { e.stopPropagation(); onClose() }}>
       <div
         className="bg-surface rounded-card border border-border w-full max-w-2xl my-4 shadow-xl flex flex-col"
         style={{ maxHeight: '90vh' }}

@@ -399,7 +399,7 @@ export default function EnemiesPage() {
                   <h2 className="display-font text-lg font-bold text-ink">Custom Creatures</h2>
                   <span className="px-2 py-0.5 rounded-full text-xs bg-accent/10 text-accent font-medium">{customEnemies.length}</span>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
                   {customEnemies.map(enemy => (
                     <EnemyCard
                       key={enemy.id}
@@ -421,7 +421,7 @@ export default function EnemiesPage() {
                   <h2 className="display-font text-lg font-bold text-ink">{systemName} Bestiary</h2>
                   <span className="px-2 py-0.5 rounded-full text-xs bg-surface-2 text-ink-muted font-medium">{srdEnemies.length}</span>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
                   {srdEnemies.map((enemy: Enemy) => (
                     <EnemyCard
                       key={enemy.id as string}

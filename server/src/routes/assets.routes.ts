@@ -104,11 +104,34 @@ assetsRouter.delete('/:assetId', async (req, res) => {
   res.json({ ok: true })
 })
 
-// ── POST /api/campaigns/:campaignId/assets/upload ─────────────────────────────
+// ── GET /api/campaigns/:campaignId/assets — campaign asset gallery ───────────
 // Mounted via app.use('/api/campaigns', campaignAssetsRouter)
 
 export const campaignAssetsRouter = Router({ mergeParams: true })
 campaignAssetsRouter.use(requireAuth)
+
+campaignAssetsRouter.get('/:campaignId/assets', async (req, res) => {
+  const userId = res.locals.user.id
+  const { campaignId } = req.params as { campaignId: string }
+
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: campaignId, ownerUserId: userId, deletedAt: null },
+  })
+  if (!campaign) {
+    res.status(403).json({ error: 'Campaign not found or forbidden' })
+    return
+  }
+
+  const assets = await prisma.asset.findMany({
+    where: { campaignId },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, kind: true, altText: true, width: true, height: true, source: true, createdAt: true },
+  })
+
+  res.json({ assets })
+})
+
+// ── POST /api/campaigns/:campaignId/assets/upload ─────────────────────────────
 
 campaignAssetsRouter.post('/:campaignId/assets/upload', upload.single('file'), async (req, res) => {
   const userId = res.locals.user.id

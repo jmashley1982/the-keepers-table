@@ -3,6 +3,7 @@ import { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, apiError } from '../../lib/api'
 import EntityCard from '../../components/entity/EntityCard'
+import { entityFromGenerated, type SaveEntityType } from '../../lib/entityFromGenerated'
 import { Zap, Loader, Save, RefreshCw } from 'lucide-react'
 import ThemedLoader from '../../components/ui/Loader'
 
@@ -183,7 +184,11 @@ export default function GeneratorPage() {
 
   const saveResult = useMutation({
     mutationFn: async ({ data: entityData, index }: { data: Record<string, unknown>; index: number }) => {
-      const res = await api.post(`/api/entities/${campaignId}/${config.entityEndpoint}`, entityData)
+      // Route any AI field without a matching column (e.g. a location's
+      // atmosphere/notableFeatures/hooks) into customFields instead of letting
+      // the server's schema silently strip it.
+      const payload = entityFromGenerated(config.entityType as SaveEntityType, entityData)
+      const res = await api.post(`/api/entities/${campaignId}/${config.entityEndpoint}`, payload)
       return { index, item: res.data?.item as Record<string, unknown> | undefined }
     },
     onSuccess: ({ index, item }) => {

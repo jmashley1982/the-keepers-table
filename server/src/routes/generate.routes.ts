@@ -1219,21 +1219,31 @@ generateRouter.post('/image', async (req, res) => {
     : kind.startsWith('map_') ? 'map'
     : kind.split('_')[0] ?? 'unknown'
 
+  // prevAssetId: the entity's current image, if any. When set, the worker defers
+  // attaching the newly generated asset so the entity keeps showing the old image
+  // until the user explicitly picks "Use new" in the compare UI (see GenerateArtButton).
+  let prevAssetId: string | null = null
+
   if (entityType === 'npc') {
     const ent = await prisma.nPC.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'NPC not found in this campaign' }); return }
+    prevAssetId = ent.portraitAssetId
   } else if (entityType === 'pc') {
     const ent = await prisma.playerCharacter.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'Player character not found in this campaign' }); return }
+    prevAssetId = ent.portraitAssetId
   } else if (entityType === 'location') {
     const ent = await prisma.location.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'Location not found in this campaign' }); return }
+    prevAssetId = ent.imageAssetId
   } else if (entityType === 'item') {
     const ent = await prisma.item.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'Item not found in this campaign' }); return }
+    prevAssetId = ent.imageAssetId
   } else if (entityType === 'map') {
     const ent = await prisma.mapAsset.findFirst({ where: { id: entityId, campaignId, deletedAt: null } })
     if (!ent) { res.status(404).json({ error: 'Map not found in this campaign' }); return }
+    prevAssetId = ent.imageAssetId
   }
 
   const imageQuota = await checkFriendImageQuota(userId)
@@ -1265,7 +1275,16 @@ generateRouter.post('/image', async (req, res) => {
       kind,
       status: 'queued',
       costEstimate,
-      input: { kind, entityId, entityType, prompt: prompt ?? null, stylePreset: stylePreset ?? null, model: model ?? null, aspectRatio: aspectRatio ?? null },
+      input: {
+        kind, entityId, entityType,
+        prompt: prompt ?? null, stylePreset: stylePreset ?? null, model: model ?? null, aspectRatio: aspectRatio ?? null,
+        // Only npc/pc/location/item regeneration has a client compare UI
+        // (GenerateArtButton). Maps have their own regeneration flow with no
+        // such UI, so they keep auto-attaching to avoid stranding a generated
+        // map with nothing pointing at it.
+        deferAttach: prevAssetId !== null && ['npc', 'pc', 'location', 'item'].includes(entityType),
+        prevAssetId,
+      },
     },
   })
 

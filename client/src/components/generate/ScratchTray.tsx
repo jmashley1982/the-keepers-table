@@ -5,6 +5,12 @@ import { useUIStore } from '../../store/useUIStore'
 import { useParams } from 'react-router-dom'
 import { cn } from '../../lib/cn'
 import { X, Save, Trash2, ChevronRight, ChevronLeft } from 'lucide-react'
+import { entityFromGenerated, type SaveEntityType } from '../../lib/entityFromGenerated'
+
+const ENTITY_TYPE_MAP: Record<string, SaveEntityType> = {
+  npc: 'npc', encounter: 'encounter', treasure: 'item', item: 'item',
+  location: 'location', faction: 'faction',
+}
 
 export default function ScratchTray() {
   const { campaignId } = useParams()
@@ -21,7 +27,9 @@ export default function ScratchTray() {
       }
       const endpoint = endpointMap[kind]
       if (!endpoint) throw new Error('Cannot save this type to campaign')
-      await api.post(`/api/entities/${campaignId}/${endpoint}`, data)
+      const entityType = ENTITY_TYPE_MAP[kind]
+      const payload = entityType ? entityFromGenerated(entityType, data) : data
+      await api.post(`/api/entities/${campaignId}/${endpoint}`, payload)
       return id
     },
     onSuccess: (id) => {

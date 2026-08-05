@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
@@ -308,8 +308,23 @@ export default function EntityCard({
     : null
   const currentAssetId = entity.portraitAssetId ?? entity.imageAssetId ?? null
 
+  // Compact cards (Library grid) start collapsed and can be toggled by clicking
+  // anywhere on the card body — except interactive descendants (buttons, inputs,
+  // links, the art column, popovers/lightboxes rendered inside the card), which
+  // handle their own clicks. Non-compact cards (detail page, generator, session
+  // peek panels) always start expanded and are not click-to-collapse.
+  function handleCardClick(e: MouseEvent<HTMLDivElement>) {
+    if (!compact || editing) return
+    const target = e.target as HTMLElement
+    if (target.closest('button, a, input, textarea, select, label, [role="button"]')) return
+    setExpanded(v => !v)
+  }
+
   return (
-    <div className={cn('card group relative transition-all')}>
+    <div
+      className={cn('card group relative transition-all', compact && !editing && 'cursor-pointer')}
+      onClick={handleCardClick}
+    >
       {/* Header */}
       <div className="flex items-start gap-3">
         {supportsArt && !scratchMode && artKind ? (

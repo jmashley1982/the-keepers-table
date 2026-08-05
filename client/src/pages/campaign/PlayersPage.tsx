@@ -1075,7 +1075,7 @@ export default function PlayersPage() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={characters.map(pc => pc.id)} strategy={rectSortingStrategy}>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
                 {characters.map((pc, index) => (
                   <PCCard
                     key={pc.id}

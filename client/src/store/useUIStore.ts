@@ -8,6 +8,14 @@ interface ScratchItem {
   saved: boolean
 }
 
+interface RecentQuickImage {
+  assetId: string
+  prompt: string
+  createdAt: number
+}
+
+const MAX_RECENT_QUICK_IMAGES = 12
+
 export interface UIState {
   theme: 'candlelight' | 'haunt' | 'eldritch' | 'icarus' | 'neon'
   setTheme: (t: UIState['theme']) => void
@@ -20,6 +28,13 @@ export interface UIState {
   markScratchSaved: (id: string) => void
   removeScratchItem: (id: string) => void
   clearScratch: () => void
+
+  // Quick-Generate images that haven't been attached/saved anywhere yet — kept
+  // around (and persisted) so switching chips or closing the panel doesn't lose
+  // a generated (and billed) image.
+  recentQuickImages: RecentQuickImage[]
+  addRecentQuickImage: (item: RecentQuickImage) => void
+  removeRecentQuickImage: (assetId: string) => void
 
   quickGenerateOpen: boolean
   setQuickGenerateOpen: (v: boolean) => void
@@ -60,6 +75,15 @@ export const useUIStore = create<UIState>()(
         set((s) => ({ scratchTray: s.scratchTray.filter((i) => i.id !== id) })),
       clearScratch: () => set({ scratchTray: [] }),
 
+      recentQuickImages: [],
+      addRecentQuickImage: (item) =>
+        set((s) => ({
+          recentQuickImages: [item, ...s.recentQuickImages.filter((i) => i.assetId !== item.assetId)]
+            .slice(0, MAX_RECENT_QUICK_IMAGES),
+        })),
+      removeRecentQuickImage: (assetId) =>
+        set((s) => ({ recentQuickImages: s.recentQuickImages.filter((i) => i.assetId !== assetId) })),
+
       quickGenerateOpen: false,
       setQuickGenerateOpen: (quickGenerateOpen) => set({ quickGenerateOpen }),
 
@@ -80,6 +104,8 @@ export const useUIStore = create<UIState>()(
         activeCampaignId: s.activeCampaignId,
         leftSidebarCollapsed: s.leftSidebarCollapsed,
         rightSidebarCollapsed: s.rightSidebarCollapsed,
+        scratchTray: s.scratchTray,
+        recentQuickImages: s.recentQuickImages,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.theme) {

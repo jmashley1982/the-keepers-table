@@ -14,6 +14,23 @@ async function verifyCampaign(campaignId: string, userId: string) {
   })
 }
 
+// Helper: reject portraitAssetId/imageAssetId values that don't belong to this
+// campaign — without this, a client could point one entity's image at another
+// user's campaign's Asset row (broken access control across campaign identifiers,
+// the top-priority threat class for this app). Skips null/undefined (clearing
+// the field is fine).
+const ASSET_ID_KEYS = ['portraitAssetId', 'imageAssetId'] as const
+
+async function verifyAssetOwnership(data: Record<string, unknown>, campaignId: string): Promise<string | null> {
+  for (const key of ASSET_ID_KEYS) {
+    const assetId = data[key]
+    if (typeof assetId !== 'string') continue
+    const asset = await prisma.asset.findFirst({ where: { id: assetId, campaignId } })
+    if (!asset) return `${key} does not reference a valid asset in this campaign`
+  }
+  return null
+}
+
 // ── Generic entity CRUD factory ──────────────────────────────────────────────
 
 type EntityModel = 'nPC' | 'item' | 'location' | 'faction' | 'encounter' | 'plotThread' | 'entityRelationship' | 'mapAsset'
@@ -54,6 +71,8 @@ function entityRoutes(
     if (!parsed.success) {
       res.status(400).json({ error: (parsed as { error: z.ZodError }).error.issues[0]?.message }); return
     }
+    const assetError = await verifyAssetOwnership((parsed as { data: Record<string, unknown> }).data, campaignId)
+    if (assetError) { res.status(400).json({ error: assetError }); return }
     const maxOrder = await model.aggregate({
       where: { campaignId, deletedAt: null },
       _max: { sortOrder: true },
@@ -82,6 +101,8 @@ function entityRoutes(
     if (!parsed.success) {
       res.status(400).json({ error: (parsed as { error: z.ZodError }).error.issues[0]?.message }); return
     }
+    const assetError = await verifyAssetOwnership((parsed as { data: Record<string, unknown> }).data, campaignId)
+    if (assetError) { res.status(400).json({ error: assetError }); return }
     const item = await model.update({ where: { id: entityId }, data: (parsed as { data: Record<string, unknown> }).data })
     res.json({ item })
   })
@@ -157,6 +178,7 @@ const locationCreate = z.object({
   imageAssetId: z.string().nullable().optional(),
   mapAssetId: z.string().nullable().optional(),
   ambience: z.record(z.unknown()).optional(),
+  customFields: z.record(z.unknown()).optional(),
 })
 
 // Custom list for locations — includes attached mapAsset thumbnails and imageAsset.altText
@@ -196,6 +218,7 @@ const itemCreate = z.object({
   dmOnlyNotes: z.string().optional(),
   imageUrl: z.string().optional(),
   imageAssetId: z.string().nullable().optional(),
+  customFields: z.record(z.unknown()).optional(),
 })
 // Custom list for items — includes imageAsset.altText for accessible img alt text
 entitiesRouter.get('/:campaignId/items', async (req, res) => {
@@ -226,6 +249,7 @@ const factionCreate = z.object({
   headquartersLocationId: z.string().optional(),
   tags: z.array(z.string()).optional(),
   dmOnlyNotes: z.string().optional(),
+  customFields: z.record(z.unknown()).optional(),
 })
 entitiesRouter.use('/:campaignId/factions', entityRoutes('faction', prisma.faction, factionCreate, factionCreate.partial()))
 
@@ -246,6 +270,7 @@ const encounterCreate = z.object({
   dmOnlyNotes: z.string().optional(),
   description: z.string().optional(),
   mapAssetId: z.string().nullable().optional(),
+  customFields: z.record(z.unknown()).optional(),
 })
 
 // Custom list for encounters — enriches with attached mapAsset so cards can show thumbnails

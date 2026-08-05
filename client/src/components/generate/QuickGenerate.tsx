@@ -1,14 +1,27 @@
 import { useState, useRef, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { X, Zap, Loader, RefreshCw, CheckCircle2, Image, Skull, PlusCircle, Copy } from 'lucide-react'
+import {
+  X, Zap, Loader, RefreshCw, CheckCircle2, Image, Skull, PlusCircle, Copy,
+  Link as LinkIcon, Download,
+} from 'lucide-react'
 import { useJobStatus } from '../../lib/useJobStatus'
+import { useUIStore } from '../../store/useUIStore'
+import { entityFromGenerated, type SaveEntityType } from '../../lib/entityFromGenerated'
 import ThemedLoader from '../ui/Loader'
 
 type TextKind = 'auto' | 'npc' | 'encounter' | 'treasure' | 'location' | 'foe'
 type Kind = TextKind | 'image' | 'note'
 type Quality = 'low' | 'med' | 'high'
 type SaveKind = 'npc' | 'encounter' | 'location' | 'treasure' | 'foe'
+
+// Entity types an image can be attached to / used to create a new entity.
+const IMAGE_ENTITY_TYPES: { type: SaveEntityType; route: string; label: string; assetField: 'portraitAssetId' | 'imageAssetId' }[] = [
+  { type: 'npc',      route: 'npcs',      label: 'NPC',      assetField: 'portraitAssetId' },
+  { type: 'location', route: 'locations', label: 'Location', assetField: 'imageAssetId' },
+  { type: 'item',     route: 'items',     label: 'Item',     assetField: 'imageAssetId' },
+]
 
 const TEXT_KIND_MAP: Record<TextKind, string> = {
   auto: 'quick', npc: 'npc', encounter: 'encounter',
@@ -49,12 +62,12 @@ const PLACEHOLDERS: Record<Kind, string> = {
   note:      'Jot down a quick thought…',
 }
 
-const SAVE_CONFIG: Record<SaveKind, { route: string; label: string; extra?: Record<string, string> }> = {
-  npc:       { route: 'npcs',       label: 'Add to NPCs' },
-  encounter: { route: 'encounters', label: 'Add to Encounters' },
-  location:  { route: 'locations',  label: 'Add to Locations' },
-  treasure:  { route: 'items',      label: 'Add to Loot', extra: { category: 'Treasure' } },
-  foe:       { route: 'npcs',       label: 'Add to Foes', extra: { role: 'Foe' } },
+const SAVE_CONFIG: Record<SaveKind, { route: string; entityType: SaveEntityType; label: string; extra?: Record<string, string> }> = {
+  npc:       { route: 'npcs',       entityType: 'npc',      label: 'Add to NPCs' },
+  encounter: { route: 'encounters', entityType: 'encounter', label: 'Add to Encounters' },
+  location:  { route: 'locations',  entityType: 'location', label: 'Add to Locations' },
+  treasure:  { route: 'items',      entityType: 'item',     label: 'Add to Loot', extra: { category: 'Treasure' } },
+  foe:       { route: 'npcs',       entityType: 'npc',      label: 'Add to Foes', extra: { role: 'Foe' } },
 }
 
 const AUTO_SAVE_KINDS: SaveKind[] = ['npc', 'encounter', 'location', 'treasure', 'foe']
@@ -83,7 +96,10 @@ function flattenToText(val: unknown, depth = 0): string {
       .map(([key, v]) => {
         const text = flattenToText(v, depth + 1)
         if (!text) return ''
-        const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        const label = key
+          .replace(/_/g, ' ')
+          .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase -> "camel Case"
+          .replace(/\b\w/g, c => c.toUpperCase())
         const isNested = typeof v === 'object' && v !== null
         return isNested ? `${label}:\n${text}` : `${label}: ${text}`
       })
@@ -94,22 +110,47 @@ function flattenToText(val: unknown, depth = 0): string {
 }
 
 export default function QuickGenerate({ onClose, campaignId }: { onClose: () => void; campaignId?: string }) {
+  const qc = useQueryClient()
   const [prompt, setPrompt]     = useState('')
   const [kind, setKind]         = useState<Kind>('auto')
   const [quality, setQuality]   = useState<Quality>('med')
   const [busy, setBusy]         = useState(false)
   const [streamText, setStreamText] = useState('')
   const [result, setResult]     = useState<string | null>(null)
+  // The parsed AI result object, kept alongside the flattened display string in
+  // `result` — saving posts this (structured) instead of the flattened text, so
+  // fields land in their real columns instead of one text blob (see saveToEntity).
+  const [resultObj, setResultObj] = useState<Record<string, unknown> | null>(null)
   const [contextUsed, setContextUsed] = useState(false)
   const [useCampaignContext, setUseCampaignContext] = useState(true)
   const [imageJobId, setImageJobId] = useState<string | null>(null)
   const [error, setError]       = useState<string | null>(null)
   const [saveMsg, setSaveMsg]   = useState<{ text: string; ok: boolean } | null>(null)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [attachPickerOpen, setAttachPickerOpen] = useState(false)
+  const [createEntityOpen, setCreateEntityOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const noteRef = useRef<HTMLTextAreaElement>(null)
 
   const imageStatus = useJobStatus(imageJobId)
+  const imageReady = !!imageJobId && imageStatus.status === 'succeeded' && !!imageStatus.assetId
+
+  const recentQuickImages = useUIStore(s => s.recentQuickImages)
+  const addRecentQuickImage = useUIStore(s => s.addRecentQuickImage)
+  const removeRecentQuickImage = useUIStore(s => s.removeRecentQuickImage)
+
+  // Archive the current image (if any) into the persisted "recent" strip so it's
+  // never silently lost — called before switching chips or closing the panel.
+  function archiveCurrentImage() {
+    if (kind === 'image' && imageReady && imageStatus.assetId) {
+      addRecentQuickImage({ assetId: imageStatus.assetId, prompt, createdAt: Date.now() })
+    }
+  }
+
+  function handleClose() {
+    archiveCurrentImage()
+    onClose()
+  }
 
   useEffect(() => {
     if (!campaignId) return
@@ -125,24 +166,34 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
   }, [campaignId, kind])
 
   function handleKindChange(k: Kind) {
+    archiveCurrentImage()
     setKind(k)
     setResult(null)
+    setResultObj(null)
     setStreamText('')
     setImageJobId(null)
     setSaveMsg(null)
     setError(null)
     setContextUsed(false)
+    setAttachPickerOpen(false)
+    setCreateEntityOpen(false)
   }
 
   async function generate() {
     if (!prompt.trim() || busy || kind === 'note') return
+    // Regenerating an image (imageJobId already set) would otherwise overwrite
+    // it below without ever offering to keep the one already on screen.
+    archiveCurrentImage()
     setBusy(true)
     setError(null)
     setResult(null)
+    setResultObj(null)
     setStreamText('')
     setSaveMsg(null)
     setImageJobId(null)
     setContextUsed(false)
+    setAttachPickerOpen(false)
+    setCreateEntityOpen(false)
 
     try {
       if (kind === 'image') {
@@ -198,6 +249,16 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
         ? flattenToText(parsedResult)
         : fullText
       setResult(displayText || fullText)
+
+      // Keep the structured object for saving (see saveToEntity) — 'auto'/'quick'
+      // has no JSON schema and returns free text, so parsedResult stays undefined
+      // there and the string-scrape fallback below applies instead.
+      if (parsedResult && typeof parsedResult === 'object') {
+        const obj = Array.isArray(parsedResult) ? parsedResult[0] : parsedResult
+        setResultObj(obj && typeof obj === 'object' ? obj as Record<string, unknown> : null)
+      } else {
+        setResultObj(null)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed')
     } finally {
@@ -210,14 +271,13 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
     if (!campaignId || !result) return
     setSaveMsg(null)
     try {
-      const { route, extra } = SAVE_CONFIG[saveKind]
-      const name = extractEntityName(result)
-      await api.post(`/api/entities/${campaignId}/${route}`, {
-        name,
-        description: result,
-        ...extra,
-      })
-      setSaveMsg({ text: `Saved to ${SAVE_CONFIG[saveKind].label.replace('Add to ', '')}!`, ok: true })
+      const { route, entityType, extra, label } = SAVE_CONFIG[saveKind]
+      const payload = resultObj
+        ? entityFromGenerated(entityType, { ...resultObj, ...extra })
+        : { name: extractEntityName(result), description: result, ...extra }
+      await api.post(`/api/entities/${campaignId}/${route}`, payload)
+      qc.invalidateQueries({ queryKey: ['entities', campaignId] })
+      setSaveMsg({ text: `Saved to ${label.replace('Add to ', '')}!`, ok: true })
     } catch {
       setSaveMsg({ text: 'Failed to save', ok: false })
     }
@@ -251,14 +311,13 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
   const saveKind = kind !== 'auto' && kind !== 'image' && kind !== 'note' ? (kind as SaveKind) : null
 
   const imageLoading = imageJobId && imageStatus.status !== 'succeeded' && imageStatus.status !== 'failed'
-  const imageReady   = imageJobId && imageStatus.status === 'succeeded' && imageStatus.assetId
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
-      onClick={e => e.target === e.currentTarget && onClose()}
+      onClick={e => e.target === e.currentTarget && handleClose()}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
 
       <div className="relative w-full max-w-xl mx-4 animate-fade-in">
         {/* No-campaign gate */}
@@ -407,7 +466,7 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
                     ? <Loader size={16} className="animate-spin" />
                     : kind === 'image' ? <Image size={16} /> : <Zap size={16} />}
                 </button>
-                <button className="btn-ghost p-2" onClick={onClose}>
+                <button className="btn-ghost p-2" onClick={handleClose}>
                   <X size={16} />
                 </button>
               </div>
@@ -512,28 +571,238 @@ export default function QuickGenerate({ onClose, campaignId }: { onClose: () => 
                     </p>
                   )}
 
-                  {imageReady && (
+                  {imageReady && imageStatus.assetId && (
                     <div className="space-y-2">
                       <img
                         src={`/api/assets/${imageStatus.assetId}?size=full`}
                         className="w-full rounded-card"
                         alt="Generated image"
                       />
-                      <button
-                        className="btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5"
-                        onClick={() => { setImageJobId(null); generate() }}
-                        disabled={busy}
-                      >
-                        <RefreshCw size={12} /> Regen
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          className={cn(
+                            'btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5',
+                            attachPickerOpen && 'text-accent border border-accent/30',
+                          )}
+                          onClick={() => { setCreateEntityOpen(false); setAttachPickerOpen(v => !v) }}
+                        >
+                          <LinkIcon size={12} /> Attach to entity
+                        </button>
+                        <button
+                          className={cn(
+                            'btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5',
+                            createEntityOpen && 'text-accent border border-accent/30',
+                          )}
+                          onClick={() => { setAttachPickerOpen(false); setCreateEntityOpen(v => !v) }}
+                        >
+                          <PlusCircle size={12} /> New entity
+                        </button>
+                        <a
+                          className="btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5"
+                          href={`/api/assets/${imageStatus.assetId}?size=full`}
+                          download
+                        >
+                          <Download size={12} /> Download
+                        </a>
+                        <button
+                          className="btn-ghost text-xs flex items-center gap-1.5 px-2.5 py-1.5"
+                          onClick={generate}
+                          disabled={busy}
+                        >
+                          <RefreshCw size={12} /> Regen
+                        </button>
+                      </div>
+
+                      {attachPickerOpen && (
+                        <AttachImagePicker
+                          campaignId={campaignId!}
+                          assetId={imageStatus.assetId}
+                          onAttached={(name) => {
+                            qc.invalidateQueries({ queryKey: ['entities', campaignId] })
+                            setAttachPickerOpen(false)
+                            setSaveMsg({ text: `Attached to ${name}`, ok: true })
+                          }}
+                        />
+                      )}
+                      {createEntityOpen && (
+                        <CreateEntityFromImage
+                          campaignId={campaignId!}
+                          assetId={imageStatus.assetId}
+                          onCreated={(name) => {
+                            qc.invalidateQueries({ queryKey: ['entities', campaignId] })
+                            setCreateEntityOpen(false)
+                            setSaveMsg({ text: `Created ${name}`, ok: true })
+                          }}
+                        />
+                      )}
+
+                      {saveMsg && (
+                        <p className={cn(
+                          'text-xs flex items-center gap-1',
+                          saveMsg.ok ? 'text-green-400' : 'text-danger',
+                        )}>
+                          {saveMsg.ok && <CheckCircle2 size={12} />}
+                          {saveMsg.text}
+                        </p>
+                      )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Recently generated images that were never attached/downloaded —
+                  persisted so switching chips or closing this panel doesn't lose them. */}
+              {kind === 'image' && !imageJobId && recentQuickImages.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-[10px] text-ink-muted uppercase tracking-wide mb-1.5">Recent</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recentQuickImages.map(img => (
+                      <div key={img.assetId} className="relative group/recent">
+                        <a href={`/api/assets/${img.assetId}?size=full`} target="_blank" rel="noreferrer" title={img.prompt}>
+                          <img
+                            src={`/api/assets/${img.assetId}?size=thumb`}
+                            alt={img.prompt}
+                            className="w-12 h-12 rounded-card object-cover border border-border"
+                          />
+                        </a>
+                        <button
+                          className="absolute -top-1 -right-1 bg-surface border border-border rounded-full p-0.5 opacity-0 group-hover/recent:opacity-100 transition-opacity"
+                          onClick={() => removeRecentQuickImage(img.assetId)}
+                          title="Remove from this list (does not delete the image)"
+                        >
+                          <X size={9} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </>
           )}
 
         </div>}
+      </div>
+    </div>
+  )
+}
+
+// ── Attach an image to an existing entity ─────────────────────────────────────
+
+function AttachImagePicker({ campaignId, assetId, onAttached }: {
+  campaignId: string; assetId: string; onAttached: (name: string) => void
+}) {
+  const [entityType, setEntityType] = useState<SaveEntityType>('npc')
+  const [query, setQuery] = useState('')
+  const config = IMAGE_ENTITY_TYPES.find(t => t.type === entityType)!
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['entities', campaignId, config.route],
+    queryFn: () => api.get(`/api/entities/${campaignId}/${config.route}`).then(r => r.data),
+  })
+  const items: { id: string; name: string }[] = data?.items ?? []
+  const filtered = query.trim()
+    ? items.filter(i => i.name.toLowerCase().includes(query.trim().toLowerCase()))
+    : items
+
+  const attachMutation = useMutation({
+    mutationFn: (entityId: string) => api.patch(`/api/entities/${campaignId}/${config.route}/${entityId}`, { [config.assetField]: assetId }),
+    onSuccess: (_res, entityId) => {
+      onAttached(items.find(i => i.id === entityId)?.name ?? config.label)
+    },
+  })
+
+  return (
+    <div className="p-2 bg-surface-2 rounded-card space-y-2">
+      <div className="flex gap-1">
+        {IMAGE_ENTITY_TYPES.map(t => (
+          <button
+            key={t.type}
+            onClick={() => setEntityType(t.type)}
+            className={cn(
+              'px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors',
+              entityType === t.type ? 'bg-accent text-white' : 'bg-surface text-ink-muted hover:text-ink',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <input
+        className="input text-xs w-full"
+        placeholder={`Search ${config.label.toLowerCase()}s…`}
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        autoFocus
+      />
+      <div className="max-h-32 overflow-y-auto space-y-0.5">
+        {isLoading && <p className="text-[10px] text-ink-muted px-1 py-1">Loading…</p>}
+        {!isLoading && filtered.length === 0 && (
+          <p className="text-[10px] text-ink-muted px-1 py-1">No {config.label.toLowerCase()}s found.</p>
+        )}
+        {filtered.map(i => (
+          <button
+            key={i.id}
+            onClick={() => attachMutation.mutate(i.id)}
+            disabled={attachMutation.isPending}
+            className="w-full text-left text-xs px-2 py-1 rounded hover:bg-surface transition-colors disabled:opacity-50"
+          >
+            {i.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Create a new entity from an image ──────────────────────────────────────────
+
+function CreateEntityFromImage({ campaignId, assetId, onCreated }: {
+  campaignId: string; assetId: string; onCreated: (name: string) => void
+}) {
+  const [entityType, setEntityType] = useState<SaveEntityType>('npc')
+  const [name, setName] = useState('')
+  const config = IMAGE_ENTITY_TYPES.find(t => t.type === entityType)!
+
+  const createMutation = useMutation({
+    mutationFn: () => api.post(`/api/entities/${campaignId}/${config.route}`, {
+      name: name.trim(),
+      [config.assetField]: assetId,
+    }),
+    onSuccess: () => onCreated(name.trim()),
+  })
+
+  return (
+    <div className="p-2 bg-surface-2 rounded-card space-y-2">
+      <div className="flex gap-1">
+        {IMAGE_ENTITY_TYPES.map(t => (
+          <button
+            key={t.type}
+            onClick={() => setEntityType(t.type)}
+            className={cn(
+              'px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors',
+              entityType === t.type ? 'bg-accent text-white' : 'bg-surface text-ink-muted hover:text-ink',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <input
+          className="input text-xs flex-1"
+          placeholder={`New ${config.label.toLowerCase()} name…`}
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && name.trim() && createMutation.mutate()}
+          autoFocus
+        />
+        <button
+          className="btn-primary text-xs px-2.5"
+          onClick={() => createMutation.mutate()}
+          disabled={!name.trim() || createMutation.isPending}
+        >
+          {createMutation.isPending ? <Loader size={12} className="animate-spin" /> : 'Create'}
+        </button>
       </div>
     </div>
   )

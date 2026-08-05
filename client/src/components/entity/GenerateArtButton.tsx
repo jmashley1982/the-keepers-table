@@ -71,6 +71,7 @@ export default function GenerateArtButton({
   const [aspectRatio] = useState<AspectRatio>('portrait')
   const [popupPos, setPopupPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 240 })
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+  const [compareZoomAssetId, setCompareZoomAssetId] = useState<string | null>(null)
   const optionsBtnRef = useRef<HTMLButtonElement>(null)
 
   const { data: authData } = useQuery({
@@ -185,6 +186,18 @@ export default function GenerateArtButton({
     return () => window.removeEventListener(POPUP_OPEN_EVENT, handler)
   }, [instanceId])
 
+  // ── Compare-zoom: Escape to close, and auto-close if the picker resolves ────
+  useEffect(() => {
+    if (phase.name !== 'await_replace') setCompareZoomAssetId(null)
+  }, [phase.name])
+
+  useEffect(() => {
+    if (!compareZoomAssetId) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setCompareZoomAssetId(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [compareZoomAssetId])
+
   // ── Mutations ───────────────────────────────────────────────────────────
   const generateMutation = useMutation({
     mutationFn: (opts?: GenerateOpts & { confirmed?: boolean }) =>
@@ -230,15 +243,20 @@ export default function GenerateArtButton({
     mutationFn: (assetId: string) => api.delete(`/api/assets/${assetId}`),
   })
 
-  const revertMutation = useMutation({
-    mutationFn: ({ prevAssetId, newAssetId }: { prevAssetId: string; newAssetId: string }) =>
-      api.patch(`${patchBase}/${entityId}`, {
-        [assetField]: prevAssetId,
-      }).then(() => deleteAssetMutation.mutateAsync(newAssetId)),
+  // Regeneration is now deferred server-side (see generate.routes.ts POST /image):
+  // the entity keeps its current image until the user explicitly picks "Use new".
+  const attachAssetMutation = useMutation({
+    mutationFn: (assetId: string) => api.patch(`${patchBase}/${entityId}`, { [assetField]: assetId }),
+  })
+
+  // "Keep old" — the new asset was never attached, so this is just cleanup.
+  const discardNewMutation = useMutation({
+    mutationFn: (newAssetId: string) => api.delete(`/api/assets/${newAssetId}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: invalidateKey })
       setPhase({ name: 'idle' })
     },
+    onError: (err: unknown) => setPhase({ name: 'failed', error: apiError(err) }),
   })
 
   // ── Handlers ────────────────────────────────────────────────────────────
@@ -309,17 +327,26 @@ export default function GenerateArtButton({
     }
   }
 
-  function handleUseNew() {
+  async function handleUseNew() {
     if (phase.name !== 'await_replace') return
-    deleteAssetMutation.mutate(phase.prevAssetId)
-    qc.invalidateQueries({ queryKey: invalidateKey })
-    setPhase({ name: 'idle' })
-    onGenerated?.()
+    const { newAssetId, prevAssetId } = phase
+    try {
+      // Attach the new asset first — only delete the old one once the entity
+      // is confirmed pointing at the new one, so a failure here leaves the
+      // entity's current image intact rather than orphaned.
+      await attachAssetMutation.mutateAsync(newAssetId)
+      await deleteAssetMutation.mutateAsync(prevAssetId)
+      qc.invalidateQueries({ queryKey: invalidateKey })
+      setPhase({ name: 'idle' })
+      onGenerated?.()
+    } catch (err) {
+      setPhase({ name: 'failed', error: apiError(err) })
+    }
   }
 
   function handleKeepOld() {
     if (phase.name !== 'await_replace') return
-    revertMutation.mutate({ prevAssetId: phase.prevAssetId, newAssetId: phase.newAssetId })
+    discardNewMutation.mutate(phase.newAssetId)
   }
 
   function handleRetry() {
@@ -337,7 +364,7 @@ export default function GenerateArtButton({
       {/* Backdrop — covers full viewport outside any scroll container */}
       <div
         className="fixed inset-0 z-[9998]"
-        onClick={() => setOptionsOpen(false)}
+        onClick={e => { e.stopPropagation(); setOptionsOpen(false) }}
       />
       {/* Floating options card */}
       <div
@@ -493,6 +520,29 @@ export default function GenerateArtButton({
     document.body,
   ) : null
 
+  // ── Compare-zoom portal — enlarge either image in the await_replace picker ──
+  const compareZoomPortal = compareZoomAssetId ? createPortal(
+    <div
+      className="fixed inset-0 z-[9990] bg-black/85 flex items-center justify-center p-6 cursor-zoom-out"
+      onClick={e => { e.stopPropagation(); setCompareZoomAssetId(null) }}
+    >
+      <button
+        onClick={e => { e.stopPropagation(); setCompareZoomAssetId(null) }}
+        className="absolute top-4 right-4 p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+        title="Close"
+      >
+        <X size={20} />
+      </button>
+      <img
+        src={`/api/assets/${compareZoomAssetId}?size=full`}
+        alt={`${artLabel} preview`}
+        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-default"
+        onClick={e => e.stopPropagation()}
+      />
+    </div>,
+    document.body,
+  ) : null
+
   return (
     <div className="flex flex-col gap-1 w-full">
 
@@ -613,23 +663,48 @@ export default function GenerateArtButton({
         </div>
       )}
 
-      {/* ── NEW ART READY ──────────────────────────────────────────────────── */}
+      {/* ── NEW ART READY: side-by-side compare ──────────────────────────────── */}
       {phase.name === 'await_replace' && (
         <div className="p-2 bg-green-500/10 border border-green-500/25 rounded-card space-y-1.5 animate-resolve-in">
-          <p className="text-[11px] font-semibold text-green-400">✦ New {artLabel.toLowerCase()} ready!</p>
+          <p className="text-[11px] font-semibold text-green-400">✦ New {artLabel.toLowerCase()} ready — pick one</p>
+          <div className="flex gap-1.5">
+            {([
+              { label: 'Current', assetId: phase.prevAssetId },
+              { label: 'New', assetId: phase.newAssetId },
+            ] as const).map(({ label, assetId }) => (
+              <button
+                key={assetId}
+                type="button"
+                onClick={() => setCompareZoomAssetId(assetId)}
+                className="flex-1 min-w-0 flex flex-col items-center gap-0.5 cursor-zoom-in"
+                title="Click to enlarge"
+              >
+                <img
+                  src={`/api/assets/${assetId}?size=preview`}
+                  alt={`${label} ${artLabel.toLowerCase()}`}
+                  className="w-full aspect-square object-cover rounded-card border border-border"
+                />
+                <span className="text-[9px] text-ink-muted uppercase tracking-wide">{label}</span>
+              </button>
+            ))}
+          </div>
           <div className="flex gap-1">
             <button
               onClick={handleUseNew}
-              className="flex items-center gap-1 flex-1 justify-center text-[11px] font-semibold text-green-500 bg-green-500/15 hover:bg-green-500/25 border border-green-500/30 rounded px-2 py-1 transition-colors"
+              disabled={attachAssetMutation.isPending || deleteAssetMutation.isPending}
+              className="flex items-center gap-1 flex-1 justify-center text-[11px] font-semibold text-green-500 bg-green-500/15 hover:bg-green-500/25 border border-green-500/30 rounded px-2 py-1 transition-colors disabled:opacity-50"
             >
-              <Check size={9} /> Use new
+              {attachAssetMutation.isPending || deleteAssetMutation.isPending
+                ? <Loader size={9} className="animate-spin" />
+                : <Check size={9} />}
+              Use new
             </button>
             <button
               onClick={handleKeepOld}
-              disabled={revertMutation.isPending}
-              className="flex items-center gap-1 text-[11px] text-ink-muted bg-surface-2 hover:bg-surface border border-border rounded px-2 py-1 transition-colors"
+              disabled={discardNewMutation.isPending}
+              className="flex items-center gap-1 text-[11px] text-ink-muted bg-surface-2 hover:bg-surface border border-border rounded px-2 py-1 transition-colors disabled:opacity-50"
             >
-              {revertMutation.isPending ? <Loader size={9} className="animate-spin" /> : <X size={9} />}
+              {discardNewMutation.isPending ? <Loader size={9} className="animate-spin" /> : <X size={9} />}
               Keep old
             </button>
           </div>
@@ -670,6 +745,7 @@ export default function GenerateArtButton({
 
       {/* ── OPTIONS POPUP (portal) ──────────────────────────────────────────── */}
       {popupPortal}
+      {compareZoomPortal}
     </div>
   )
 }
@@ -739,7 +815,7 @@ export function EntityAvatarWithArt({
   const lightboxPortal = lightboxOpen && fullSrc ? createPortal(
     <div
       className="fixed inset-0 z-[9990] bg-black/85 flex items-center justify-center p-6 cursor-zoom-out"
-      onClick={() => setLightboxOpen(false)}
+      onClick={e => { e.stopPropagation(); setLightboxOpen(false) }}
     >
       <button
         onClick={() => setLightboxOpen(false)}

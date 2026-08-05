@@ -104,6 +104,10 @@ interface ImagePostprocessData {
   entityType: string
   entityId: string
   kind: string
+  // When true, the entity already has a different image and is regenerating —
+  // don't auto-attach the new asset; the client shows a keep-old/use-new compare
+  // UI and attaches explicitly via PATCH once the user picks "Use new".
+  deferAttach?: boolean
 }
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -125,8 +129,8 @@ async function processImageGenerate(jobId: string): Promise<void> {
   console.log(`[image.generate] Processing job ${jobId}`)
 
   try {
-    const input = genJob.input as { kind: string; entityId: string; entityType: string; prompt?: string; stylePreset?: string; model?: string; aspectRatio?: string }
-    const { kind, entityId, entityType } = input
+    const input = genJob.input as { kind: string; entityId: string; entityType: string; prompt?: string; stylePreset?: string; model?: string; aspectRatio?: string; deferAttach?: boolean }
+    const { kind, entityId, entityType, deferAttach } = input
     const userPrompt = input.prompt ?? null
 
     // ── 1. Load entity data ────────────────────────────────────────────────
@@ -430,7 +434,7 @@ Return ONLY valid JSON — no prose, no markdown:
       })
       await getBoss().send('image.postprocess', {
         jobId, assetId: asset.id, sourceUrl: outputUrl,
-        campaignId: genJob.campaignId!, entityType, entityId, kind,
+        campaignId: genJob.campaignId!, entityType, entityId, kind, deferAttach,
       } satisfies ImagePostprocessData)
     } else {
       await getBoss().send(
@@ -542,7 +546,7 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
         await prisma.generationJob.update({ where: { id: jobId }, data: { costActual } })
       }
 
-      const input = genJob.input as Record<string, string>
+      const input = genJob.input as { entityType?: string; entityId?: string; deferAttach?: boolean }
 
       const asset = await prisma.asset.create({
         data: {
@@ -562,6 +566,7 @@ async function processImagePoll(data: ImagePollData): Promise<void> {
         entityType: input.entityType ?? '',
         entityId: input.entityId ?? '',
         kind: genJob.kind,
+        deferAttach: input.deferAttach,
       } satisfies ImagePostprocessData)
 
     } else if (responseData.status === 'failed' || responseData.status === 'error' || responseData.status === 'cancelled') {
@@ -586,7 +591,7 @@ async function handleImagePostprocess(jobs: Job<ImagePostprocessData>[]): Promis
 }
 
 async function processImagePostprocess(data: ImagePostprocessData): Promise<void> {
-  const { jobId, assetId, sourceUrl, campaignId, entityType, entityId, kind } = data
+  const { jobId, assetId, sourceUrl, campaignId, entityType, entityId, kind, deferAttach } = data
   console.log(`[image.postprocess] Processing asset ${assetId} for job ${jobId}`)
 
   try {
@@ -676,7 +681,12 @@ async function processImagePostprocess(data: ImagePostprocessData): Promise<void
       },
     })
 
-    await attachAssetToEntity(assetId, entityType, entityId, kind)
+    // On a regeneration (entity already has a different image), don't auto-attach —
+    // the entity keeps showing its current image until the user picks "Use new" in
+    // the client compare UI, which attaches explicitly via PATCH.
+    if (!deferAttach) {
+      await attachAssetToEntity(assetId, entityType, entityId, kind)
+    }
 
     await prisma.generationJob.update({
       where: { id: jobId },
