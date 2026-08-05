@@ -29,7 +29,7 @@ import { seedSystemTemplates, seedEnemies } from './lib/seed-templates.js'
 import './lib/auth.js'
 
 const app = express()
-const PORT = process.env.PORT ?? 3001
+const PORT = Number(process.env.PORT ?? 3001)
 
 // Boot diagnostic: report which env vars arrived, never their values. Missing
 // config is the single most common cause of a container that starts but 500s
@@ -156,12 +156,37 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: err.message ?? 'Internal server error' })
 })
 
-const server = app.listen(PORT, async () => {
+// Keep the process alive when background work misbehaves. The job worker and
+// the seed jobs below run after the port is open; without these handlers a
+// rejection in any of them takes down the whole server — and in a container
+// that reads as "started but never listened".
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason)
+})
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err)
+})
+
+// Bind explicitly to 0.0.0.0 so the container host's port check can see us.
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🧙 Keeper's Table server running on port ${PORT}`)
-  await startWorker()
-  await seedBuiltinPresets()
-  await seedSystemTemplates()
-  await seedEnemies()
+
+  // Each of these is best-effort: a failure degrades functionality but must
+  // never prevent the server from serving requests.
+  const step = async (name: string, fn: () => Promise<unknown>) => {
+    try {
+      await fn()
+      console.log(`[boot] ${name} ok`)
+    } catch (err) {
+      console.error(`[boot] ${name} FAILED —`, err instanceof Error ? err.message : err)
+    }
+  }
+
+  await step('worker', startWorker)
+  await step('seed:presets', seedBuiltinPresets)
+  await step('seed:templates', seedSystemTemplates)
+  await step('seed:enemies', seedEnemies)
+  console.log('[boot] startup complete')
 })
 
 // Graceful shutdown
