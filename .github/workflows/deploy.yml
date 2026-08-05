@@ -19,9 +19,11 @@ jobs:
       # package.json. Setting both makes this action fail.
       - uses: pnpm/action-setup@v4
 
+      # Node 22+ is required by wrangler. (The container itself still runs
+      # Node 20 — that is set separately, in the Dockerfile.)
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
