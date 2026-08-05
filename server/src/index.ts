@@ -116,6 +116,27 @@ app.use('/api/friends', friendsRouter)
 // Health (no session required)
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
 
+// Deployment self-check. Reports which env vars are present (names only, never
+// values) and whether the database is actually reachable, so a misconfigured
+// deploy can be diagnosed from a browser instead of from log archaeology.
+app.get('/api/health/config', async (_req, res) => {
+  const names = ['DATABASE_URL', 'SESSION_SECRET', 'ENCRYPTION_KEY', 'NODE_ENV', 'R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME', 'CLAUDE_API_KEY', 'EVOLINK_API_KEY', 'FRIENDS_PASSWORD']
+  const env = Object.fromEntries(names.map((n) => [n, process.env[n] ? 'set' : 'MISSING']))
+
+  let database: string
+  try {
+    const { prisma } = await import('./lib/prisma.js')
+    await prisma.$queryRaw`SELECT 1`
+    database = 'connected'
+  } catch (err) {
+    // Strip any embedded credentials before echoing a driver error back.
+    const raw = err instanceof Error ? err.message : String(err)
+    database = raw.replace(/\/\/[^@\s]*@/g, '//***@').slice(0, 300)
+  }
+
+  res.json({ env, database, nodeVersion: process.version })
+})
+
 // Serve built client (production build output)
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const clientDist = join(__dirname, '../../dist/public')
