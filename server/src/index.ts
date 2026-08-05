@@ -31,6 +31,22 @@ import './lib/auth.js'
 const app = express()
 const PORT = process.env.PORT ?? 3001
 
+// Boot diagnostic: report which env vars arrived, never their values. Missing
+// config is the single most common cause of a container that starts but 500s
+// on every request, and this turns that into a one-line answer in the logs.
+{
+  const required = ['DATABASE_URL', 'SESSION_SECRET', 'ENCRYPTION_KEY']
+  const optional = ['NODE_ENV', 'R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME', 'CLAUDE_API_KEY', 'EVOLINK_API_KEY', 'FRIENDS_PASSWORD']
+  const shown = (names: string[]) =>
+    names.map((n) => `${n}=${process.env[n] ? 'set' : 'MISSING'}`).join(' ')
+  console.log(`[boot] required: ${shown(required)}`)
+  console.log(`[boot] optional: ${shown(optional)}`)
+  const missing = required.filter((n) => !process.env[n])
+  if (missing.length) {
+    console.error(`[boot] ⚠️  Missing required env vars: ${missing.join(', ')} — requests will fail until these are set.`)
+  }
+}
+
 // Trust the HTTPS reverse proxy (Cloudflare Worker in front of the container)
 // so cookies and req.secure work correctly
 app.set('trust proxy', 1)
