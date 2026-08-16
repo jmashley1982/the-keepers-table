@@ -1,53 +1,49 @@
-# CLAUDE.md
+# How to work in this repo
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Owner: Jason. Not a coder. Does not use a terminal. Gives ideas.
 
-## Project
+## The loop
+1. Jason gives an idea.
+2. You give a short plan in plain English. No jargon.
+3. He says yes or no.
+4. If yes: build it, push to main, give him the live link.
 
-Keeper's Table — a tabletop RPG campaign-management web app. React/Vite frontend, Express backend, PostgreSQL via Prisma. Deployed on Cloudflare: a thin Worker (`src/worker.ts` + `wrangler.jsonc`) serves the built SPA from Workers Static Assets and routes `/api/*`/`/auth/*` to a single Cloudflare Container (`Dockerfile`) running the Express app. Database is external Postgres (Neon); images live in R2 (`keepers-table-assets`). See `DEPLOY.md` for the full runbook.
+You handle every technical action yourself — files, commits, pushes,
+deploys. Never tell him to run a command or open a terminal. If you
+can't do something, say so in your FIRST message and name the fix.
 
-## Commands
+## Branches — the important part
+Work on main. Commit to main. Push to main. Nothing else.
 
-Use `pnpm`, not `npm` (`pnpm-lock.yaml` is the only lockfile).
+Do NOT create a branch. Do NOT open a pull request. Do NOT stack
+changes on a feature branch "to be safe." Cloudflare Pages publishes
+main, so work sitting on any other branch is invisible to Jason and
+might as well not exist. This has burned him repeatedly. Don't do it.
 
-- `pnpm run dev` — runs client (Vite, port 5000) and server (tsx watch, port 3001) concurrently. Vite proxies `/api` and `/auth` to the server.
-- `pnpm run build` — `prisma generate` → `tsc -p tsconfig.json` (server) → `vite build` (client to `dist/public`).
-- `pnpm run start` — runs the built server (`node server/dist/index.js`). It no longer runs `prisma db push`; schema changes are pushed deliberately (below).
-- `wrangler deploy` — builds/pushes the container image and deploys Worker + static assets (requires Docker + `wrangler login`).
-- `pnpm run db:generate` — regenerate the Prisma client after schema changes.
-- `pnpm run db:push` — push schema changes to the database (no migration files are committed; `server/prisma/migrations/` is gitignored).
-- `pnpm run db:seed` — run `server/src/seed.ts`.
+Exception: if Jason says "preview it first," build on a branch, give
+him the Cloudflare preview link, and wait. When he says ship it,
+merge to main yourself and confirm it's live.
 
-There are no lint or test scripts configured in this repo.
+## Start of every session, report three lines
+- Which repo you're in
+- Which branch you're on (should be main — if not, switch)
+- Any other branch holding work that never reached main
 
-## Architecture
+## End of every task, report three lines
+- What changed
+- Confirmed committed and pushed to MAIN
+- The live link, and whether the deploy finished
 
-**Two separate TypeScript projects sharing one repo**: `tsconfig.json` builds only `server/src/**` (NodeNext modules, emits to `server/dist`); the client is built by Vite directly from `client/src` (not driven by `tsconfig.json`). Don't assume a single shared TS config.
+## Hosting
+GitHub repo -> Cloudflare Pages. Pushing to main publishes the site.
+Don't invent new hosting setups. Confirm the live domain in Cloudflare
+rather than guessing before you hand Jason a link.
 
-**Server** (`server/src/`):
-- `index.ts` is the single entry point — it wires session middleware, mounts every router under `/api/*` or `/auth/*`, serves the built client as a SPA fallback, and starts the pg-boss worker + seed jobs on boot. When adding a route, register it here.
-- Session middleware (`connect-pg-simple`, backed by a `user_sessions` table) is applied *only* to `/auth` and `/api`, deliberately excluded from static file serving so a DB hiccup can't 500 the homepage.
-- `middleware/auth.middleware.ts` — `requireAuth` / `optionalAuth` gate routes on `req.session.userId`; almost every campaign-scoped route needs `requireAuth` plus an explicit ownership check (see Security below).
-- `lib/worker.ts` — pg-boss background jobs for async AI image/text generation; talks to Anthropic and EvoLink (a multi-model image gateway — see `EVOLINK_MODEL_MAP`) and writes results back via `GenerationJob`/`Asset` rows.
-- `lib/crypto.ts` — AES-256-GCM encrypt/decrypt for `ApiCredential.encryptedKey`, keyed by `ENCRYPTION_KEY` (32-byte hex env var). Never store provider API keys unencrypted.
-- `lib/pricing.ts` — converts internal "credits" to USD for the per-user soft spending cap (`UserPreference.softCapPerCall`).
-- `lib/assertStaticRoutesFirst.ts` — call `assertStaticRoutesFirst`/`assertNoStaticAfterDynamic` at the bottom of any router that mixes static paths (e.g. `/active`, `/search`) with a dynamic `/:id`-style wildcard at the same level. Express resolves routes in declaration order, so a static path declared after the wildcard is silently shadowed; these assertions fail fast at server boot instead of at request time. Follow this pattern for any new router with that shape.
-- `lib/storage.ts` — Cloudflare R2 over the S3 API. Requires all four `R2_*` env vars at boot; a failed first init latches for the process lifetime.
-- The container is a **singleton** (`max_instances: 1`, fixed instance id in `src/worker.ts`) on purpose: SSE job updates (`lib/worker.ts` `sseClients`) and the login rate limiter (`lib/rate-limit.ts`) live in process memory. Don't scale instances without replacing those.
+## Known environment quirks
+The bash sandbox may block outbound requests to the live site. That is
+normal and not a failure — note it and move on. Jason checks the site
+in his own browser.
 
-**Data model** (`server/prisma/schema.prisma`): everything is scoped under `Campaign` (owned by a `User`, tied to a `SystemTemplate` which defines the game system's stat-block schema/difficulty model/currency). Most entity models (`NPC`, `Location`, `Item`, `Faction`, `Encounter`, `PlotThread`, `Enemy`, `Party`, `GameSession`, ...) follow the same shape: `campaignId` FK with `onDelete: Cascade`, `tags`/`customFields`/`dmOnlyNotes`, soft delete via `deletedAt`, and a manual `sortOrder`. When adding a new campaign-scoped entity, mirror this shape rather than inventing a new one.
-
-**Client** (`client/src/`):
-- Routing is centralized in `App.tsx` (react-router). All authenticated pages sit under one pathless layout route wrapped in `RequireAuth` + `AppShell`, keyed off `GET /auth/me`. Public routes (`/`, `/login`, `/signup`, `/onboarding`, `/friends`, `/safety-submit/:token`) are listed explicitly above that boundary — check this table before adding a new page to know whether it needs auth.
-- `lib/api.ts` — shared axios instance (`withCredentials: true` for the session cookie) with a global 401 interceptor that redirects to `/login`, excluding auth probes and already-public pages.
-- State: TanStack Query for server data, a small Zustand store (`store/useUIStore.ts`) for local UI state (theme, motion prefs) applied to `document.documentElement` via `data-*` attributes.
-- Components are organized by domain under `components/` (`dnd5e`, `dw`, `entity`, `generate`, `map`, `session`, `session-zero`, `layout`, `ui`), mirrored by `pages/` for route-level containers.
-
-## Security-sensitive conventions
-
-See `threat_model.md` for the full threat model; the scan anchors listed there (`index.ts`, `generate.routes.ts`, `auth.routes.ts`, `friends.routes.ts`, `campaigns.routes.ts`, `entities.routes.ts`, `sessions.routes.ts`, `assets.routes.ts`, `crypto.ts`, `wrangler.jsonc`) are the files to check first when reasoning about attack surface.
-
-- Every campaign-scoped route must verify the requesting user owns the `campaignId` (or resource's parent campaign) before reading/mutating — broken access control / IDOR across campaign identifiers is the top-priority threat class here.
-- Any data assembled into an AI prompt (`generate.routes.ts`, `lib/worker.ts`) must only include content the requesting user is authorized to see — cross-tenant data leakage through prompt construction is explicitly in scope.
-- `SESSION_SECRET` and `ENCRYPTION_KEY` are required in production (`index.ts` throws on boot if `SESSION_SECRET` is missing when `NODE_ENV=production`); don't add fallback defaults that would work in production. `NODE_ENV=production` must be set explicitly on the host — it is the only production gate (the Worker sets it in the container's env vars).
-- Auth/brute-force-sensitive endpoints (login, friends login) go through `lib/rate-limit.ts`'s in-memory limiter, keyed on `req.ip` (trusted via `trust proxy`, not raw headers).
+## Voice
+Dramatic, irreverent, specific. Never soft, never generic,
+never corporate.
